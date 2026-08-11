@@ -14,6 +14,7 @@ STOW_PKGS=(
     "waypaper"
     "gtk"
     "swayimg"
+    "zigoku"
     "bin"
     "agents"
     "webapps"
@@ -30,6 +31,7 @@ fi
 mkdir -p "$HOME/.config" \
          "$HOME/.local/bin" \
          "$HOME/.local/share/applications/icons" \
+         "$HOME/Pictures/Wallpapers" \
          "$HOME/.agents/skills/system-personalization/references"
 
 # Check and backup existing real files/directories that would conflict with stow
@@ -62,6 +64,7 @@ check_and_backup "$HOME/.config/gtk-3.0"
 check_and_backup "$HOME/.config/gtk-4.0"
 check_and_backup "$HOME/.config/nwg-look"
 check_and_backup "$HOME/.config/swayimg"
+check_and_backup "$HOME/.config/zigoku"
 
 # Check binary scripts
 for script in anime-lid-charging cachy-webapp-install cachy-webapp-remove dolphin-key-helper fastfetch-custom hypr-kbd-brightness hypr-quicklook hypr-toggle-altwin hypr-window-pop mac-key-helper; do
