@@ -150,3 +150,26 @@ A dated log of all package changes, configurations, script modifications, and ha
 - Remapped Noctalia Settings toggle to `SUPER + ,` (`noctalia msg settings-toggle`).
 - Updated keybindings reference sheet in `references/keybindings.md`.
 
+---
+
+## 2026-08-10 — Automated Dotfiles Repository & GNU Stow Setup
+
+### Changes
+- Installed `stow` and created the `~/dotfiles` Git repository for automated machine provisioning.
+- Modularized configurations into Stow package groups:
+  - `hypr`: `~/.config/hypr/` (modular Lua configs + portable monitor fallback)
+  - `noctalia`: `~/.config/noctalia/` (shell panels & widgets)
+  - `kitty`: `~/.config/kitty/`
+  - `alacritty`: `~/.config/alacritty/`
+  - `fish`: `~/.config/fish/config.fish`
+  - `btop`: `~/.config/btop/`
+  - `waypaper`: `~/.config/waypaper/`
+  - `gtk`: `~/.config/gtk-3.0/`, `~/.config/gtk-4.0/`, `~/.config/nwg-look/`
+  - `swayimg`: `~/.config/swayimg/`
+  - `bin`: `~/.local/bin/` (`mac-key-helper`, `hypr-window-pop`, `hypr-toggle-altwin`, `fastfetch-custom`, etc.)
+  - `agents`: `~/.agents/` (system personalization intelligence and documentation)
+- Built automated 1-command installer `install.sh` and modular provisioning scripts (`scripts/01-packages.sh`, `scripts/02-stow.sh`, `scripts/03-services.sh`, `scripts/04-shell.sh`).
+- Created safe backup system in `02-stow.sh` to prevent conflict errors when stowing on existing configurations.
+- Exported explicit official/CachyOS package snapshot to `packages/pacman-packages.txt`.
+
+
