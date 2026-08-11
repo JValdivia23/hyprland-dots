@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+DOTFILES_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
+
+STOW_PKGS=(
+    "hypr"
+    "noctalia"
+    "kitty"
+    "alacritty"
+    "fish"
+    "btop"
+    "waypaper"
+    "gtk"
+    "swayimg"
+    "bin"
+    "agents"
+)
+
+echo "==> [2/4] Deploying dotfiles with GNU Stow..."
+
+if ! command -v stow &>/dev/null; then
+    echo "Error: stow is not installed." >&2
+    exit 1
+fi
+
+# Ensure base target directories exist
+mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.agents/skills/system-personalization/references"
+
+# Check and backup existing real files/directories that would conflict with stow
+backup_needed=false
+
+check_and_backup() {
+    local target="$1"
+    if [ -e "$target" ] && [ ! -L "$target" ]; then
+        if [ "$backup_needed" = false ]; then
+            echo "--> Backing up existing non-symlink configs to $BACKUP_DIR..."
+            mkdir -p "$BACKUP_DIR"
+            backup_needed=true
+        fi
+        local rel_path="${target#$HOME/}"
+        mkdir -p "$BACKUP_DIR/$(dirname "$rel_path")"
+        mv "$target" "$BACKUP_DIR/$rel_path"
+        echo "    Backed up: ~/$rel_path"
+    fi
+}
+
+# Check all target config paths
+check_and_backup "$HOME/.config/hypr"
+check_and_backup "$HOME/.config/noctalia"
+check_and_backup "$HOME/.config/kitty"
+check_and_backup "$HOME/.config/alacritty"
+check_and_backup "$HOME/.config/fish/config.fish"
+check_and_backup "$HOME/.config/btop"
+check_and_backup "$HOME/.config/waypaper"
+check_and_backup "$HOME/.config/gtk-3.0"
+check_and_backup "$HOME/.config/gtk-4.0"
+check_and_backup "$HOME/.config/nwg-look"
+check_and_backup "$HOME/.config/swayimg"
+
+# Check binary scripts
+for script in anime-lid-charging cachy-webapp-install cachy-webapp-remove dolphin-key-helper fastfetch-custom hypr-kbd-brightness hypr-quicklook hypr-toggle-altwin hypr-window-pop mac-key-helper; do
+    check_and_backup "$HOME/.local/bin/$script"
+done
+
+# Check agent skill documentation files
+check_and_backup "$HOME/.agents/skills/system-personalization/SKILL.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/changelog.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/config-paths.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/current-state.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/hardware.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/keybindings.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/scripts/snapshot.sh"
+check_and_backup "$HOME/.agents/skills/system-personalization/templates/change-entry.md"
+
+# Stow all modules
+echo "--> Stowing configuration packages to $HOME..."
+cd "$DOTFILES_DIR"
+for pkg in "${STOW_PKGS[@]}"; do
+    if [ -d "$DOTFILES_DIR/$pkg" ]; then
+        stow -v -R -d "$DOTFILES_DIR" -t "$HOME" "$pkg"
+    fi
+done
+
+echo "==> GNU Stow deployment complete."

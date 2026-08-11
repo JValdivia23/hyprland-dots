@@ -1,0 +1,24 @@
+# Backups and temporary files
+.dotfiles_backup_*
+*.bak
+*.old
+*.swp
+*~
+*.log
+
+# Sensitive credentials and keys
+*.key
+*.pem
+*.pub
+id_rsa*
+id_ed25519*
+
+# Python & Node caches
+__pycache__/
+*.pyc
+node_modules/
+.venv/
+
+# Large offline documentation git mirrors (if linked in agents)
+references/cachyos-wiki/
+references/noctalia-docs/
