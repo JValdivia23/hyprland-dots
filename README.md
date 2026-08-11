@@ -83,6 +83,8 @@ stow -v -R -t ~ hypr
 | **`Alt + Left / Right`** | Word Jump | Jump word backward / forward |
 | **`PrintScreen`** | Screenshot | Fullscreen snip to Satty |
 | **`Super + Shift + 4`** | Snip Tool | Interactive area screenshot |
+| **`Alt + Space`** | Wallpaper App | Launches Waypaper graphical wallpaper selector |
+| **`Super + Shift + W`** | Wallpaper Panel | Opens Noctalia interactive wallpaper gallery |
 | **`Super + Escape`** | Power Menu | Opens Noctalia session and power menu |
 
 ---
