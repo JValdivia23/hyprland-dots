@@ -45,6 +45,7 @@ cd ~/dotfiles
 ├── gtk/                        # ~/.config/gtk-3.0, gtk-4.0, nwg-look (GTK styling)
 ├── swayimg/                    # ~/.config/swayimg/ (Image viewer)
 ├── bin/                        # ~/.local/bin/ (Custom helper scripts)
+├── webapps/                    # ~/.local/share/applications/ (Web apps & custom icons)
 └── agents/                     # ~/.agents/ (System personalization & AI documentation)
 ```
 
@@ -57,7 +58,8 @@ To apply or update symlinks individually:
 ```bash
 # Stow all modules
 cd ~/dotfiles
-stow -v -R -t ~ hypr noctalia kitty alacritty fish btop waypaper gtk swayimg bin agents
+stow -v -R -t ~ hypr noctalia kitty alacritty fish btop waypaper gtk swayimg bin webapps agents
+
 
 # Stow a specific module (e.g. hyprland)
 stow -v -R -t ~ hypr

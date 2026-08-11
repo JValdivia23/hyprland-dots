@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Name=Hanime
+Comment=Hanime Diagnostic Container Web App
+Exec=brave-origin --user-data-dir=/home/user/.config/brave-webapps/containers/diagnostics --new-window --ozone-platform=wayland --app="https://hanime.tv/" --name="Hanime" --class="Hanime"
+Terminal=false
+Type=Application
+Icon=/home/user/.local/share/applications/icons/Hanime.png
+StartupNotify=true

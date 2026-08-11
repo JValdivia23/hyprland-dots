@@ -1,0 +1,12 @@
+[Desktop Entry]
+Version=1.0
+Name=AniMatrix Studio
+GenericName=AniMe Matrix Control Center
+Comment=Versatile ROG AniMe Matrix GUI interface for clock, scroller, stats & image display
+Exec=/home/user/Projects/animatrix-gui/run.sh
+Icon=/home/user/.local/share/applications/icons/AniMatrix.png
+Terminal=false
+Type=Application
+Categories=Utility;Settings;HardwareSettings;
+StartupNotify=true
+StartupWMClass=AniMatrix Studio

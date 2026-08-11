@@ -58,6 +58,9 @@ This repository uses **GNU Stow** to manage symlinks from package directories di
 │   └── .local/bin/             # Custom executable helper scripts:
 │                               # mac-key-helper, hypr-window-pop, hypr-toggle-altwin, etc.
 │
+├── webapps/                    # Stow package -> ~/.local/share/applications/
+│   └── .local/share/applications/ # Webapp .desktop launchers & high-res icons (YouTube, AllAnime, AniMatrix, etc.)
+│
 └── agents/                     # Stow package -> ~/.agents/
     └── .agents/skills/system-personalization/
         ├── SKILL.md            # System tracking skill definition

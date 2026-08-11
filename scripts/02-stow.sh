@@ -16,6 +16,7 @@ STOW_PKGS=(
     "swayimg"
     "bin"
     "agents"
+    "webapps"
 )
 
 echo "==> [2/4] Deploying dotfiles with GNU Stow..."
@@ -26,7 +27,10 @@ if ! command -v stow &>/dev/null; then
 fi
 
 # Ensure base target directories exist
-mkdir -p "$HOME/.config" "$HOME/.local/bin" "$HOME/.agents/skills/system-personalization/references"
+mkdir -p "$HOME/.config" \
+         "$HOME/.local/bin" \
+         "$HOME/.local/share/applications/icons" \
+         "$HOME/.agents/skills/system-personalization/references"
 
 # Check and backup existing real files/directories that would conflict with stow
 backup_needed=false
@@ -75,6 +79,13 @@ check_and_backup "$HOME/.agents/skills/system-personalization/references/keybind
 check_and_backup "$HOME/.agents/skills/system-personalization/scripts/snapshot.sh"
 check_and_backup "$HOME/.agents/skills/system-personalization/templates/change-entry.md"
 
+# Check webapps desktop entries & icons
+for app in AllAnime AniMatrix Hanime PH YouTube; do
+    check_and_backup "$HOME/.local/share/applications/$app.desktop"
+    check_and_backup "$HOME/.local/share/applications/icons/$app.png"
+done
+check_and_backup "$HOME/.local/share/applications/icons/Phub.png"
+
 # Stow all modules
 echo "--> Stowing configuration packages to $HOME..."
 cd "$DOTFILES_DIR"
@@ -83,5 +94,10 @@ for pkg in "${STOW_PKGS[@]}"; do
         stow -v -R -d "$DOTFILES_DIR" -t "$HOME" "$pkg"
     fi
 done
+
+# Update desktop application database
+if command -v update-desktop-database &>/dev/null; then
+    update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
 
 echo "==> GNU Stow deployment complete."
