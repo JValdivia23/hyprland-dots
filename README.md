@@ -9,7 +9,7 @@ Automated dotfiles and environment provisioning for **CachyOS / Arch Linux** fea
 On a fresh CachyOS or Arch Linux installation, run:
 
 ```bash
-git clone https://github.com/<YOUR-USERNAME>/dotfiles.git ~/dotfiles
+git clone https://github.com/JValdivia23/hyprland-dots.git ~/dotfiles
 cd ~/dotfiles
 ./install.sh
 ```
