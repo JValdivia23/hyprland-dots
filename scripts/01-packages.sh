@@ -11,12 +11,35 @@ if ! command -v pacman &>/dev/null; then
     exit 1
 fi
 
+# Enable multilib in /etc/pacman.conf if commented out
+if grep -q "^#\[multilib\]" /etc/pacman.conf; then
+    echo "--> Enabling [multilib] repository in /etc/pacman.conf..."
+    sudo sed -i "/\[multilib\]/,/Include/"'s/^#//' /etc/pacman.conf 2>/dev/null || true
+    sudo pacman -Sy --noconfirm 2>/dev/null || true
+fi
+
+# Always ensure stow is installed first
+echo "--> Ensuring GNU Stow is installed..."
+sudo pacman -S --needed --noconfirm stow
+
 if [ -f "$PACKAGES_FILE" ]; then
-    echo "--> Installing explicitly defined packages from $PACKAGES_FILE..."
-    sudo pacman -S --needed --noconfirm stow - < "$PACKAGES_FILE"
-else
-    echo "--> Installing core stow package..."
-    sudo pacman -S --needed --noconfirm stow
+    echo "--> Installing desktop and system packages from $PACKAGES_FILE..."
+    # Read packages and filter out empty lines or comments
+    packages=()
+    while IFS= read -r line; do
+        [[ -z "$line" || "$line" =~ ^# ]] && continue
+        packages+=("$line")
+    done < "$PACKAGES_FILE"
+
+    if [ ${#packages[@]} -gt 0 ]; then
+        sudo pacman -S --needed --noconfirm "${packages[@]}" || {
+            echo "Warning: Some packages could not be installed in one batch. Trying individual packages..."
+            for pkg in "${packages[@]}"; do
+                sudo pacman -S --needed --noconfirm "$pkg" 2>/dev/null || echo "  [Skip] Package '$pkg' not found in active repositories."
+            done
+        }
+    fi
 fi
 
 echo "==> Packages installation complete."
+
