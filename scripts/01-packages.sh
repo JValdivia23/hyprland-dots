@@ -11,6 +11,11 @@ if ! command -v pacman &>/dev/null; then
     exit 1
 fi
 
+# Ensure pacman sandbox allows network hooks (e.g. in containers or custom setups)
+if ! grep -q "DisableSandboxNetwork" /etc/pacman.conf; then
+    sudo sed -i '/\[options\]/a DisableSandboxNetwork' /etc/pacman.conf 2>/dev/null || true
+fi
+
 # Enable multilib in /etc/pacman.conf if commented out
 if grep -q "^#\[multilib\]" /etc/pacman.conf; then
     echo "--> Enabling [multilib] repository in /etc/pacman.conf..."
