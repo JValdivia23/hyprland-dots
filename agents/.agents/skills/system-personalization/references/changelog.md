@@ -168,8 +168,12 @@ A dated log of all package changes, configurations, script modifications, and ha
   - `swayimg`: `~/.config/swayimg/`
   - `bin`: `~/.local/bin/` (`mac-key-helper`, `hypr-window-pop`, `hypr-toggle-altwin`, `fastfetch-custom`, etc.)
   - `agents`: `~/.agents/` (system personalization intelligence and documentation)
+  - `webapps`: `~/.local/share/applications/` (custom .desktop launchers and high-res icons)
+  - `zigoku`: `~/.config/zigoku/` (anime client configuration)
 - Built automated 1-command installer `install.sh` and modular provisioning scripts (`scripts/01-packages.sh`, `scripts/02-stow.sh`, `scripts/03-services.sh`, `scripts/04-shell.sh`).
 - Created safe backup system in `02-stow.sh` to prevent conflict errors when stowing on existing configurations.
 - Exported explicit official/CachyOS package snapshot to `packages/pacman-packages.txt`.
+- Published repository to GitHub as [`JValdivia23/hyprland-dots`](https://github.com/JValdivia23/hyprland-dots).
+
 
 
