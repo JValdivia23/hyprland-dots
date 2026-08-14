@@ -6,6 +6,7 @@ BACKUP_DIR="$HOME/.dotfiles_backup_$(date +%Y%m%d_%H%M%S)"
 
 STOW_PKGS=(
     "hypr"
+    "niri"
     "noctalia"
     "kitty"
     "alacritty"
@@ -63,6 +64,7 @@ check_and_backup "$HOME/.config/waypaper"
 check_and_backup "$HOME/.config/gtk-3.0"
 check_and_backup "$HOME/.config/gtk-4.0"
 check_and_backup "$HOME/.config/nwg-look"
+check_and_backup "$HOME/.config/niri/cfg/keybinds.kdl"
 check_and_backup "$HOME/.config/swayimg"
 check_and_backup "$HOME/.config/zigoku"
 
