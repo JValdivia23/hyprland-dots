@@ -2,6 +2,13 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware upgrades.
 
+## [1.16.0] - 2026-08-13
+### Added
+- Added multi-compositor support for **Niri** in `hyprland-dots` dotfiles repository:
+  - Created `niri/.config/niri/cfg/keybinds.kdl` linking **`Alt + Space`** to toggle Noctalia's wallpaper selector (`qs -c noctalia-shell ipc call wallpaper toggle || waypaper`).
+  - Added `niri` to `STOW_PKGS` in `scripts/02-stow.sh` for automatic deployment and conflict backups.
+- Successfully deployed and validated `hyprland-dots` on remote MacBook Pro running CachyOS Niri (`10.0.0.2`).
+
 ## [1.15.0] - 2026-08-10
 ### Added
 - Configured Hyprland `cursor` settings in [`~/.config/hypr/config/inputs.lua`](file:///home/user/.config/hypr/config/inputs.lua):
