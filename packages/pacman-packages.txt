@@ -16,6 +16,7 @@ bluez-libs
 bluez-obex
 bluez-utils
 brave-origin-bin
+brightnessctl
 btop
 btrfs-assistant
 btrfs-progs
@@ -59,6 +60,7 @@ f2fs-tools
 fastfetch
 ffmpegthumbnailer
 firefox
+fish
 fsarchiver
 git
 glances
@@ -72,10 +74,14 @@ hwdetect
 hwinfo
 hyprland
 hyprpaper
+hyprpicker
 inetutils
 iwd
 jfsutils
+jq
 kitty
+lazydocker
+lazygit
 less
 lib32-nvidia-utils
 lib32-opencl-nvidia
@@ -112,6 +118,7 @@ mpv
 mtools
 nano
 nano-syntax-highlighting
+neovim
 netctl
 networkmanager
 networkmanager-openvpn
@@ -141,12 +148,14 @@ pv
 python
 python-defusedxml
 python-packaging
+python-pillow
 realtime-privileges
 rebuild-detector
 reflector
 ripgrep
 rog-control-center
 rsync
+satty
 sddm
 sg3_utils
 shelly
@@ -182,9 +191,11 @@ waypaper
 wget
 which
 wireplumber
+wl-clipboard
 wpa_supplicant
 xdg-user-dirs
 xf86-video-amdgpu
 xfsprogs
 xl2tpd
+yazi
 zen-browser-bin

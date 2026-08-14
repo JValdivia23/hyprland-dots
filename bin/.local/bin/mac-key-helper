@@ -19,132 +19,132 @@ action="$1"
 
 case "$action" in
     line-home)
-        hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "", key = "Home", window = "activewindow" })'
+        hyprctl dispatch sendshortcut ",Home,activewindow"
         ;;
     line-end)
-        hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "", key = "End", window = "activewindow" })'
+        hyprctl dispatch sendshortcut ",End,activewindow"
         ;;
     copy)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "C", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL SHIFT,C,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "C", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,C,activewindow"
         fi
         ;;
     cut)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "C", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL SHIFT,C,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "X", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,X,activewindow"
         fi
         ;;
     paste)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "Insert", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "SHIFT,Insert,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "V", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,V,activewindow"
         fi
         ;;
     undo)
         if [ "$is_terminal" -eq 0 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "Z", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,Z,activewindow"
         fi
         ;;
     redo)
         if [ "$is_terminal" -eq 0 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Z", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL SHIFT,Z,activewindow"
         fi
         ;;
     word-backspace)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "ALT", key = "BackSpace", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "ALT,BackSpace,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "BackSpace", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,BackSpace,activewindow"
         fi
         ;;
     line-backspace)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "U", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,U,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = "activewindow" })'
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "", key = "BackSpace", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "SHIFT,Home,activewindow"
+            hyprctl dispatch sendshortcut ",BackSpace,activewindow"
         fi
         ;;
     word-left)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "ALT", key = "Left", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "ALT,Left,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "Left", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,Left,activewindow"
         fi
         ;;
     word-right)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "ALT", key = "Right", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "ALT,Right,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "Right", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,Right,activewindow"
         fi
         ;;
     word-select-left)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "ALT, SHIFT", key = "Left", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "ALT SHIFT,Left,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Left", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL SHIFT,Left,activewindow"
         fi
         ;;
     word-select-right)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "ALT, SHIFT", key = "Right", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "ALT SHIFT,Right,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Right", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL SHIFT,Right,activewindow"
         fi
         ;;
     doc-home)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "", key = "Home", window = "activewindow" })'
+            hyprctl dispatch sendshortcut ",Home,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "Home", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,Home,activewindow"
         fi
         ;;
     doc-end)
         if [ "$is_terminal" -eq 1 ]; then
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "", key = "End", window = "activewindow" })'
+            hyprctl dispatch sendshortcut ",End,activewindow"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL", key = "End", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "CTRL,End,activewindow"
         fi
         ;;
     select-line-left)
         if [ "$floating" = "true" ]; then
-            hyprctl dispatch 'hl.dsp.exec_raw("resizeactive", "-20 0")'
+            hyprctl dispatch resizeactive "-20 0"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "SHIFT,Home,activewindow"
         fi
         ;;
     select-line-right)
         if [ "$floating" = "true" ]; then
-            hyprctl dispatch 'hl.dsp.exec_raw("resizeactive", "20 0")'
+            hyprctl dispatch resizeactive "20 0"
         else
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "End", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "SHIFT,End,activewindow"
         fi
         ;;
     select-doc-up)
         if [ "$floating" = "true" ]; then
-            hyprctl dispatch 'hl.dsp.exec_raw("resizeactive", "0 -20")'
+            hyprctl dispatch resizeactive "0 -20"
         else
             if [ "$is_terminal" -eq 1 ]; then
-                hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = "activewindow" })'
+                hyprctl dispatch sendshortcut "SHIFT,Home,activewindow"
             else
-                hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Home", window = "activewindow" })'
+                hyprctl dispatch sendshortcut "CTRL SHIFT,Home,activewindow"
             fi
         fi
         ;;
     select-doc-down)
         if [ "$floating" = "true" ]; then
-            hyprctl dispatch 'hl.dsp.exec_raw("resizeactive", "0 20")'
+            hyprctl dispatch resizeactive "0 20"
         else
             if [ "$is_terminal" -eq 1 ]; then
-                hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "End", window = "activewindow" })'
+                hyprctl dispatch sendshortcut "SHIFT,End,activewindow"
             else
-                hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "End", window = "activewindow" })'
+                hyprctl dispatch sendshortcut "CTRL SHIFT,End,activewindow"
             fi
         fi
         ;;

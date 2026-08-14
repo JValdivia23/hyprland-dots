@@ -100,9 +100,21 @@ for pkg in "${STOW_PKGS[@]}"; do
     fi
 done
 
-# Update desktop application database
+# Link custom icons to ~/.local/share/icons for universal XDG icon lookup
+mkdir -p "$HOME/.local/share/icons"
+for icon in "$DOTFILES_DIR"/webapps/.local/share/applications/icons/*.png; do
+    if [ -f "$icon" ]; then
+        ln -sf "$icon" "$HOME/.local/share/icons/$(basename "$icon")" 2>/dev/null || true
+    fi
+done
+
+# Update desktop application and icon database
 if command -v update-desktop-database &>/dev/null; then
     update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+fi
+
+if command -v gtk-update-icon-cache &>/dev/null; then
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
 fi
 
 echo "==> GNU Stow deployment complete."

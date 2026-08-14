@@ -15,7 +15,7 @@ if [ "$class" = "org.kde.dolphin" ]; then
             fi
             ;;
         contextmenu)
-            hyprctl dispatch 'hl.dsp.send_shortcut({ mods = "SHIFT", key = "F10", window = "activewindow" })'
+            hyprctl dispatch sendshortcut "SHIFT,F10,activewindow"
             ;;
     esac
 fi

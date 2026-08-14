@@ -6,12 +6,11 @@ function fish_greeting
 end
 
 # opencode
-fish_add_path /home/user/.opencode/bin
-
+fish_add_path "$HOME/.opencode/bin"
 
 # Environment variables
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 
-# Added by Antigravity CLI installer
-set -gx PATH "/home/user/.local/bin" $PATH
+# Local bin path
+fish_add_path "$HOME/.local/bin"

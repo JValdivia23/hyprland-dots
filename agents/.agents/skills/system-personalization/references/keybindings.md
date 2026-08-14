@@ -8,7 +8,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 
 | Shortcut | Action | Description |
 |----------|--------|-------------|
-| `SUPER` + `Escape` | `hyprctl kill` | Force close window (interactive cursor click) |
+| `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `Q` / `W` | Close Window | Close the focused window |
 | `SUPER` + `T` | Toggle Floating | Toggle floating/tiling state of active window |
 | `SUPER` + `D` | Fullscreen Mode 1 | Fullscreen window keeping workspace bar |
@@ -47,7 +47,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 |----------|--------|-------------|
 | `SUPER` + `Space` | Launcher | Toggle Noctalia Application Launcher |
 | `SUPER` + `A` | Notifications | Toggle Notifications panel |
-| `SUPER` + `L` | Lock Screen | Lock screen session |
+| `SUPER` + `L` | Lock Session | Lock screen session |
 | `SUPER` + `E` | Control Center | Toggle Noctalia Control Center |
 | `SUPER` + `,` | Noctalia Settings | Toggle Noctalia Settings menu |
 | `SUPER` + `CONTROL` + `V` | Clipboard | Toggle Clipboard history panel |
@@ -55,7 +55,6 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `K` | Dynamic Cheat Sheet | Open searchable, floating keybindings cheat sheet |
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `ALT` + `C` | Force-Kill Window | Turn cursor into crosshair to click & kill any window |
-| `SUPER` + `L` | Lock Session | Lock screen session |
 | `SUPER` + `SHIFT` + `L` / `XF86Sleep` | Lock & Suspend | Lock screen and put system to sleep / suspend |
 | `SUPER` + `SHIFT` + `P` | Color Picker | Launch `hyprpicker -a` (click to copy hex) |
 | `Print` / `SUPER` + `SHIFT` + `S` | Region Screenshot | Select region screenshot with annotation editor (Satty) |

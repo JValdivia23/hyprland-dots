@@ -2,8 +2,8 @@
 Version=1.0
 Name=PH
 Comment=PH Diagnostic Container Web App
-Exec=brave-origin --user-data-dir=/home/user/.config/brave-webapps/containers/diagnostics --new-window --ozone-platform=wayland --app="https://www.pornhub.com/" --name="PH" --class="PH"
+Exec=sh -c 'brave-origin --user-data-dir="$HOME/.config/brave-webapps/containers/diagnostics" --new-window --ozone-platform=wayland --app="https://www.pornhub.com/" --name="PH" --class="PH"'
 Terminal=false
 Type=Application
-Icon=/home/user/.local/share/applications/icons/Phub.png
+Icon=Phub
 StartupNotify=true

@@ -5,5 +5,5 @@ Comment=AllAnime Web App
 Exec=brave-origin --new-window --ozone-platform=wayland --app="https://allmanga.to/anime" --name="AllAnime" --class="AllAnime"
 Terminal=false
 Type=Application
-Icon=/home/user/.local/share/applications/icons/AllAnime.png
+Icon=AllAnime
 StartupNotify=true

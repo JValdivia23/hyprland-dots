@@ -79,7 +79,7 @@ settings_show_advanced = true
 gpu_poll_seconds = 2
 
 [wallpaper]
-directory = "/home/user/Pictures/Wallpapers"
+directory = "~/Pictures/Wallpapers"
 
 [wallpaper.automation]
 enabled          = true

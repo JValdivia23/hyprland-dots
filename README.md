@@ -100,7 +100,7 @@ stow -v -R -t ~ hypr
 ### Window Management & Pop-outs
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
-| **`Super + O`** | Window Pop-out | Floats, centers (1300x900), and pins active window |
+| **`Super + O`** | Window Pop-out | Floats, centers (1100x700), and pins active window |
 | **`Super + Shift + O`** | PiP Pop-out | Floats small Picture-in-Picture window |
 | **`Alt + Enter`** | Quick Look | macOS-style floating file preview over Dolphin |
 | **`Super + T`** | Toggle Float | Toggles active window floating mode |

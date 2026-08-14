@@ -19,16 +19,16 @@ floating=$(echo "$active" | jq ".floating")
 
 if [[ $pinned == "true" ]]; then
   # Window is pinned -> unpin it and unfloat back to tiled
-  hyprctl dispatch 'hl.dsp.window.pin({ action = "toggle" })'
-  hyprctl dispatch 'hl.dsp.window.float({ action = "toggle" })'
+  hyprctl dispatch pin
+  hyprctl dispatch togglefloating
 elif [[ $floating == "true" ]]; then
   # Already floating but not pinned -> just pin it
-  hyprctl dispatch 'hl.dsp.window.pin({ action = "toggle" })'
+  hyprctl dispatch pin
 else
-  # Tiled window -> float, resize using native Lua API, center, pin
-  hyprctl dispatch 'hl.dsp.window.float({ action = "toggle" })'
-  hyprctl dispatch 'hl.dsp.window.resize({ x = '"$width"', y = '"$height"', exact = true })'
-  hyprctl dispatch 'hl.dsp.window.center()'
-  hyprctl dispatch 'hl.dsp.window.pin({ action = "toggle" })'
-  hyprctl dispatch 'hl.dsp.exec_raw("alterzorder", "top")'
+  # Tiled window -> float, resize, center, pin, and bring to top
+  hyprctl dispatch togglefloating
+  hyprctl dispatch resizewindowpixel "exact ${width} ${height},activewindow"
+  hyprctl dispatch centerwindow
+  hyprctl dispatch pin
+  hyprctl dispatch alterzorder top
 fi

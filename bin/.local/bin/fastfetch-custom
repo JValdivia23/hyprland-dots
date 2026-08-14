@@ -45,7 +45,9 @@ def main():
             return val.split(' in ')[0]
         return val
 
-    user_host = "user@cachy-asus"
+    import getpass, socket
+    current_user = getpass.getuser()
+    current_host = socket.gethostname()
 
     top_left_data = [
         ("OS", data.get("OS", "")),
@@ -69,7 +71,7 @@ def main():
         (("Local IP", data.get('Local IP (wlan0)', '')), ("Locale", data.get('Locale', '')))
     ]
 
-    print(f"{C_GREEN}user{C_RESET}@{C_GREEN}cachy-asus{C_RESET}")
+    print(f"{C_GREEN}{current_user}{C_RESET}@{C_GREEN}{current_host}{C_RESET}")
     print(f"{C_CYAN}" + "─" * 74 + f"{C_RESET}")
 
     max_top_width = max(len(f"{k}: {v}") for k, v in top_left_data)
