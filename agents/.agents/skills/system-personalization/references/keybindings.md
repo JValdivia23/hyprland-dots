@@ -1,6 +1,6 @@
 # Keyboard Shortcuts (Keybindings)
 
-A reference sheet of keyboard bindings on `cachy-asus`. All bindings are defined in `~/.config/hypr/config/binds.lua`.
+A reference sheet of keyboard bindings on `cachyos-cu`. All bindings are defined in `~/.config/hypr/config/binds.lua`.
 
 The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 
@@ -92,10 +92,11 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `XF86AudioPlay` / `Pause` | `noctalia msg media toggle` | Play/Pause audio playback |
 | `XF86AudioNext` | `noctalia msg media next` | Next audio track |
 | `XF86AudioPrev` | `noctalia msg media previous` | Previous audio track |
-| `XF86MonBrightnessUp` | `noctalia msg brightness-up` | Increase screen brightness (5%) |
-| `XF86MonBrightnessDown` | `noctalia msg brightness-down` | Decrease screen brightness (5%) |
-| `SHIFT` + `XF86MonBrightnessUp` / `Down` | Fine Brightness | Fine-tune screen brightness in 1% steps |
-| `CONTROL` + `XF86MonBrightnessUp` / `Down` | Coarse Brightness | Coarse-tune screen brightness in 10% steps |
+| `XF86MonBrightnessUp` | `brightnessctl -d gmux_backlight set +5%` | Increase screen brightness (5%) |
+| `XF86MonBrightnessDown` | `brightnessctl -d gmux_backlight set 5%-` | Decrease screen brightness (5%) |
+| `SHIFT` + `XF86MonBrightnessUp` / `Down` | `brightnessctl ... set 1%` | Fine-tune screen brightness in 1% steps |
+| `CONTROL` + `XF86MonBrightnessUp` / `Down` | `brightnessctl ... set 10%` | Coarse-tune screen brightness in 10% steps |
+
 | `XF86KbdBrightnessUp` / `Down` (`Fn` + `Up` / `Down`) | Keyboard Brightness | Adjust keyboard backlight brightness (0-3) with OSD |
 
 ## Workspaces & Monitor Control

@@ -1,33 +1,41 @@
 # Hardware Specifications
 
-Documentation of the physical machine specs and active peripherals.
+Documentation of physical machine specs and active hardware subsystems for `cachyos-cu`.
 
-## CPU & System Architecture
-- **Processor**: AMD Ryzen 9 4900HS (8 Cores, 16 Threads)
-- **Architecture**: x86_64
-- **Base/Boost Clock**: 3.0 GHz / 4.3 GHz
+## Machine & Architecture
+- **System**: Apple MacBook Pro 15,1 (`MacBookPro15,1`, Chassis: Laptop)
+- **Processor**: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz (8 Cores, 16 Threads)
+  - Architecture: x86_64 (Coffee Lake)
+  - Base / Max Clock: 800 MHz / 4800 MHz
+  - Cache: L1 512 KiB, L2 2 MiB, L3 16 MiB
 
-## Graphics Processing Units (GPUs)
-- **Dedicated GPU**: NVIDIA GeForce RTX 2060 Max-Q (6 GB GDDR6)
-  - Driver: proprietary NVIDIA driver (recommended) or open-source nouveau depending on setup
-  - Role: High-performance rendering & external displays
-- **Integrated GPU**: AMD Renoir (Radeon Vega Mobile Series)
+## Graphics Processing Unit (GPU)
+- **Discrete GPU**: AMD Radeon Pro 560X (Baffin / Polaris 11, GCN 4, 4 GB GDDR5)
   - Driver: `amdgpu` (open-source kernel module)
-  - Role: Low-power display rendering (eDP-1) and energy saving
+  - Bus ID: `01:00.0` (PCIe 8 GT/s x8)
+  - Display Engine: Wayland / Hyprland direct rendering on `eDP-1`
 
 ## Memory & Storage
-- **System Memory (RAM)**: 22 GiB
-- **Primary Disk**: NVMe SSD (Partition `/dev/nvme0n1p7` mounted on `/` and `/home` with 232 GB total size)
+- **System Memory (RAM)**: 16 GiB (15.5 GiB available)
+- **Swap**: 15.5 GiB zram (`/dev/zram0`, priority 100)
+- **Internal Storage**: Apple NVMe SSD 512 GB (`AP0512M`)
+  - Linux Root / Home: `/dev/nvme0n1p4` (229 GB Btrfs, subvolumes `@`, `@home`, `@var_log`, etc.)
+  - Boot: `/dev/nvme0n1p3` (4.0 GB vfat, mounted on `/boot`)
+  - macOS Dual Boot: `/dev/nvme0n1p2` (APFS container)
+  - EFI: `/dev/nvme0n1p1` (vfat FAT32)
 
-## Monitors & Display Panel
-- **Panel**: Internal Laptop Display (`eDP-1`)
-  - Make/Model: AU Optronics 0xE68C
-  - Physical Size: 310mm x 170mm (~14 inches)
-  - Native Resolution: 2560 x 1440
-  - Refresh Rate: 60.01 Hz
-  - Scale Factor: 1.33 (fractional scaling)
+## Display Panel
+- **Panel**: Internal Retina Display (`eDP-1`)
+  - Model: Apple Computer Inc Color LCD
+  - Physical Size: 330mm x 210mm (~15.4 inches)
+  - Native Resolution: 2880 x 1800 @ 60.00 Hz (DPI: 221)
+  - Hyprland Scale Factor: `1.3333334`
 
-## Peripherals (Input/Output)
-- **Keyboard**: Built-in laptop keyboard
-- **Pointing Device**: Built-in touchpad
-- **Audio Device**: AMD Renoir Audio Controller / NVIDIA TU106 HDMI Audio Controller (managed via Wireplumber/Pipewire)
+## Apple T2 Security Chip & Subsystems
+- **T2 Bridge Controller**: Apple Inc. T2 Bridge Controller (`apple-bce` driver)
+- **Touch Bar Display**: USB HID display (`appletbdrm` DRM driver, `tiny-dfr.service` for dynamic function keys)
+- **Audio Device**: Apple Audio (`aaudio` kernel driver, managed via PipeWire + WirePlumber)
+- **Wireless Network**: Broadcom BCM4364 802.11ac Wireless Network Adapter (`brcmfmac` driver)
+- **Camera**: Apple FaceTime HD Camera Built-in (`uvcvideo` driver)
+- **Power & Suspend**: Managed via `suspend-fix-t2.service`
+

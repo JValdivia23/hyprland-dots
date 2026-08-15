@@ -14,3 +14,7 @@ set -gx VISUAL nvim
 
 # Local bin path
 fish_add_path "$HOME/.local/bin"
+
+
+# Added by Antigravity CLI installer
+set -gx PATH "/home/java1127/.local/bin" $PATH

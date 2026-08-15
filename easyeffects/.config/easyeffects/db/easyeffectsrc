@@ -1,0 +1,7 @@
+[Presets]
+lastLoadedOutputPreset=mbp
+
+[StreamOutputs]
+mostUsedPresets=mbp
+plugins=filter#0,bass_enhancer#0,multiband_compressor#0,stereo_tools#0,limiter#0,equalizer#0
+usedPresets=mbp:1

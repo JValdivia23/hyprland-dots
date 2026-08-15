@@ -40,9 +40,6 @@ hl.bind(mainMod .. " + ALT + Up",    hl.dsp.exec_cmd("hyprctl dispatch swapwindo
 hl.bind(mainMod .. " + ALT + Down",  hl.dsp.exec_cmd("hyprctl dispatch swapwindow d"))
 
 -- Move active window around workspaces & monitors
-hl.bind(mainMod .. " + SHIFT + 1",                    hl.dsp.window.move({ monitor = MONITOR1 }))
-hl.bind(mainMod .. " + SHIFT + 2",                    hl.dsp.window.move({ monitor = MONITOR2 }))
-hl.bind(mainMod .. " + SHIFT + 3",                    hl.dsp.window.move({ monitor = MONITOR3 }))
 hl.bind(mainMod .. " + SHIFT + mouse_up",             hl.dsp.window.move({ monitor   = "+1" }))
 hl.bind(mainMod .. " + SHIFT + mouse_down",           hl.dsp.window.move({ monitor   = "-1" }))
 hl.bind(mainMod .. " + CONTROL + Right",              hl.dsp.window.move({ workspace = "r+1" }))
@@ -118,7 +115,7 @@ hl.bind("CONTROL + SHIFT + Escape", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. 
 hl.bind(mainMod .. " + comma",      hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
 hl.bind(mainMod .. " + E",          hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
 hl.bind(mainMod .. " + Space",      hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
-hl.bind("ALT + Space",              hl.dsp.exec_cmd("waypaper"))
+hl.bind("ALT + Space",              hl.dsp.exec_cmd(homeDir .. "/.local/share/waypaper/venv/bin/waypaper"))
 hl.bind(mainMod .. " + period",     hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
 hl.bind(mainMod .. " + L",          hl.dsp.exec_cmd(noctCall .. "session lock"))
 hl.bind(mainMod .. " + ALT + C",    hl.dsp.exec_cmd("hyprctl kill"))
@@ -146,18 +143,17 @@ hl.bind("XF86AudioNext",  hl.dsp.exec_cmd(noctCall .. "media next"),     { locke
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
 
 -- Brightness (Display / Screen Backlight)
-hl.bind("XF86MonBrightnessUp",         hl.dsp.exec_cmd(noctCall .. "brightness-up"),            { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",       hl.dsp.exec_cmd(noctCall .. "brightness-down"),          { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessUp",   hl.dsp.exec_cmd(noctCall .. "brightness-up current 1"),  { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd(noctCall .. "brightness-down current 1"),{ locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessUp",   hl.dsp.exec_cmd(noctCall .. "brightness-up current 10"), { locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessDown", hl.dsp.exec_cmd(noctCall .. "brightness-down current 10"),{ locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",         hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +5%"),            { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown",       hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 5%-"),          { locked = true, repeating = true })
+hl.bind("SHIFT + XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +1%"),  { locked = true, repeating = true })
+hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 1%-"),{ locked = true, repeating = true })
+hl.bind("CONTROL + XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +10%"), { locked = true, repeating = true })
+hl.bind("CONTROL + XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 10%-"),{ locked = true, repeating = true })
 
--- Keyboard Backlight & ROG Key
+-- Keyboard Backlight
 hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd(kbdBrightness .. " up"),   { locked = true })
 hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBrightness .. " down"), { locked = true })
-hl.bind("XF86Launch1",           hl.dsp.exec_cmd("rog-control-center"))
-hl.bind("XF86Launch4",           hl.dsp.exec_cmd("rog-control-center"))
+
 
 -------------------
 ---- UTILITIES ----

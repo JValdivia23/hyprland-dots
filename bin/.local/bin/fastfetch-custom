@@ -36,13 +36,26 @@ def main():
     color_palette_1 = "\033[40m   \033[41m   \033[42m   \033[43m   \033[44m   \033[45m   \033[46m   \033[47m   \033[0m"
     color_palette_2 = "\033[100m   \033[101m   \033[102m   \033[103m   \033[104m   \033[105m   \033[106m   \033[107m   \033[0m"
 
+    def get_match(prefix):
+        for k, v in data.items():
+            if k.startswith(prefix):
+                return v
+        return ""
+
     def clean_val(key, val):
         if key == 'Host':
             return val.replace('GA401IV_GA401IV (1.0)', '').strip() or val
         if 'GPU' in key:
-            return val.replace('NVIDIA GeForce ', '').replace('AMD Radeon ', '').replace(' Series / Radeon Vega Mobile Series', '')
+            v = val.replace(" [Discrete]", "").replace(" [Integrated]", "").strip()
+            if "Pro Series" in v:
+                v = v.replace("Pro Series", "Pro 560X")
+            return f"{v} (dGPU)" if "dGPU" not in v and "iGPU" not in v else v
         if 'Display' in key:
-            return val.split(' in ')[0]
+            return val.replace(' in 15",', '').replace(' [Built-in]', '').strip()
+        if 'CPU' in key:
+            return val.replace('(R)', '').replace('(TM)', '').strip()
+        if 'Battery' in key:
+            return val.replace(' hours,', 'h').replace(' hour,', 'h').replace(' mins remaining', 'm').replace(' min remaining', 'm').replace(' remaining', '')
         return val
 
     import getpass, socket
@@ -55,27 +68,27 @@ def main():
         ("Host", clean_val("Host", data.get("Host", ""))),
         ("WM", data.get("WM", "")),
         ("CPU", clean_val("CPU", data.get("CPU", ""))),
-        ("GPU 1", clean_val("GPU 1", data.get("GPU 1", ""))),
-        ("GPU 2", clean_val("GPU 2", data.get("GPU 2", ""))),
+        ("GPU", clean_val("GPU", get_match("GPU"))),
+        ("Display", clean_val("Display", get_match("Display"))),
         ("Shell", "fish"),
         ("Terminal", "kitty"),
         ("Packages", data.get("Packages", "")),
-        ("Display", clean_val("Display", data.get("Display (AUOE68C)", data.get("Display", ""))))
+        ("Uptime", data.get("Uptime", ""))
     ]
 
     bottom_specs = [
-        (("RAM", data.get('Memory', '')), ("Disk", data.get('Disk (/)', ''))),
+        (("RAM", data.get('Memory', '')), ("Disk", get_match('Disk'))),
         (("Swap", data.get('Swap', '')), ("Theme", data.get('Theme', ''))),
         (("Icons", data.get('Icons', '')), ("Cursor", data.get('Cursor', ''))),
-        (("Uptime", data.get('Uptime', '')), ("Battery", data.get('Battery (ASUS Battery)', data.get('Battery', '')))),
-        (("Local IP", data.get('Local IP (wlan0)', '')), ("Locale", data.get('Locale', '')))
+        (("Battery", clean_val("Battery", get_match('Battery'))), ("Local IP", get_match('Local IP'))),
+        (("Locale", data.get('Locale', '')), ("Audio", "Apple Audio (aaudio)"))
     ]
 
     print(f"{C_GREEN}{current_user}{C_RESET}@{C_GREEN}{current_host}{C_RESET}")
     print(f"{C_CYAN}" + "─" * 74 + f"{C_RESET}")
 
     max_top_width = max(len(f"{k}: {v}") for k, v in top_left_data)
-    pad_target = max(max_top_width + 2, 43)
+    pad_target = max(max_top_width + 2, 45)
 
     for i in range(11):
         k, v = top_left_data[i]
@@ -83,14 +96,16 @@ def main():
         left_str = f"{C_KEY}{k}{C_RESET}: {C_VAL}{v}{C_RESET}"
         logo = colored_logo[i]
         pad_len = max(0, pad_target - len(left_plain))
-        print(f"{left_str}{' ' * pad_len}{logo}")
+        spaces = " " * pad_len
+        print(f"{left_str}{spaces}{logo}")
 
     for (k1, v1), (k2, v2) in bottom_specs:
         p1 = f"{k1}: {v1}"
         str1 = f"{C_KEY}{k1}{C_RESET}: {C_VAL}{v1}{C_RESET}"
         pad1 = max(0, 36 - len(p1))
+        spaces1 = " " * pad1
         str2 = f"{C_KEY}{k2}{C_RESET}: {C_VAL}{v2}{C_RESET}"
-        print(f"{str1}{' ' * pad1} \033[90m│\033[0m {str2}")
+        print(f"{str1}{spaces1} \033[90m│\033[0m {str2}")
 
     print(f"\n     {color_palette_1}   {color_palette_2}")
 

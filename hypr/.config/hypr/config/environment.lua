@@ -7,5 +7,12 @@
 -- hl.env("GBM_BACKEND", "nvidia-drm") -- force GBM as a backend
 -- hl.env("__GLX_VENDOR_LIBRARY_NAME", "nvidia") -- force GBM as a backend
 -- hl.env("LIBVA_DRIVER_NAME", "nvidia") -- Hardware acceleration on NVIDIA GPUs
+
+-- AMD Radeon GPU Hardware Acceleration & Compute
+hl.env("LIBVA_DRIVER_NAME", "radeonsi")
+hl.env("VDPAU_DRIVER", "radeonsi")
+hl.env("RUSTICL_ENABLE", "radeonsi")
+
 hl.env("EDITOR", "nvim")
 hl.env("VISUAL", "nvim")
+

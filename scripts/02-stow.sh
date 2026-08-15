@@ -19,6 +19,7 @@ STOW_PKGS=(
     "bin"
     "agents"
     "webapps"
+    "easyeffects"
 )
 
 echo "==> [2/4] Deploying dotfiles with GNU Stow..."
@@ -33,25 +34,37 @@ mkdir -p "$HOME/.config" \
          "$HOME/.local/bin" \
          "$HOME/.local/share/applications/icons" \
          "$HOME/Pictures/Wallpapers" \
-         "$HOME/.agents/skills/system-personalization/references"
+         "$HOME/.agents/skills/system-personalization/references/gotchas"
 
 # Check and backup existing real files/directories that would conflict with stow
 backup_needed=false
 
 check_and_backup() {
     local target="$1"
-    if [ -e "$target" ] && [ ! -L "$target" ]; then
-        if [ "$backup_needed" = false ]; then
-            echo "--> Backing up existing non-symlink configs to $BACKUP_DIR..."
-            mkdir -p "$BACKUP_DIR"
-            backup_needed=true
-        fi
-        local rel_path="${target#$HOME/}"
-        mkdir -p "$BACKUP_DIR/$(dirname "$rel_path")"
-        mv "$target" "$BACKUP_DIR/$rel_path"
-        echo "    Backed up: ~/$rel_path"
+    # Skip if target doesn't exist or is already a symlink
+    if [ ! -e "$target" ] || [ -L "$target" ]; then
+        return 0
     fi
+    # Also skip if target is located inside an existing symlink directory
+    local p="$target"
+    while [ "$p" != "$HOME" ] && [ "$p" != "/" ]; do
+        p="$(dirname "$p")"
+        if [ -L "$p" ]; then
+            return 0
+        fi
+    done
+
+    if [ "$backup_needed" = false ]; then
+        echo "--> Backing up existing non-symlink configs to $BACKUP_DIR..."
+        mkdir -p "$BACKUP_DIR"
+        backup_needed=true
+    fi
+    local rel_path="${target#$HOME/}"
+    mkdir -p "$BACKUP_DIR/$(dirname "$rel_path")"
+    mv "$target" "$BACKUP_DIR/$rel_path"
+    echo "    Backed up: ~/$rel_path"
 }
+
 
 # Check all target config paths
 check_and_backup "$HOME/.config/hypr"
@@ -67,6 +80,8 @@ check_and_backup "$HOME/.config/nwg-look"
 check_and_backup "$HOME/.config/niri/cfg/keybinds.kdl"
 check_and_backup "$HOME/.config/swayimg"
 check_and_backup "$HOME/.config/zigoku"
+check_and_backup "$HOME/.config/easyeffects"
+
 
 # Check binary scripts
 for script in anime-lid-charging cachy-webapp-install cachy-webapp-remove dolphin-key-helper fastfetch-custom hypr-kbd-brightness hypr-quicklook hypr-toggle-altwin hypr-window-pop mac-key-helper; do
@@ -79,10 +94,16 @@ check_and_backup "$HOME/.agents/skills/system-personalization/references/changel
 check_and_backup "$HOME/.agents/skills/system-personalization/references/config-paths.md"
 check_and_backup "$HOME/.agents/skills/system-personalization/references/current-state.md"
 check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas/hyprland.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas/wayland-noctalia.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas/apple-t2.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas/networking.md"
+check_and_backup "$HOME/.agents/skills/system-personalization/references/gotchas/terminal-ssh.md"
 check_and_backup "$HOME/.agents/skills/system-personalization/references/hardware.md"
 check_and_backup "$HOME/.agents/skills/system-personalization/references/keybindings.md"
 check_and_backup "$HOME/.agents/skills/system-personalization/scripts/snapshot.sh"
 check_and_backup "$HOME/.agents/skills/system-personalization/templates/change-entry.md"
+
 
 # Check webapps desktop entries & icons
 for app in AllAnime AniMatrix Hanime PH YouTube; do

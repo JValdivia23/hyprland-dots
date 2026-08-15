@@ -1,57 +1,71 @@
 # Current System State
 
-Live system snapshot (OS, package versions, hardware configuration). Updated automatically via `scripts/snapshot.sh`.
+Live system snapshot (OS, package versions, hardware configuration). Refreshable via `scripts/snapshot.sh`.
 
-## Operating System & Kernel
+## Operating System & Compositor
 - **OS**: CachyOS Linux (Arch-based rolling release)
-- **Kernel**: `7.1.3-2-cachyos`
-- **Shell**: `/bin/fish` (Fish Shell)
-- **Wayland Window Manager**: Hyprland 0.55.4 (built from branch v0.55.4)
-- **Wayland Shell / Panel**: Noctalia 5.0.0_beta.3-2 (Wayland native bar & panel)
+- **Kernel**: `7.1.8-1-cachyos` (x86_64)
+- **Shell**: `/bin/fish` (Fish 4.8.1)
+- **Compositor**: Hyprland 0.56.2 (Lua-based modular configuration)
+- **Wayland Shell / Panel**: Noctalia 5.0.0_beta.8-1.1 (Wayland native bar & panel)
 
-## System Specs & Display
-- **CPU**: AMD Ryzen 9 4900HS with Radeon Graphics
-- **GPU**:
-  - NVIDIA Corporation TU106M [GeForce RTX 2060 Max-Q] (rev a1)
-  - AMD Renoir [Radeon Vega Series / Radeon Vega Mobile Series] (rev c5)
-- **RAM**: 22Gi
-- **Display Output**:
-  - `eDP-1` (Internal Monitor, 2560x1440@60Hz, scale 1.33)
+## System & Display
+- **Hardware**: Apple MacBook Pro 15,1 (`MacBookPro15,1`)
+- **CPU**: Intel Core i9-9880H (8 Cores, 16 Threads @ 2.30 GHz, boost to 4.80 GHz)
+- **GPU**: AMD Radeon Pro 560X (Baffin / Polaris 11, `amdgpu` driver)
+- **RAM**: 16 GiB (15.5 GiB usable) + 15.5 GiB zram swap
+- **Display Output**: `eDP-1` (Apple Retina 2880x1800 @ 60Hz, scale 1.33)
 - **Disk Usage**:
-  - `/` and `/home`: nvme0n1p7 (~9.4 GB used, 222 GB free)
+  - `/` and `/home`: `/dev/nvme0n1p4` (229 GB Btrfs, ~11 GB used)
+  - `/boot`: `/dev/nvme0n1p3` (4.0 GB vfat, 552 MB used)
 
 ## Key Installed Packages & Utilities
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.56.0-2.1 | Window Manager |
-| noctalia | 5.0.0_beta.3-2 | Status bar & menus (launcher, clipboard, etc.) |
-| kitty | 0.48.0-1.1 | Default Terminal emulator |
-| alacritty | 0.17.0-1.2 | Alternative Terminal emulator |
-| zen-browser | 1.21.8b-1 | Primary web browser |
-| firefox | 152.0.6-1 | Alternative web browser |
-| grim | 1.5.0-2.1 | Wayland screenshot tool |
-| slurp | 1.5.0-2.1 | Region selection tool |
-| satty | 0.21.1-1.1 | Screenshot editor/viewer & Default Image Viewer |
-| swayimg | 5.4-2.1 | Lightweight Wayland image viewer & Quick Look engine |
-| jq | 1.8.2-1.1 | JSON processor |
-| wl-clipboard | 1:2.3.0-1.1 | Clipboard controller |
-| brightnessctl | 0.5.1-3 | Backlight controls |
-| btop | 1.4.7-1.1 | Resource monitor |
-| dolphin | 26.04.3-1.1 | File manager |
-| neovim | 0.12.4 | Modal text editor (LazyVim base) |
-| lazygit | 0.63.1 | Git TUI client |
-| supergfxctl | 5.2.7-2 | GPU mode switcher for ASUS ROG |
-| asusctl | 6.3.10-1 | ASUS ROG hardware & fan daemon |
-| rog-control-center | 6.3.10-1 | GUI dashboard for asusctl & supergfxctl |
-| localsend | 1.17.0-4 | Cross-platform local network file sharing |
+| `hyprland` | 0.56.2-1 | Window Manager / Wayland Compositor |
+| `noctalia` | 5.0.0_beta.8-1.1 | Status bar, launcher, session & quick settings |
+| `kitty` | 0.48.2-1.1 | Default Terminal emulator |
+| `alacritty` | 0.17.0-1.2 | Alternative Terminal emulator |
+| `zen-browser-bin` | 1.21.13b-1 | Primary web browser |
+| `firefox` | 153.0.4-1.1 | Alternative web browser |
+| `brave-origin-bin` | 1.93.136-1 | WebApps engine & browser |
+| `grim` | 1.5.0-2.1 | Wayland screenshot tool |
+| `slurp` | 1.5.0-2.1 | Region selection tool |
+| `satty` | 0.21.1-1.1 | Screenshot editor/viewer & default image viewer |
+| `swayimg` | 5.5-1.1 | Lightweight Wayland image viewer & Quick Look engine |
+| `waypaper` | 2.8-1 | Wallpaper selector & rotation GUI |
+| `btop` | 1.4.7-1.1 | Terminal resource monitor |
+| `dolphin` | 26.04.3-1.1 | Graphical file manager |
+| `neovim` | 0.12.4-1.1 | Modal text editor (LazyVim base) |
+| `lazygit` | 0.64.1-1.1 | Git TUI client |
+| `localsend` | 1.17.0-4 | Cross-platform local network file sharing |
+| `easyeffects` | 8.2.8-1.1 | Audio DSP processor & speaker equalizer daemon |
+| `lsp-plugins-lv2` | 1.2.33-2.1 | LV2 studio audio plugins (multiband compressor, limiter, EQ) |
+| `calf` | 0.90.9-2.1 | LV2 audio effects suite (bass enhancer) |
+| `wl-clipboard` | 2.3.0-1.1 | Wayland clipboard manager |
+| `brightnessctl` | 0.5.1-3 | Backlight control utility |
+| `libva-utils` | 2.24.0-1.1 | VA-API diagnostic tools (`vainfo`) |
+| `vulkan-tools` | 1.4.357.0-1.1 | Vulkan diagnostic utilities (`vulkaninfo`) |
+| `jq` | 1.8.2-1.1 | Command-line JSON processor |
+
+## Active Hardware & Power Daemons
+- `t2fanrd.service`: Custom exponential thermal curve daemon for Intel Core i9-9880H (`/etc/t2fand.conf`, active).
+- `tiny-dfr.service`: Touch Bar dynamic function row daemon with `EnablePixelShift = true` (OLED protection, active).
+- `suspend-fix-t2.service`: Automatic PCIe sleep & wakeup handler for T2 security chip (active).
+- **Audio Routing**: Native PipeWire + WirePlumber routing directly to `Apple Audio Device Speakers` (`alsa_output.pci-0000_02_00.3.Speakers`).
+
+
 
 ## Active Helper Scripts (`~/.local/bin/`)
 - `mac-key-helper`: Active window classifier for macOS shortcuts.
-- `hypr-window-pop`: Window pop-out and workspace pinning (`SUPER+O`).
-- `hypr-toggle-altwin`: On-the-fly Super/Alt position toggle (`SUPER+ALT+K`).
-- `anime-lid-charging`: Automated lid-closed AC battery percentage & charging matrix daemon.
+- `hypr-window-pop`: Window pop-out and workspace pinning (`SUPER+O` / `SUPER+SHIFT+O`).
+- `hypr-toggle-altwin`: Dynamic Super/Alt layout swap toggle (`SUPER+ALT+K`).
+- `hypr-quicklook`: macOS-style Quick Look image/file overlay preview (`ALT+Return`).
+- `hypr-kbd-brightness`: Keyboard backlight step adjuster (`Fn + Up / Down`).
+- `fastfetch-custom`: Compact, two-column system info banner for Fish shell startup.
 
 ## Active Errors & Warnings
-- **Hyprland Errors**: None
+- **Hyprland Errors**: None (Clean)
+
 

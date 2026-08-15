@@ -1,0 +1,83 @@
+# Wayland & Noctalia Shell Gotchas
+
+Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and desktop utilities on `cachyos-cu`.
+
+---
+
+## 1. Noctalia Shell Process Restarting
+
+- **Symptom**: Editing `~/.config/noctalia/config.toml` or restarting PipeWire leaves Noctalia holding a stale audio/widget connection.
+- **Fix**: Restart the Noctalia daemon process:
+  ```bash
+  killall -TERM noctalia; sleep 0.5; hyprctl eval 'hl.exec_cmd("noctalia -d")'
+  ```
+
+---
+
+## 2. Piped Screenshots via Satty
+
+- **Symptom**: Pressing the PrintScreen key launches slurp/grim, but the screenshot editor fails to appear.
+- **Root Cause**: The Noctalia configuration `clipboard_image_action_command = "satty -f -"` pipes raw screenshot data to Satty via stdin. If Satty is uninstalled or Wayland environment variables are missing, the pipe breaks silently.
+- **Fix**: Verify Satty is installed:
+  ```bash
+  pacman -Q satty
+  ```
+
+## 3. Quick Look Image / Vector Preview Overlay (`ALT + Return`)
+
+- **Symptom**: Pressing `ALT + Return` over a highlighted file in Dolphin does not display a preview.
+- **Root Cause**: The Quick Look engine relies on `swayimg` floating window rules in `windowrules.lua` and the helper script `~/.local/bin/hypr-quicklook`.
+- **Fix**: Ensure `swayimg` is installed (`pacman -Q swayimg`) and `~/.local/bin/hypr-quicklook` has executable permissions.
+
+---
+
+## 4. Volume Control & OSD after PipeWire Restart
+
+
+- **Symptom**: Touch Bar volume keys do not change volume or trigger OSD popups after PipeWire is restarted (`noctalia msg volume-up` fails with `error: no default output`).
+- **Root Cause**: Noctalia connects to the PipeWire / WirePlumber mixer API on startup. If PipeWire is restarted while Noctalia is running, Noctalia must be restarted to re-bind to the active default sink.
+- **Fix**: Restart Noctalia in daemon mode:
+  ```bash
+  killall -TERM noctalia && noctalia -d
+  ```
+
+---
+
+## 5. Wallpaper Selector (`ALT + Space`) Loading Latency & Caching
+
+- **Symptom**: Pressing `ALT + Space` shows a `"Caching wallpapers..."` banner and freezes for 7–10 seconds before opening the wallpaper grid.
+- **Root Cause**:
+  1. Stock `/usr/bin/waypaper` unconditionally displays the caching label even when all thumbnails exist.
+  2. Stock Waypaper loads all 1,700+ full thumbnail pixbufs into GTK widgets before showing the grid.
+  3. Generating thumbnails for new wallpapers is single-threaded and sequential.
+- **Fix**:
+  1. Route `ALT + Space` in `~/.config/hypr/config/binds.lua` to the progressive rendering build in `~/.local/share/waypaper/venv/bin/waypaper` (which renders the first 20 items in `< 0.05s`).
+  2. If thousands of new wallpapers are added, generate thumbnails in parallel using Python `ThreadPoolExecutor`:
+     ```python
+     python3 -c "
+     import os, hashlib, pathlib
+     from concurrent.futures import ThreadPoolExecutor
+     from PIL import Image
+
+     cache_dir = pathlib.Path('~/.cache/waypaper').expanduser()
+     cache_dir.mkdir(parents=True, exist_ok=True)
+     wallpapers_dir = pathlib.Path('~/Pictures/Wallpapers').expanduser()
+
+     images = [os.path.join(r, f) for r, _, fs in os.walk(wallpapers_dir) for f in fs if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif'))]
+
+     def cache_one(img):
+         try:
+             real_path_bytes = bytes(os.path.realpath(img), encoding='UTF-8')
+             out_path = cache_dir / f'{hashlib.md5(real_path_bytes, usedforsecurity=False).hexdigest()}.png'
+             if not out_path.exists():
+                 with Image.open(img) as im:
+                     im.thumbnail((240, 240))
+                     im.save(out_path, 'PNG')
+         except Exception:
+             pass
+
+     with ThreadPoolExecutor(max_workers=16) as ex:
+         list(ex.map(cache_one, images))
+     "
+     ```
+

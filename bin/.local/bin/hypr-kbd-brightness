@@ -1,21 +1,34 @@
 #!/bin/bash
 action=$1
-if [[ "$action" == "up" ]]; then
-  brightnessctl -d asus::kbd_backlight set +1
-else
-  brightnessctl -d asus::kbd_backlight set 1-
+device="apple::kbd_backlight"
+if [ ! -d "/sys/class/leds/$device" ]; then
+  # fallback to asus or any kbd backlight
+  device=$(ls /sys/class/leds/ 2>/dev/null | grep -E 'kbd_backlight|kbd' | head -n 1)
 fi
 
-val=$(brightnessctl -d asus::kbd_backlight get)
+if [[ -z "$device" ]]; then
+  exit 0
+fi
 
-case $val in
-  0) label="Off" ;;
-  1) label="Low" ;;
-  2) label="Medium" ;;
-  3) label="High" ;;
-  *) label="$val/3" ;;
-esac
+if [[ "$action" == "up" ]]; then
+  brightnessctl -d "$device" set +10%
+else
+  brightnessctl -d "$device" set 10%-
+fi
 
-# Send standard desktop notification and Noctalia internal notification
-notify-send -h string:x-canonical-private-synchronous:kbd-backlight -t 1500 "Keyboard Backlight" "Level: $label"
-noctalia msg notification-show "Keyboard Backlight -- Level: $label"
+val=$(brightnessctl -d "$device" get)
+max=$(brightnessctl -d "$device" max)
+percent=$(( val * 100 / max ))
+
+if [[ $percent -eq 0 ]]; then
+  label="Off"
+elif [[ $percent -le 25 ]]; then
+  label="Low ($percent%)"
+elif [[ $percent -le 75 ]]; then
+  label="Medium ($percent%)"
+else
+  label="High ($percent%)"
+fi
+
+# Send standard desktop notification
+notify-send -h string:x-canonical-private-synchronous:kbd-backlight -t 1500 "Keyboard Backlight" "Level: $label" 2>/dev/null || true

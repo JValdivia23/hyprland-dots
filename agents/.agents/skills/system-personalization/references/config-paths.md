@@ -101,8 +101,21 @@ Custom shell scripts executed by Hyprland keybindings or desktop workflows.
 | Path | Purpose | Description |
 |------|---------|-------------|
 | `mac-key-helper` | macOS Text Navigation Helper | Inspects active window class/floating state and dispatches context-aware shortcuts. |
-| `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1300x900, center, and pin active window across workspaces. |
+| `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window across workspaces. |
 | `hypr-toggle-altwin` | Alt/Super Layout Toggle | Triggered by `SUPER+ALT+K` to dynamically toggle `kb_options` between Mac (Swapped) and PC (Normal) layouts on the fly. |
+| `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating image/vector previews via `swayimg`. |
+| `hypr-kbd-brightness` | Keyboard Backlight Control | Triggered by `Fn + Up / Down` to step keyboard brightness (0-3) with visual notification. |
+
+
+---
+
+## Audio & DSP Configs (`~/.config/`)
+
+| Path | Purpose | Edit Rule |
+|------|---------|-----------|
+| `easyeffects/output/mbp.json` | MacBook Pro 15" DSP equalizer & speaker tuning profile | JSON format. Presets loaded via EasyEffects. |
+| `easyeffects/autoloading/output.json` | Autoloading rules mapping `Apple Audio Device Speakers` -> `mbp` | JSON autoload configuration. |
+| `pipewire/pipewire.conf.d/99-echo-cancel.conf` | WebRTC noise & echo cancellation module for microphone (`AppleT2_CleanMic`) | PipeWire SPA/module format. Restart PipeWire after editing. |
 
 ---
 
@@ -112,5 +125,8 @@ These commands will prompt the user for confirmation and password access.
 
 | Path | Purpose | Edit Rule |
 |------|---------|-----------|
+| `/etc/t2fand.conf` | Fan curve thresholds (`low_temp`, `high_temp`, `speed_curve`) for `t2fanrd` | INI sections (`[Fan1]`, `[Fan2]`). Restart `t2fanrd.service` after editing. |
+| `/etc/tiny-dfr/config.toml` | Touch Bar daemon settings (`EnablePixelShift`, `MediaLayerDefault`, `FontTemplate`) | TOML format. Restart `tiny-dfr.service` after editing. |
 | `/etc/pacman.conf` | Pacman configuration and repository listings | Patch lines only. |
 | `/etc/fstab` | File systems and mount configurations | Append or patch only; always verify partition UUIDs. |
+
