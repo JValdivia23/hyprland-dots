@@ -7,7 +7,7 @@ A dated log of all package changes, configurations, script modifications, and ha
 - **Dual-Boot OS Picker & macOS APFS Auto-Discovery (`rEFInd` + `rEFInd-minimal`)**:
   - Installed `refind` boot manager to `/boot/EFI/refind/` and configured it as the primary UEFI boot priority (`Boot0001`, `BootOrder: 0001,0000,0080`).
   - Deployed the **`rEFInd-minimal`** theme with dark canvas, monochrome icons, and custom `os_cachyos.png` branding in `/boot/EFI/refind/themes/rEFInd-minimal/`.
-  - Configured `/boot/EFI/refind/refind.conf` with `timeout 5` and `default_selection "limine,vmlinuz,cachyos"`, providing an automatic 5-second countdown to boot CachyOS while giving direct 1-click access to macOS APFS without requiring the hardware `Option` key.
+  - Configured `/boot/EFI/refind/refind.conf` with `timeout 3` and `default_selection "limine,vmlinuz,cachyos"`, providing an automatic 3-second countdown to boot CachyOS while giving direct 1-click access to macOS APFS without requiring the hardware `Option` key.
   - Generated `/boot/refind_linux.conf` with optimized kernel parameters and installed `btrfs_x64.efi` driver.
   - Documented dual-boot architecture and fallback procedures in [`references/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/apple-t2.md#L99-L111).
 
