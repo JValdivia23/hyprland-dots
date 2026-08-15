@@ -161,6 +161,7 @@ python-packaging
 python-pillow
 realtime-privileges
 rebuild-detector
+refind
 reflector
 ripgrep
 rog-control-center

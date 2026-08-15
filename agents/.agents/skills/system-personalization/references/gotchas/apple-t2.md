@@ -96,3 +96,17 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   dmesg | grep -i brcmfmac
   ```
 
+---
+
+## 7. macOS & CachyOS Dual-Booting (`rEFInd` + `rEFInd-minimal`)
+
+- **Architecture**: Modern Macs with T2 chips store macOS on an APFS container (`nvme0n1p2`) and Linux on separate ESP/root partitions (`nvme0n1p3`, `nvme0n1p4`). Linux bootloaders like Limine only scan their own partition and do not detect APFS containers.
+- **Boot Manager**: `rEFInd` is installed to `/boot/EFI/refind/refind_x64.efi` and registered as `Boot0001` with highest UEFI boot priority (`BootOrder: 0001,0000,0080`).
+- **Configuration (`/boot/EFI/refind/refind.conf`)**:
+  - `timeout 5`: Displays the boot menu for 5 seconds before booting CachyOS automatically.
+  - `default_selection "limine,vmlinuz,cachyos"`: Preselects CachyOS as the default boot target.
+  - `scanfor internal,external,optical,manual`: Scans all internal partitions for macOS APFS and Linux kernels.
+  - `include themes/rEFInd-minimal/theme.conf`: Modern minimalist theme with dark background and monochrome icons.
+- **Manual Apple Boot Picker Fallback**: Holding the `Option` (`⌥`) key on startup bypasses all custom bootloaders and launches the Apple hardware Startup Manager.
+
+
