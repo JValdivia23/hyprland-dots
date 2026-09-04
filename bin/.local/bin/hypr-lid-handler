@@ -1,0 +1,100 @@
+#!/usr/bin/env bash
+# ~/.local/bin/hypr-lid-handler
+# MacBook Pro 15,1 Clamshell & Ultra-Low Power Lid Event Handler for Hyprland
+
+ACTION="${1:-toggle}"
+KBD_STATE_FILE="/tmp/hypr_kbd_backlight_saved_${UID}"
+TB_STATE_FILE="/tmp/hypr_tb_backlight_saved_${UID}"
+PROFILE_STATE_FILE="/tmp/hypr_power_profile_saved_${UID}"
+
+case "$ACTION" in
+    close)
+        # 1. Lock screen session
+        noctalia msg session lock 2>/dev/null || loginctl lock-session 2>/dev/null || true
+
+        # 2. Cut Retina display power immediately via Wayland DPMS
+        hyprctl dispatch dpms off eDP-1 2>/dev/null || true
+
+        # 3. Save active keyboard backlight level, then turn off
+        if brightnessctl -l 2>/dev/null | grep -q "apple::kbd_backlight"; then
+            current_kbd=$(brightnessctl -d "apple::kbd_backlight" get 2>/dev/null || true)
+            if [ -n "$current_kbd" ] && [ "$current_kbd" -gt 0 ]; then
+                echo "$current_kbd" > "$KBD_STATE_FILE"
+            fi
+            brightnessctl -q -d "apple::kbd_backlight" set 0% 2>/dev/null || true
+        fi
+
+        # 4. Save active Touch Bar backlight level, then turn off
+        if brightnessctl -l 2>/dev/null | grep -q "appletb_backlight"; then
+            current_tb=$(brightnessctl -d "appletb_backlight" get 2>/dev/null || true)
+            if [ -n "$current_tb" ] && [ "$current_tb" -gt 0 ]; then
+                echo "$current_tb" > "$TB_STATE_FILE"
+            fi
+            brightnessctl -q -d "appletb_backlight" set 0% 2>/dev/null || true
+        fi
+
+        # 5. Save active CPU profile and switch to power-saver mode
+        if command -v powerprofilesctl >/dev/null 2>&1; then
+            current_profile=$(powerprofilesctl get 2>/dev/null || echo "balanced")
+            echo "$current_profile" > "$PROFILE_STATE_FILE"
+            powerprofilesctl set power-saver 2>/dev/null || true
+        fi
+
+        # 6. Attempt GPU / PCIe ASPM power switch if script exists
+        if [ -x /usr/local/bin/amdgpu-power-switch.sh ]; then
+            /usr/local/bin/amdgpu-power-switch.sh battery 2>/dev/null || true
+        fi
+        ;;
+
+    open)
+        # 1. Power Retina display back on via Wayland DPMS
+        hyprctl dispatch dpms on eDP-1 2>/dev/null || true
+
+        # 2. Restore keyboard backlight if previously saved
+        if brightnessctl -l 2>/dev/null | grep -q "apple::kbd_backlight"; then
+            if [ -f "$KBD_STATE_FILE" ]; then
+                saved_kbd=$(cat "$KBD_STATE_FILE" 2>/dev/null || true)
+                if [ -n "$saved_kbd" ] && [ "$saved_kbd" -gt 0 ]; then
+                    brightnessctl -q -d "apple::kbd_backlight" set "$saved_kbd" 2>/dev/null || true
+                fi
+                rm -f "$KBD_STATE_FILE"
+            fi
+        fi
+
+        # 3. Restore Touch Bar backlight if previously saved
+        if brightnessctl -l 2>/dev/null | grep -q "appletb_backlight"; then
+            if [ -f "$TB_STATE_FILE" ]; then
+                saved_tb=$(cat "$TB_STATE_FILE" 2>/dev/null || true)
+                if [ -n "$saved_tb" ] && [ "$saved_tb" -gt 0 ]; then
+                    brightnessctl -q -d "appletb_backlight" set "$saved_tb" 2>/dev/null || true
+                fi
+                rm -f "$TB_STATE_FILE"
+            else
+                brightnessctl -q -d "appletb_backlight" set 100% 2>/dev/null || true
+            fi
+        fi
+
+        # 4. Restore CPU power profile
+        if command -v powerprofilesctl >/dev/null 2>&1; then
+            if [ -f "$PROFILE_STATE_FILE" ]; then
+                saved_prof=$(cat "$PROFILE_STATE_FILE" 2>/dev/null || true)
+                if [ -n "$saved_prof" ]; then
+                    powerprofilesctl set "$saved_prof" 2>/dev/null || true
+                fi
+                rm -f "$PROFILE_STATE_FILE"
+            else
+                powerprofilesctl set balanced 2>/dev/null || true
+            fi
+        fi
+
+        # 5. Restore GPU power profile based on AC vs Battery state
+        if [ -x /usr/local/bin/amdgpu-power-switch.sh ]; then
+            /usr/local/bin/amdgpu-power-switch.sh auto 2>/dev/null || true
+        fi
+        ;;
+
+    *)
+        echo "Usage: $0 {close|open}"
+        exit 1
+        ;;
+esac

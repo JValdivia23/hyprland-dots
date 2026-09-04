@@ -105,7 +105,7 @@ Custom shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-toggle-altwin` | Alt/Super Layout Toggle | Triggered by `SUPER+ALT+K` to dynamically toggle `kb_options` between Mac (Swapped) and PC (Normal) layouts on the fly. |
 | `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating image/vector previews via `swayimg`. |
 | `hypr-kbd-brightness` | Keyboard Backlight Control | Triggered by `Fn + Up / Down` to step keyboard brightness (0-3) with visual notification. |
-
+| `hypr-lid-handler` | Laptop Clamshell & DPMS Handler | Triggered by `switch:on/off:Lid Switch` to manage DPMS power, keyboard light, and power profiles on lid close/open. |
 
 ---
 
@@ -119,6 +119,15 @@ Custom shell scripts executed by Hyprland keybindings or desktop workflows.
 
 ---
 
+## System Helper Scripts & Daemons (`/usr/local/bin/`)
+
+| Path | Purpose | Description |
+|------|---------|-------------|
+| `/usr/local/bin/amdgpu-power-switch.sh` | GPU & CPU Power Profile Switcher | Toggles AMD PowerPlay (`mode 2` vs `mode 0`), PCIe ASPM (`powersupersave`), and Intel Turbo Boost (`no_turbo`). |
+| `/usr/local/bin/t2-sleep-helper` | T2 Sleep & Wakeup Helper | Manages pre-suspend and post-resume Touch Bar USB configuration cycling (`0 -> 2`) and DRM display re-attachment. |
+
+---
+
 ## System Configs (Require Sudo Approval)
 
 These commands will prompt the user for confirmation and password access.
@@ -127,6 +136,10 @@ These commands will prompt the user for confirmation and password access.
 |------|---------|-----------|
 | `/etc/t2fand.conf` | Fan curve thresholds (`low_temp`, `high_temp`, `speed_curve`) for `t2fanrd` | INI sections (`[Fan1]`, `[Fan2]`). Restart `t2fanrd.service` after editing. |
 | `/etc/tiny-dfr/config.toml` | Touch Bar daemon settings (`EnablePixelShift`, `MediaLayerDefault`, `FontTemplate`) | TOML format. Restart `tiny-dfr.service` after editing. |
+| `/etc/modprobe.d/blacklist-touchbar.conf` | Blacklists `hid_appletb_kbd` to prevent USB endpoint drops on T2 | Patch lines only. |
+| `/etc/udev/rules.d/99-touchbar-tiny-dfr.rules` | Udev rules for Touch Bar USB Configuration 2 and device symlinks | Patch lines; run `udevadm control --reload-rules`. |
+| `/etc/systemd/system/t2-touchbar-setup.service` | Boot service to initialize Touch Bar DRM device node | Systemd unit file. |
+| `/etc/systemd/logind.conf.d/omarchy-lid.conf` | Configures systemd-logind to suspend on lid switch (battery/AC) and ignore only when docked | INI format. |
 | `/etc/pacman.conf` | Pacman configuration and repository listings | Patch lines only. |
 | `/etc/fstab` | File systems and mount configurations | Append or patch only; always verify partition UUIDs. |
 

@@ -48,6 +48,19 @@ StartupNotify=true
 EOF
 
 chmod +x "$DESKTOP_FILE"
+
+# Link icon to standard XDG directories
+mkdir -p "$HOME/.local/share/icons" "$HOME/.local/share/pixmaps" "$HOME/.local/share/icons/hicolor/512x512/apps"
+if [[ -f "$ICON_PATH" ]]; then
+  ln -sf "$ICON_PATH" "$HOME/.local/share/icons/$APP_NAME.png" 2>/dev/null || true
+  ln -sf "$ICON_PATH" "$HOME/.local/share/pixmaps/$APP_NAME.png" 2>/dev/null || true
+  ln -sf "$ICON_PATH" "$HOME/.local/share/icons/hicolor/512x512/apps/$APP_NAME.png" 2>/dev/null || true
+fi
+
 update-desktop-database "$HOME/.local/share/applications" 2>/dev/null || true
+if command -v gtk-update-icon-cache &>/dev/null; then
+  gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
+  gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+fi
 
 echo "Successfully installed Web App: $APP_NAME"

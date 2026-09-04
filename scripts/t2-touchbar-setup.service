@@ -1,0 +1,12 @@
+[Unit]
+Description=Apple T2 Touch Bar USB Initialization Setup
+After=systemd-modules-load.service
+Before=tiny-dfr.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/t2-sleep-helper post
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target graphical.target

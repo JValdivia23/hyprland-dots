@@ -30,5 +30,7 @@ else
   label="High ($percent%)"
 fi
 
-# Send standard desktop notification
-notify-send -h string:x-canonical-private-synchronous:kbd-backlight -t 1500 "Keyboard Backlight" "Level: $label" 2>/dev/null || true
+# Trigger Noctalia native keyboard backlight OSD bar (fallback to notify-send if Noctalia is absent)
+if ! noctalia msg keyboard-backlight-osd "$percent" 2>/dev/null; then
+    notify-send -h string:x-canonical-private-synchronous:kbd-backlight -t 1500 "Keyboard Backlight" "Level: $label" 2>/dev/null || true
+fi

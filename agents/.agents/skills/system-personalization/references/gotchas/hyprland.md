@@ -101,3 +101,34 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
 - **Root Cause**: Early in `binds.lua`, `hl.bind(mainMod .. " + SHIFT + 1", hl.dsp.window.move({ monitor = MONITOR1 }))` (and 2, 3) was defined. Because `MONITOR1`..`MONITOR3` in `variables.lua` were set to `""`, the dispatcher attempted to move the window to an empty monitor name rather than delegating to the workspace move loop (`SUPER + SHIFT + [1-9, 0]`).
 - **Fix**: In `~/.config/hypr/config/binds.lua`, remove the duplicate `monitor = MONITOR1..3` bindings. Workspace movements are handled by `SUPER + SHIFT + 1..10` (`hl.dsp.window.move({ workspace = tostring(i) })`), while multi-monitor window movement is handled by `SUPER + SHIFT + grave` (`monitor = "+1"`) or mouse wheel.
 
+---
+
+## 10. Clamshell / Lid Switch Low-Power Event Handling (`switch:on:Lid Switch`)
+
+- **Architecture**:
+  - **Standalone Mode (Battery or AC without external monitor)**: `systemd-logind` is configured with `HandleLidSwitch=suspend` and `HandleLidSwitchExternalPower=suspend` in [`/etc/systemd/logind.conf.d/omarchy-lid.conf`](file:///etc/systemd/logind.conf.d/omarchy-lid.conf). Closing the lid suspends the laptop immediately, preventing battery exhaustion and eliminating dangerous heat buildup when charging inside a closed chassis.
+  - **Docked Clamshell Mode (External monitor connected)**: `HandleLidSwitchDocked=ignore` keeps the machine awake when docked to an external display.
+- **Hyprland Lua Binding**: In [`~/.config/hypr/config/binds.lua`](file:///home/java1127/.config/hypr/config/binds.lua):
+  ```lua
+  hl.bind("switch:on:Lid Switch",  hl.dsp.exec_cmd(lidHandler .. "close"), { locked = true })
+  hl.bind("switch:off:Lid Switch", hl.dsp.exec_cmd(lidHandler .. "open"),  { locked = true })
+  ```
+  The `{ locked = true }` flag is critical so switch events trigger even after the screen session is locked.
+- **Helper Script (`~/.local/bin/hypr-lid-handler`)**:
+  - Immediately cuts display power (`hyprctl dispatch dpms off eDP-1`), preventing wasted heat and light against the closed screen in docked mode.
+  - Saves the active keyboard backlight brightness level (`apple::kbd_backlight`) to `/tmp/hypr_kbd_backlight_saved_${UID}` before shutting it off on lid close, and automatically restores it upon lid open.
+  - Saves the active Touch Bar backlight brightness level (`appletb_backlight`) to `/tmp/hypr_tb_backlight_saved_${UID}` and shuts it off on lid close, restoring it upon lid open.
+  - Saves the active CPU power profile and switches to `power-saver` via `powerprofilesctl` on close, restoring the saved profile on open.
+
+
+---
+
+## 11. External & Agent GUI Window Spawning (`hl.exec_cmd`)
+
+- **Symptom**: Spawning GUI apps or interactive terminals (e.g. `kitty -e bash ... &`) from background scripts, system services, or detached agent subshells silently fails or does not attach a window to the active Hyprland workspace.
+- **Root Cause**: Detached subshells do not inherit `HYPRLAND_INSTANCE_SIGNATURE`. Furthermore, legacy `hyprctl dispatch exec ...` expects Lua syntax in modular Hyprland.
+- **Fix**: Export the active socket signature and execute via `hl.exec_cmd`:
+  ```bash
+  export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$(id -u)/hypr/ 2>/dev/null | head -n1)
+  hyprctl eval 'hl.exec_cmd("kitty --title <Title> -e bash -c \"<command>; read\"")'
+  ```

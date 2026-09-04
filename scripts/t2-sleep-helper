@@ -1,0 +1,70 @@
+#!/bin/bash
+# /usr/local/bin/t2-sleep-helper
+# Helper script to manage T2 MacBook modules and services across sleep/resume and boot.
+
+case "$1" in
+    pre)
+        echo "t2-sleep-helper: Preparing for suspend..."
+        
+        # Save keyboard and touchbar brightness levels
+        if [ -f "/sys/class/leds/apple::kbd_backlight/brightness" ]; then
+            cat /sys/class/leds/apple::kbd_backlight/brightness > /run/kbd_brightness 2>/dev/null
+        fi
+        if [ -f "/sys/class/backlight/appletb_backlight/brightness" ]; then
+            cat /sys/class/backlight/appletb_backlight/brightness > /run/tb_brightness 2>/dev/null
+        fi
+        
+        # Gracefully stop tiny-dfr so it does not panic on sudden DRM device disconnection
+        systemctl stop tiny-dfr.service 2>/dev/null || true
+        
+        echo "t2-sleep-helper: Pre-suspend complete."
+        ;;
+        
+    post)
+        echo "t2-sleep-helper: Initializing Touch Bar (cycle 0 -> 2)..."
+        
+        # Background worker to cycle USB mode 0 -> 2 and restore Touch Bar once hardware settles
+        (
+            # Unload appletbdrm temporarily to allow clean USB reconfiguration
+            modprobe -r appletbdrm 2>/dev/null || true
+
+            # Find Touch Bar USB device (05ac:8302) and cycle 0 -> 2
+            for dev in /sys/bus/usb/devices/*; do
+                if [ -f "$dev/idVendor" ] && [ -f "$dev/idProduct" ]; then
+                    if [ "$(cat "$dev/idVendor" 2>/dev/null)" = "05ac" ] && [ "$(cat "$dev/idProduct" 2>/dev/null)" = "8302" ]; then
+                        echo 0 > "$dev/bConfigurationValue" 2>/dev/null || true
+                        sleep 0.5
+                        echo 2 > "$dev/bConfigurationValue" 2>/dev/null || true
+                        sleep 0.5
+                        break
+                    fi
+                fi
+            done
+
+            # Load appletbdrm to attach DRM framebuffer on minor 0
+            modprobe appletbdrm 2>/dev/null || true
+            sleep 0.5
+
+            # Restore keyboard and Touch Bar brightness
+            if [ -f "/run/kbd_brightness" ] && [ -f "/sys/class/leds/apple::kbd_backlight/brightness" ]; then
+                cat /run/kbd_brightness > /sys/class/leds/apple::kbd_backlight/brightness 2>/dev/null
+                rm -f /run/kbd_brightness
+            fi
+
+            if [ -f "/run/tb_brightness" ] && [ -f "/sys/class/backlight/appletb_backlight/brightness" ]; then
+                cat /run/tb_brightness > /sys/class/backlight/appletb_backlight/brightness 2>/dev/null
+                rm -f /run/tb_brightness
+            fi
+
+            # Start tiny-dfr
+            systemctl restart tiny-dfr.service 2>/dev/null || true
+        ) &
+        
+        echo "t2-sleep-helper: Post-resume complete."
+        ;;
+        
+    *)
+        echo "Usage: $0 {pre|post}"
+        exit 1
+        ;;
+esac

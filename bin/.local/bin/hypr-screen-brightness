@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# ~/.local/bin/hypr-screen-brightness
+# Adjust display brightness on gmux_backlight and trigger Noctalia native OSD bar
+
+delta="${1:-+5%}"
+device="gmux_backlight"
+
+if [ ! -d "/sys/class/backlight/$device" ]; then
+    device=$(ls /sys/class/backlight/ 2>/dev/null | head -n 1)
+fi
+
+if [ -z "$device" ]; then
+    exit 0
+fi
+
+# Apply brightness change
+brightnessctl -q -d "$device" set "$delta"
+
+# Calculate percentage and send to Noctalia OSD
+val=$(brightnessctl -d "$device" get 2>/dev/null || echo 0)
+max=$(brightnessctl -d "$device" max 2>/dev/null || echo 1)
+percent=$(( val * 100 / max ))
+
+# Show Noctalia native OSD bar
+noctalia msg brightness-osd "$percent" 2>/dev/null || true

@@ -21,7 +21,7 @@ Complete documentation of this machine's configuration and personalization. This
 5. **Self-improving.** After every config change, software install, bug fix, or gotcha discovery, update this skill — specifically `references/changelog.md` and `references/gotchas.md` if relevant.
 6. **Explain -> Ask -> Act.** Always explain the situation and ask if the user agrees with the solution before making changes to the system or installing anything.
 7. **Hyprland Error Diagnostics.** When the user reports a desktop error, red banner, or system error after modifying Hyprland configs, `journalctl` does NOT log config validation errors. ALWAYS run `hyprctl configerrors` first to inspect the exact line number and error message.
-8. **Elevated Password & Interactive Prompts (`kitty -e`).** When a system command requires user password authentication (such as `sudo pacman` package installations), launch an interactive terminal window using `kitty -e bash -c "sudo <command>; echo 'Done! Press Enter to close...'; read"` so the user can securely enter their password directly.
+8. **Elevated Password & Interactive Prompts (`hyprctl` / `kitty -e`).** When a system command requires user password authentication (such as `sudo pacman` package installations), background agent subshells must export `HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1)` and launch an interactive terminal window via Hyprland's IPC executor: `hyprctl eval 'hl.exec_cmd("kitty --title <Title> -e bash -c \"sudo <command>; echo Done!; read\"")'`. This ensures the terminal maps directly onto the active Wayland workspace so the user can securely enter their password directly.
 
 ---
 
@@ -41,9 +41,9 @@ Complete documentation of this machine's configuration and personalization. This
 | Category | Detail |
 |----------|--------|
 | **Machine** | Apple MacBook Pro 15,1 (Chassis Laptop) |
-| **OS** | CachyOS Linux (Arch-based rolling release), kernel `7.1.8-1-cachyos` |
+| **OS** | CachyOS Linux (Arch-based rolling release), kernel `7.2.2-1-cachyos` |
 | **WM** | Hyprland 0.56.2 (Lua-based modular configuration) |
-| **Wayland Shell** | Noctalia 5.0.0_beta.8-1.1 (bar, launcher, system menus) |
+| **Wayland Shell** | Noctalia 5.0.0_beta.10-1.1 (bar, launcher, system menus) |
 | **Primary Display** | `eDP-1` (Apple Retina Color LCD, 2880x1800@60Hz, scale 1.33) |
 | **GPU** | AMD Radeon Pro 560X (Baffin / Polaris 11, `amdgpu`) |
 | **CPU** | Intel Core i9-9880H (8 Cores, 16 Threads, 2.30 - 4.80 GHz) |

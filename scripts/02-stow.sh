@@ -121,11 +121,22 @@ for pkg in "${STOW_PKGS[@]}"; do
     fi
 done
 
-# Link custom icons to ~/.local/share/icons for universal XDG icon lookup
-mkdir -p "$HOME/.local/share/icons"
-for icon in "$DOTFILES_DIR"/webapps/.local/share/applications/icons/*.png; do
+# Link custom icons to ~/.local/share/icons, hicolor, and pixmaps for universal XDG icon lookup
+mkdir -p "$HOME/.local/share/icons" \
+         "$HOME/.local/share/pixmaps" \
+         "$HOME/.local/share/icons/hicolor/512x512/apps" \
+         "$HOME/.local/share/icons/hicolor/scalable/apps"
+
+for icon in "$DOTFILES_DIR"/webapps/.local/share/applications/icons/*; do
     if [ -f "$icon" ]; then
-        ln -sf "$icon" "$HOME/.local/share/icons/$(basename "$icon")" 2>/dev/null || true
+        filename="$(basename "$icon")"
+        ln -sf "$icon" "$HOME/.local/share/icons/$filename" 2>/dev/null || true
+        ln -sf "$icon" "$HOME/.local/share/pixmaps/$filename" 2>/dev/null || true
+        if [[ "$filename" == *.png ]]; then
+            ln -sf "$icon" "$HOME/.local/share/icons/hicolor/512x512/apps/$filename" 2>/dev/null || true
+        elif [[ "$filename" == *.svg ]]; then
+            ln -sf "$icon" "$HOME/.local/share/icons/hicolor/scalable/apps/$filename" 2>/dev/null || true
+        fi
     fi
 done
 
@@ -136,6 +147,7 @@ fi
 
 if command -v gtk-update-icon-cache &>/dev/null; then
     gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
+    gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
 fi
 
 echo "==> GNU Stow deployment complete."

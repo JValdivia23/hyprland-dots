@@ -1,0 +1,13 @@
+[Unit]
+Description=Tiny Apple silicon touch bar daemon (Intel T2 Override)
+After=graphical.target systemd-logind.service dev-tiny_dfr_display.device dev-tiny_dfr_backlight.device
+BindsTo=dev-tiny_dfr_display.device
+StartLimitIntervalSec=0
+
+[Service]
+ExecStart=/usr/bin/tiny-dfr
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=graphical.target

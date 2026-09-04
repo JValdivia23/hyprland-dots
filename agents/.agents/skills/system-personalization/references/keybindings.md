@@ -92,12 +92,13 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `XF86AudioPlay` / `Pause` | `noctalia msg media toggle` | Play/Pause audio playback |
 | `XF86AudioNext` | `noctalia msg media next` | Next audio track |
 | `XF86AudioPrev` | `noctalia msg media previous` | Previous audio track |
-| `XF86MonBrightnessUp` | `brightnessctl -d gmux_backlight set +5%` | Increase screen brightness (5%) |
-| `XF86MonBrightnessDown` | `brightnessctl -d gmux_backlight set 5%-` | Decrease screen brightness (5%) |
-| `SHIFT` + `XF86MonBrightnessUp` / `Down` | `brightnessctl ... set 1%` | Fine-tune screen brightness in 1% steps |
-| `CONTROL` + `XF86MonBrightnessUp` / `Down` | `brightnessctl ... set 10%` | Coarse-tune screen brightness in 10% steps |
-
-| `XF86KbdBrightnessUp` / `Down` (`Fn` + `Up` / `Down`) | Keyboard Brightness | Adjust keyboard backlight brightness (0-3) with OSD |
+| `XF86MonBrightnessUp` | `hypr-screen-brightness +5%` | Increase screen brightness with Noctalia OSD (5%) |
+| `XF86MonBrightnessDown` | `hypr-screen-brightness 5%-` | Decrease screen brightness with Noctalia OSD (5%) |
+| `SHIFT` + `XF86MonBrightnessUp` / `Down` | `hypr-screen-brightness ±1%` | Fine-tune screen brightness with Noctalia OSD (1%) |
+| `CONTROL` + `XF86MonBrightnessUp` / `Down` | `hypr-screen-brightness ±10%` | Coarse-tune screen brightness with Noctalia OSD (10%) |
+| `XF86KbdBrightnessUp` / `Down` (`Fn` + `Up` / `Down`) | `hypr-kbd-brightness {up\|down}` | Adjust keyboard backlight brightness with Noctalia OSD |
+| `switch:on:Lid Switch` | `hypr-lid-handler close` | Clamshell lid close: Lock session, DPMS off (`eDP-1`), save/cut keyboard light, power saving profile |
+| `switch:off:Lid Switch` | `hypr-lid-handler open` | Clamshell lid open: DPMS on (`eDP-1`), restore keyboard brightness, restore active power profile |
 
 ## Workspaces & Monitor Control
 

@@ -81,3 +81,15 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
      "
      ```
 
+---
+
+## 6. Web App Launcher Icons Resolution & Format Requirements
+
+- **Symptom**: Web app launchers (such as YouTube, AllAnime, Hanime) show a generic placeholder or broken icon in Noctalia launcher, Rofi, or task managers.
+- **Root Cause**:
+  1. Desktop entry `Icon=` specifies a name without full path (e.g. `Icon=YouTube`), but the icon was placed directly in `~/.local/share/icons/` without the standard XDG `hicolor/<size>/apps/` structure or `~/.local/share/pixmaps/`.
+  2. The icon file was actually a JPEG image saved with a `.png` extension; Cairo and GTK/Wayland decoders strictly fail to decode disguised JPEGs via PNG loaders.
+- **Fix**:
+  1. Always convert icons to valid RGBA PNG (or scalable SVG) files.
+  2. Populate multi-resolution sizes in `~/.local/share/icons/hicolor/{32x32,48x48,64x64,128x128,256x256,512x512}/apps/` and `~/.local/share/pixmaps/`.
+  3. Run `gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` and `update-desktop-database ~/.local/share/applications`.

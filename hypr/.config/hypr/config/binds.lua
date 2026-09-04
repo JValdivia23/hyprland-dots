@@ -4,7 +4,9 @@ local launchPrefix = "uwsm app -- " -- if you are not using UWSM, make this empt
 local homeDir = os.getenv("HOME") or "/home/user"
 local macHelper = homeDir .. "/.local/bin/mac-key-helper "
 local winPop = homeDir .. "/.local/bin/hypr-window-pop"
-local kbdBrightness = homeDir .. "/.local/bin/hypr-kbd-brightness"
+local kbdBrightness = homeDir .. "/.local/bin/hypr-kbd-brightness "
+local screenBrightness = homeDir .. "/.local/bin/hypr-screen-brightness "
+local lidHandler = homeDir .. "/.local/bin/hypr-lid-handler "
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
@@ -143,16 +145,16 @@ hl.bind("XF86AudioNext",  hl.dsp.exec_cmd(noctCall .. "media next"),     { locke
 hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
 
 -- Brightness (Display / Screen Backlight)
-hl.bind("XF86MonBrightnessUp",         hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +5%"),            { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",       hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 5%-"),          { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +1%"),  { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 1%-"),{ locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessUp",   hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set +10%"), { locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessDown", hl.dsp.exec_cmd("brightnessctl -d gmux_backlight set 10%-"),{ locked = true, repeating = true })
+hl.bind("XF86MonBrightnessUp",         hl.dsp.exec_cmd(screenBrightness .. "+5%"),   { locked = true, repeating = true })
+hl.bind("XF86MonBrightnessDown",       hl.dsp.exec_cmd(screenBrightness .. "5%-"),   { locked = true, repeating = true })
+hl.bind("SHIFT + XF86MonBrightnessUp",   hl.dsp.exec_cmd(screenBrightness .. "+1%"), { locked = true, repeating = true })
+hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd(screenBrightness .. "1%-"), { locked = true, repeating = true })
+hl.bind("CONTROL + XF86MonBrightnessUp",   hl.dsp.exec_cmd(screenBrightness .. "+10%"), { locked = true, repeating = true })
+hl.bind("CONTROL + XF86MonBrightnessDown", hl.dsp.exec_cmd(screenBrightness .. "10%-"),{ locked = true, repeating = true })
 
 -- Keyboard Backlight
-hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd(kbdBrightness .. " up"),   { locked = true })
-hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBrightness .. " down"), { locked = true })
+hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd(kbdBrightness .. "up"),   { locked = true, repeating = true })
+hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBrightness .. "down"), { locked = true, repeating = true })
 
 
 -------------------
@@ -169,6 +171,10 @@ hl.bind(mainMod .. " + Print",     hl.dsp.exec_cmd(noctCall .. "screenshot-fulls
 -- Lock & Suspend
 hl.bind(mainMod .. " + SHIFT + L",  hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"))
 hl.bind("XF86Sleep",                hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"), { locked = true })
+
+-- Laptop Lid Switch (Clamshell & Ultra-Low Power Mode)
+hl.bind("switch:on:Lid Switch",     hl.dsp.exec_cmd(lidHandler .. "close"), { locked = true })
+hl.bind("switch:off:Lid Switch",    hl.dsp.exec_cmd(lidHandler .. "open"),  { locked = true })
 
 -- Theming, Wallpaper & Night Light
 hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
