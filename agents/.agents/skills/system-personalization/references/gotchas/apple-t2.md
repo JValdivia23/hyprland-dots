@@ -6,33 +6,36 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ## 1. Touch Bar Display & Operating Modes (`hid-appletb-kbd` & `tiny-dfr`)
 
-- **Architecture & Dual Modes**: The Touch Bar (`05ac:8302`) supports two operational modes:
-  - **Hardware Keyboard Mode (`hid-appletb-kbd`, Configuration 1)**: Native Apple T2 hardware mode. Renders physical-like buttons directly via T2 firmware with instant responsiveness, automatic dimming, and zero DRM overhead.
-    - **Configuration (`/etc/modprobe.d/touchbar.conf`)**:
-      ```ini
-      options hid_appletb_kbd mode=1 fntoggle=1 double_press_switch_time=500
-      ```
-    - **Controls**:
-      - Default (`mode=1`): Direct `Esc` and standard `F1`–`F12` Function Keys row.
-      - `Fn` hold (`fntoggle=1`): Dynamically switches to Special Media controls (Brightness, Illumination, Media Playback, Volume, Mute).
-      - Double-tap `Fn` (`double_press_switch_time=500`): Locks/toggles the layer between F-keys and Media keys.
-  - **Userspace DRM Mode (`appletbdrm` + `tiny-dfr`, Configuration 2)**: Userspace SVG rendering daemon. Note that on Linux kernel 7.1.x (`7.1.8-1-cachyos`), the upstream `appletbdrm` DRM driver has a known probe timeout regression (`error -110 / ETIMEDOUT`) during USB bus probe.
+- **Architecture & Operational Mode**:
+  - **Userspace DRM Mode (`appletbdrm` + `tiny-dfr`, Configuration 2 - Default & Canonical)**: The standard and reliable Touch Bar architecture for Intel T2 MacBooks (`MacBookPro15,1`).
+    - The Touch Bar USB device (`05ac:8302`) exposes two interfaces:
+      - `7-6:2.0`: Multitouch digitizer managed by `hid-multitouch`.
+      - `7-6:2.1`: DRM display framebuffer managed by `appletbdrm` -> `/dev/tiny_dfr_display`.
+    - **Daemon (`tiny-dfr.service`)**: Renders custom vector SVG keys (`/etc/tiny-dfr/*.svg`), handles `Fn` layer switching (F-keys ⬌ Media controls), smooth touch input emission via `uinput`, and OLED burn-in pixel shift (`EnablePixelShift = true`).
+  - **Hardware Keyboard Mode (`hid-appletb-kbd`, Configuration 1 - Unsupported on 15,1)**: On the MacBookPro15,1 (Intel Core i9 + discrete AMD Radeon 560X), attempting to run Configuration 1 results in BridgeOS transfer queue failures (`URB failed: 3`) and continuous endpoint drops (`bce_vhci_drop_endpoint 6:11`). `hid_appletb_kbd` MUST be blacklisted in `/etc/modprobe.d/blacklist-touchbar.conf` (`blacklist hid_appletb_kbd`) to prevent the kernel from auto-claiming `05ac:8302` during sleep/resume cycles.
+- **Sleep, Boot & Resume Lifecycle (`t2-sleep-helper`, `t2-touchbar-setup.service` & `99-touchbar-tiny-dfr.rules`)**:
+  - **T2 Readiness Window Gotcha**: When the Touch Bar re-enumerates after boot or sleep, setting `bConfigurationValue` directly to 2 causes `appletbdrm` probe timeout (`-110` / `ETIMEDOUT: Failed to send message`). The USB device MUST cycle from `bConfigurationValue = 0` (unconfigured) to `bConfigurationValue = 2` (DRM mode) to open BridgeOS's hardware readiness window.
+  - **Pre-suspend**: Saves brightness to `/run/tb_brightness` and gracefully stops `tiny-dfr.service` to avoid sudden DRM disconnect panics.
+  - **Post-resume / Boot Setup**: `t2-sleep-helper post` cycles `05ac:8302` `0 -> 2`, loads `appletbdrm` to register `/dev/dri/card0`, restores saved brightness, and restarts `tiny-dfr.service`. Enabled on boot via `t2-touchbar-setup.service`.
+- **Systemd Binding**: `/etc/systemd/system/tiny-dfr.service` uses `BindsTo=dev-tiny_dfr_display.device` so `tiny-dfr` never attempts to open the primary AMD GPU DRM card `/dev/dri/card1` if the Touch Bar DRM node is temporarily absent.
 - **Service Cleanup**: Disabled and masked obsolete `supergfxd.service` (an ASUS ROG GPU daemon left over from dual-GPU configs) which was triggering spurious PCIe bus rescans and resetting T2 VHCI endpoints.
 - **Diagnostic / Status**:
   ```bash
-  cat /sys/module/hid_appletb_kbd/parameters/mode
+  systemctl status tiny-dfr.service
+  ls -la /dev/dri/
   cat /sys/class/backlight/appletb_backlight/brightness
   ```
 
 ---
 
-## 2. Suspend / Sleep Wakeup Fix (`suspend-fix-t2.service`)
+## 2. Suspend / Sleep Wakeup Fix (`suspend-fix-t2.service` & `t2-sleep-helper`)
 
-- **Quirk**: T2 MacBooks can experience spontaneous wakeups or fail to enter deep sleep if PCIe devices (NVMe, Wi-Fi, T2 bridge) remain in active D0 power states.
-- **Service**: Handled automatically via `suspend-fix-t2.service`.
+- **Quirk**: T2 MacBooks can experience spontaneous wakeups or fail to enter deep sleep if PCIe devices (NVMe, Wi-Fi, T2 bridge) remain in active D0 power states, or leave Touch Bar drivers in unconfigured states.
+- **Service & Helper**: Handled automatically via `suspend-fix-t2.service` executing `/usr/local/bin/t2-sleep-helper {pre|post}`.
 - **Diagnostic**:
   ```bash
   systemctl status suspend-fix-t2.service
+  journalctl -u suspend-fix-t2.service -b
   ```
 
 ---
@@ -98,7 +101,7 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ---
 
-## 7. macOS & CachyOS Dual-Booting (`rEFInd` + `rEFInd-minimal`)
+## 7. macOS & CachyOS Dual-Booting (`rEFInd` + `rEFInd-minimal-black`)
 
 - **Architecture**: Modern Macs with T2 chips store macOS on an APFS container (`nvme0n1p2`) and Linux on separate ESP/root partitions (`nvme0n1p3`, `nvme0n1p4`). Linux bootloaders like Limine only scan their own partition and do not detect APFS containers.
 - **Boot Manager**: `rEFInd` is installed to `/boot/EFI/refind/refind_x64.efi` and registered as `Boot0001` with highest UEFI boot priority (`BootOrder: 0001,0000,0080`).
@@ -106,7 +109,20 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   - `timeout 3`: Displays the boot menu for 3 seconds before booting CachyOS automatically.
   - `default_selection "limine,vmlinuz,cachyos"`: Preselects CachyOS as the default boot target.
   - `scanfor internal,external,optical,manual`: Scans all internal partitions for macOS APFS and Linux kernels.
-  - `include themes/rEFInd-minimal/theme.conf`: Modern minimalist theme with dark background and monochrome icons.
+  - `include themes/rEFInd-minimal-black/theme.conf`: Ultra-minimalist dark theme with pitch black background (`#000000`) and monochrome gray logos (Arch Linux & Apple macOS).
 - **Manual Apple Boot Picker Fallback**: Holding the `Option` (`⌥`) key on startup bypasses all custom bootloaders and launches the Apple hardware Startup Manager.
+
+---
+
+## 8. Linux 7.2+ Modular `t2bce` Driver Transition & `mkinitcpio` Compatibility
+
+- **Quirk / Error**: When upgrading from Linux 7.1 to 7.2+, `mkinitcpio` fails with `==> ERROR: module not found: 'apple_bce'` and skips generating the kernel initramfs image.
+- **Root Cause**: In kernel 7.2+, the Apple T2 Bridge Controller driver was refactored from the monolithic `apple-bce.ko` module into upstream modular **`t2bce`** drivers (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`, and `applesmc-t2`). Legacy auto-generated hardware configs (`/etc/mkinitcpio.conf.d/11-chwd.conf`) with hardcoded `MODULES+=(apple-bce)` throw missing module errors on 7.2+ kernels.
+- **Fix**: Use `?` optional module tags in `/etc/mkinitcpio.conf.d/11-chwd.conf` so `mkinitcpio` succeeds across both LTS kernels (which use `apple-bce`) and modern 7.2+ kernels (which use `t2bce`):
+  ```bash
+  MODULES+=(apple-bce? t2bce_core? t2bce_vhci? t2bce_dma? applesmc-t2?)
+  ```
+  Then regenerate initramfs via `sudo mkinitcpio -P` and `sudo limine-mkinitcpio-install < /dev/null`.
+
 
 

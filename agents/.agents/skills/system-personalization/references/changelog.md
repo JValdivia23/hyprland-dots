@@ -2,6 +2,95 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.20.0] - 2026-09-03
+### Changed
+- **rEFInd Boot Theme Modernization (`rEFInd-minimal-black`)**:
+  - Replaced the bright, high-glare `rEFInd-minimal` theme (light silver background `#eceee3`) with **`rEFInd-minimal-black`** in `/boot/EFI/refind/themes/rEFInd-minimal-black/`.
+  - Configured a true solid black canvas (`#000000`) with subtle monochrome gray icons (~`RGB: 225, 225, 225`) and minimalist selection indicator.
+  - Linked monochrome gray Arch Linux logo (`os_arch.png`) for CachyOS and Limine (`os_cachyos.png`, `os_limine.png`, `limine_x64.png`), paired with the gray Apple logo (`os_mac.png`) for macOS dual-boot.
+  - Updated `/boot/EFI/refind/refind.conf` to include `themes/rEFInd-minimal-black/theme.conf` while retaining the 3-second auto-boot countdown and default CachyOS target.
+  - Documented update in [`references/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/apple-t2.md#L104-L114).
+
+## [2.19.0] - 2026-09-03
+### Fixed
+- **Laptop Lid Suspend & Clamshell Thermal Overheating Prevention**:
+  - Diagnosed battery exhaustion and extreme chassis heat when closed: [`/etc/systemd/logind.conf.d/omarchy-lid.conf`](file:///etc/systemd/logind.conf.d/omarchy-lid.conf) had `HandleLidSwitch=ignore` and `HandleLidSwitchExternalPower=ignore` enabled, preventing systemd-logind from suspending the laptop when the lid closed.
+  - Reconfigured `omarchy-lid.conf` to `HandleLidSwitch=suspend` and `HandleLidSwitchExternalPower=suspend`, while retaining `HandleLidSwitchDocked=ignore` for external display clamshell workstations.
+  - Reloaded `systemd-logind` configuration via `SIGHUP` (`systemctl kill -s HUP systemd-logind`).
+  - Enhanced [`~/.local/bin/hypr-lid-handler`](file:///home/java1127/.local/bin/hypr-lid-handler) in dotfiles (`~/dotfiles/bin/.local/bin/hypr-lid-handler`):
+    - Added Touch Bar OLED backlight (`appletb_backlight`) preservation: saves active level to `/tmp/hypr_tb_backlight_saved_${UID}` and shuts off OLED display on lid close, restoring brightness on lid open.
+    - Integrated with `power-profiles-daemon`: saves current profile and enforces `powerprofilesctl set power-saver` on lid close, restoring previous profile on open.
+  - Documented updated architecture in [`references/gotchas/hyprland.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/hyprland.md) and [`references/config-paths.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/config-paths.md).
+
+## [2.18.0] - 2026-09-01
+### Changed
+- **Full System Upgrade & Linux 7.2 Kernel (`7.2.2-1-cachyos`)**:
+  - Upgraded kernel from `7.1.8-1-cachyos` to **`7.2.2-1-cachyos`** alongside `linux-cachyos-lts` `6.18.48-1`.
+  - Updated **Noctalia** shell to `5.0.0_beta.10-1.1`.
+  - Updated web browser suite: **Firefox 154.0.1**, **Zen Browser 1.21.16b**, and **Brave Origin 1.94.117**.
+  - Updated KDE Frameworks & Dolphin to **`26.08.0-5.1`** / Qt 6.11.2.
+- **Apple T2 BCE Driver Transition & mkinitcpio Multi-Kernel Compatibility**:
+  - Diagnosed `mkinitcpio` build failure on Linux 7.2 due to legacy hardcoded `MODULES+=(apple-bce)` in [`/etc/mkinitcpio.conf.d/11-chwd.conf`](file:///etc/mkinitcpio.conf.d/11-chwd.conf).
+  - Modernized `11-chwd.conf` with optional `?` tags: `MODULES+=(apple-bce? t2bce_core? t2bce_vhci? t2bce_dma? applesmc-t2?)` to support both Linux 7.2+ modular `t2bce` drivers and LTS `apple-bce`.
+  - Rebuilt all Limine UKI and initramfs boot images cleanly.
+- **Keyboard Backlight Clamshell / Lid Preservation & Idle Dimming**:
+  - Diagnosed keyboard backlight starting at 0% (off) after opening laptop lid: [`~/.local/bin/hypr-lid-handler`](file:///home/java1127/.local/bin/hypr-lid-handler) turned off `apple::kbd_backlight` on lid close without saving previous level.
+  - Updated `hypr-lid-handler` to save active brightness level to `/tmp/hypr_kbd_backlight_saved_${UID}` on `close` and restore the saved level automatically on `open`.
+  - Added 150s (2.5 min) idle listener to [`~/.config/hypr/hypridle.conf`](file:///home/java1127/.config/hypr/hypridle.conf) (`brightnessctl -s -d "apple::kbd_backlight" set 0%` and `brightnessctl -r`), turning off keyboard backlighting alongside screen and Touch Bar dimming.
+- **Unified Noctalia On-Screen Display (OSD) for Screen & Keyboard Brightness**:
+  - Deployed [`~/.local/bin/hypr-screen-brightness`](file:///home/java1127/.local/bin/hypr-screen-brightness) to route display brightness adjustments on `gmux_backlight` to `noctalia msg brightness-osd <percent>`, showing Noctalia's native progress bar on keypress.
+  - Replaced `notify-send` in [`~/.local/bin/hypr-kbd-brightness`](file:///home/java1127/.local/bin/hypr-kbd-brightness) with `noctalia msg keyboard-backlight-osd <percent>`, replacing stacked notification cards with a single unified keyboard brightness OSD bar.
+  - Updated [`~/.config/hypr/config/binds.lua`](file:///home/java1127/.config/hypr/config/binds.lua) hardware brightness bindings with `repeating = true`.
+- **Skill Self-Improvement & Wayland IPC Dispatch**:
+  - Updated [`SKILL.md`](file:///home/java1127/.agents/skills/system-personalization/SKILL.md) Rule 8, [`terminal-ssh.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/terminal-ssh.md), and [`hyprland.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/hyprland.md) to properly export `HYPRLAND_INSTANCE_SIGNATURE` and invoke Hyprland's native `hl.exec_cmd` for elevated background terminal prompts.
+
+## [2.17.0] - 2026-08-20
+### Changed
+- **Graphics & Vulkan Driver Stack Update (Mesa 26.2.1)**:
+  - Synchronized repository databases and updated graphics stack to **Mesa 26.2.1** (`mesa`, `lib32-mesa`, `vulkan-radeon`, `lib32-vulkan-radeon`, `vulkan-intel`, `lib32-vulkan-intel`, `opencl-mesa`, `lib32-opencl-mesa`, `vulkan-mesa-implicit-layers`, `lib32-vulkan-mesa-implicit-layers` `3:26.1.6-1` -> `3:26.2.1-1`).
+  - Verified Vulkan 1.4 driver instance (`Mesa 26.2.1-arch3.1`, RADV POLARIS11) and VA-API hardware acceleration (`radeonsi`) on discrete AMD Radeon Pro 560X.
+
+## [2.16.0] - 2026-08-17
+### Added
+- **Clamshell & Ultra-Low Idle Power Architecture (Lid-Closed Mode)**:
+  - Configured system to allow background tasks (downloads, music, servers, SSH) to run with the laptop lid closed without forcing immediate sleep.
+  - Set `HandleLidSwitch=ignore` and `HandleLidSwitchExternalPower=ignore` in [`/etc/systemd/logind.conf.d/omarchy-lid.conf`](file:///etc/systemd/logind.conf.d/omarchy-lid.conf).
+  - Deployed [`~/.local/bin/hypr-lid-handler`](file:///home/java1127/.local/bin/hypr-lid-handler) in dotfiles (`~/dotfiles/bin/.local/bin/hypr-lid-handler`):
+    - **Lid Close (`switch:on:Lid Switch`)**: Locks session via Noctalia/loginctl, powers off primary Retina display (`eDP-1`) via Wayland DPMS, powers down keyboard backlighting (`apple::kbd_backlight`), and sets power saving on GPU and CPU.
+    - **Lid Open (`switch:off:Lid Switch`)**: Powers display (`eDP-1`) back on via Wayland DPMS and restores active power profiles.
+  - Bound Hyprland switch directives in [`~/.config/hypr/config/binds.lua`](file:///home/java1127/.config/hypr/config/binds.lua) with `{ locked = true }`.
+  - Enhanced [`/usr/local/bin/amdgpu-power-switch.sh`](file:///usr/local/bin/amdgpu-power-switch.sh) to toggle Intel Turbo Boost (`/sys/devices/system/cpu/intel_pstate/no_turbo`) on battery/clamshell, locking idle CPU draw to $\approx 1.0\text{W} - 1.8\text{W}$ and eliminating thermal spikes inside the closed chassis.
+
+## [2.15.0] - 2026-08-17
+### Fixed
+- **Touch Bar Sleep/Resume Controller Recovery & Driver Blacklist**:
+  - Diagnosed Touch Bar unresponsiveness: on wakeup or boot, setting USB device `05ac:8302` directly to Configuration 2 caused BridgeOS probe timeout (`-110` / `ETIMEDOUT: Failed to send message`). In addition, the in-tree `hid_appletb_kbd` driver auto-claimed the interface and dropped VHCI endpoints (`bce_vhci_drop_endpoint 6:11`).
+  - Blacklisted `hid_appletb_kbd` in [`/etc/modprobe.d/blacklist-touchbar.conf`](file:///etc/modprobe.d/blacklist-touchbar.conf) and staged in `~/dotfiles/scripts/blacklist-touchbar.conf`.
+  - Deployed [`/etc/udev/rules.d/99-touchbar-tiny-dfr.rules`](file:///etc/udev/rules.d/99-touchbar-tiny-dfr.rules) to manage Touch Bar input, display, and backlight aliases cleanly without change loops.
+  - Updated [`/usr/local/bin/t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper) to cycle `bConfigurationValue` `0 -> 2`, allowing BridgeOS to open its readiness window before loading `appletbdrm`.
+  - Created and enabled [`/etc/systemd/system/t2-touchbar-setup.service`](file:///etc/systemd/system/t2-touchbar-setup.service) to automatically run `t2-sleep-helper post` upon boot.
+  - Hardened [`/etc/systemd/system/tiny-dfr.service`](file:///etc/systemd/system/tiny-dfr.service) with `BindsTo=dev-tiny_dfr_display.device` so `tiny-dfr` never mistakenly opens primary GPU cards.
+  - Documented complete architecture and recovery cycle in [`references/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/apple-t2.md#L7-L28).
+
+## [2.14.0] - 2026-08-15
+### Fixed
+- **Apple Touch Bar Sleep & Resume Recovery (`tiny-dfr` & `appletbdrm`)**:
+  - Diagnosed Touch Bar failure on MacBookPro15,1 (Apple T2 + discrete AMD Radeon Pro 560X): forcing experimental hardware mode (`hid-appletb-kbd`) caused BridgeOS transfer queue failures (`URB failed: 3`) and VHCI endpoint drops (`bce_vhci_drop_endpoint 6:11`).
+  - Restored canonical T2 Userspace DRM architecture using native **`tiny-dfr`** and **`appletbdrm`** (Configuration 2 with `hid-multitouch`).
+  - Updated [`/usr/local/bin/t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper):
+    - **Pre-suspend**: Gracefully stops `tiny-dfr.service`, unloads `appletbdrm` and `hid_appletb_bl`, and saves backlight brightness to `/run/tb_brightness`.
+    - **Post-resume**: Reloads `hid_appletb_bl` and `appletbdrm`, restores backlight brightness, and automatically restarts `tiny-dfr.service` upon DRM device appearance.
+  - Documented root cause and architecture in [`references/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/apple-t2.md#L9-L26).
+
+## [2.13.0] - 2026-08-14
+### Fixed
+- **Web App High-Resolution Icons & XDG Multi-Resolution Hierarchy**:
+  - Replaced corrupted/disguised JPEG web app icon files (`AllAnime.png`, `Hanime.png`) with clean, pixel-perfect 512x512 RGBA PNGs and vector SVGs.
+  - Deployed official YouTube play button logo (SVG + 512x512 RGBA PNG on transparent background) as preferred by user.
+  - Generated and installed multi-resolution icon assets across `~/.local/share/icons/hicolor/{16x16,24x24,32x32,48x48,64x64,128x128,256x256,512x512}/apps/` and `~/.local/share/pixmaps/`.
+  - Updated [`scripts/02-stow.sh`](file:///home/java1127/dotfiles/scripts/02-stow.sh) and [`bin/.local/bin/cachy-webapp-install`](file:///home/java1127/dotfiles/bin/.local/bin/cachy-webapp-install) to automatically link web app icons to `hicolor` and `pixmaps` and rebuild GTK/XDG icon caches.
+  - Documented troubleshooting in [`references/gotchas/wayland-noctalia.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/wayland-noctalia.md#L86-L98).
+
 ## [2.12.0] - 2026-08-14
 ### Added
 - **Dual-Boot OS Picker & macOS APFS Auto-Discovery (`rEFInd` + `rEFInd-minimal`)**:
