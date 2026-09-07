@@ -2,6 +2,18 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.21.0] - 2026-09-07
+### Changed
+- **Full System Upgrade & Linux 7.2.3 Kernel (`7.2.3-1-cachyos`)**:
+  - Upgraded kernel from `7.2.2-1-cachyos` to **`7.2.3-1-cachyos`** alongside `linux-cachyos-headers`, `cpupower`, and `bpf`.
+  - Upgraded **Noctalia** Wayland shell from `5.0.0_beta.10-1.1` to **`5.0.1-1.1`** (official point release out of beta).
+  - Updated Hyprland compositor stack: `hyprland` `0.56.2-2.1`, `aquamarine` `0.15.0-2.1`, `hypridle` `0.1.8-2.1`, `hyprlock` `0.9.6-3.1`, `hyprutils` `0.14.2-1.1`, and `xdg-desktop-portal-hyprland` `1.4.1-2.1`. Zero Hyprland config errors reported (`hyprctl configerrors`).
+  - Updated **LuaJIT** to `2.1.1788460057+24c20c9-1.1` (underlying Hyprland Lua modular config engine).
+  - Upgraded **Fish Shell** to **`4.9.2-1`** (from `4.8.1`).
+  - Updated web browser suite: **Zen Browser `1.22b-1`**, **Firefox `155.0.1-1`**, and **Brave Origin `1:1.94.121-1`**.
+  - Updated user & CLI utilities: **Swayimg `5.6-1.1`**, **Lazygit `0.65.0-1.1`**, **Yazi `26.9.1-2.1`**, and **scx-scheds `1.1.3-2`**.
+  - Verified post-reboot hardware health: Apple T2 Bridge Controller, OLED Touch Bar (`tiny-dfr.service` active), fan daemon (`t2fanrd.service` active), and PipeWire direct ALSA routing for `Apple Audio Device Speakers`.
+
 ## [2.20.0] - 2026-09-03
 ### Changed
 - **rEFInd Boot Theme Modernization (`rEFInd-minimal-black`)**:

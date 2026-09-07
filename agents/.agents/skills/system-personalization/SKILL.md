@@ -41,9 +41,9 @@ Complete documentation of this machine's configuration and personalization. This
 | Category | Detail |
 |----------|--------|
 | **Machine** | Apple MacBook Pro 15,1 (Chassis Laptop) |
-| **OS** | CachyOS Linux (Arch-based rolling release), kernel `7.2.2-1-cachyos` |
+| **OS** | CachyOS Linux (Arch-based rolling release), kernel `7.2.3-1-cachyos` |
 | **WM** | Hyprland 0.56.2 (Lua-based modular configuration) |
-| **Wayland Shell** | Noctalia 5.0.0_beta.10-1.1 (bar, launcher, system menus) |
+| **Wayland Shell** | Noctalia 5.0.1-1.1 (bar, launcher, system menus) |
 | **Primary Display** | `eDP-1` (Apple Retina Color LCD, 2880x1800@60Hz, scale 1.33) |
 | **GPU** | AMD Radeon Pro 560X (Baffin / Polaris 11, `amdgpu`) |
 | **CPU** | Intel Core i9-9880H (8 Cores, 16 Threads, 2.30 - 4.80 GHz) |

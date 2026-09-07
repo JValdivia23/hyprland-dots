@@ -4,10 +4,10 @@ Live system snapshot (OS, package versions, hardware configuration). Refreshable
 
 ## Operating System & Compositor
 - **OS**: CachyOS Linux (Arch-based rolling release)
-- **Kernel**: `7.2.2-1-cachyos` (active) / `6.18.48-1-cachyos-lts` (LTS fallback)
-- **Shell**: `/bin/fish` (Fish 4.8.1)
-- **Compositor**: Hyprland 0.56.2 (Lua-based modular configuration)
-- **Wayland Shell / Panel**: Noctalia 5.0.0_beta.10-1.1 (Wayland native bar & panel)
+- **Kernel**: `7.2.3-1-cachyos` (active) / `6.18.48-1-cachyos-lts` (LTS fallback)
+- **Shell**: `/bin/fish` (Fish 4.9.2)
+- **Compositor**: Hyprland 0.56.2-2.1 (Lua-based modular configuration)
+- **Wayland Shell / Panel**: Noctalia 5.0.1-1.1 (Wayland native bar & panel)
 
 ## System & Display
 - **Hardware**: Apple MacBook Pro 15,1 (`MacBookPro15,1`)
@@ -16,32 +16,32 @@ Live system snapshot (OS, package versions, hardware configuration). Refreshable
 - **RAM**: 16 GiB (15.5 GiB usable) + 15.5 GiB zram swap
 - **Display Output**: `eDP-1` (Apple Retina 2880x1800 @ 60Hz, scale 1.33)
 - **Disk Usage**:
-  - `/` and `/home`: `/dev/nvme0n1p4` (229 GB Btrfs, ~21 GB used)
-  - `/boot`: `/dev/nvme0n1p3` (4.0 GB vfat, 597 MB used)
+  - `/` and `/home`: `/dev/nvme0n1p4` (229 GB Btrfs, ~25 GB used)
+  - `/boot`: `/dev/nvme0n1p3` (4.0 GB vfat, 796 MB used)
 
 ## Key Installed Packages & Utilities
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| `hyprland` | 0.56.2-1 | Window Manager / Wayland Compositor |
-| `noctalia` | 5.0.0_beta.10-1.1 | Status bar, launcher, session & quick settings |
+| `hyprland` | 0.56.2-2.1 | Window Manager / Wayland Compositor |
+| `noctalia` | 5.0.1-1.1 | Status bar, launcher, session & quick settings |
 | `kitty` | 0.48.2-1.1 | Default Terminal emulator |
 | `alacritty` | 0.17.0-1.2 | Alternative Terminal emulator |
-| `zen-browser-bin` | 1.21.16b-1 | Primary web browser |
-| `firefox` | 154.0.1-1.1 | Alternative web browser |
-| `brave-origin-bin` | 1:1.94.117-1 | WebApps engine & browser |
+| `zen-browser-bin` | 1.22b-1 | Primary web browser |
+| `firefox` | 155.0.1-1 | Alternative web browser |
+| `brave-origin-bin` | 1:1.94.121-1 | WebApps engine & browser |
 | `mesa` | 3:26.2.1-1 | 3D graphics library & OpenGL drivers |
 | `vulkan-radeon` | 3:26.2.1-1 | Vulkan driver for AMD Radeon Pro 560X (RADV) |
 | `opencl-mesa` | 3:26.2.1-1 | OpenCL Gallium compute drivers |
 | `grim` | 1.5.0-2.1 | Wayland screenshot tool |
 | `slurp` | 1.5.0-2.1 | Region selection tool |
 | `satty` | 0.22.0-1.1 | Screenshot editor/viewer & default image viewer |
-| `swayimg` | 5.5-1.1 | Lightweight Wayland image viewer & Quick Look engine |
+| `swayimg` | 5.6-1.1 | Lightweight Wayland image viewer & Quick Look engine |
 | `waypaper` | 2.8-1 | Wallpaper selector & rotation GUI |
 | `btop` | 1.4.7-1.1 | Terminal resource monitor |
 | `dolphin` | 26.08.0-5.1 | Graphical file manager |
 | `neovim` | 0.12.4-1.1 | Modal text editor (LazyVim base) |
-| `lazygit` | 0.64.1-1.1 | Git TUI client |
+| `lazygit` | 0.65.0-1.1 | Git TUI client |
 | `localsend` | 1.17.0-4 | Cross-platform local network file sharing |
 | `easyeffects` | 8.2.8-1.1 | Audio DSP processor & speaker equalizer daemon |
 | `lsp-plugins-lv2` | 1.2.33-2.1 | LV2 studio audio plugins (multiband compressor, limiter, EQ) |
