@@ -1,7 +1,7 @@
 ---
 name: system-personalization
 description: "Comprehensive system personalization tracker for cachyos-cu (Apple MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.2.0
+version: 2.22.0
 created: 2026-08-14
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, macbook, t2, keybindings, gotchas]
 ---

@@ -51,6 +51,8 @@ Live system snapshot (OS, package versions, hardware configuration). Refreshable
 | `libva-utils` | 2.24.0-1.1 | VA-API diagnostic tools (`vainfo`) |
 | `vulkan-tools` | 1.4.357.0-1.1 | Vulkan diagnostic utilities (`vulkaninfo`) |
 | `jq` | 1.8.2-1.1 | Command-line JSON processor |
+| `cliamp-bin` | 2.2.0-1 | Retro Winamp-inspired terminal music player with MPRIS support |
+| `yt-dlp` | 2026.08.19-1 | CLI media stream downloader / audio extraction provider |
 
 ## Active Hardware & Power Daemons
 - `t2fanrd.service`: Custom exponential thermal curve daemon for Intel Core i9-9880H (`/etc/t2fand.conf`, active).

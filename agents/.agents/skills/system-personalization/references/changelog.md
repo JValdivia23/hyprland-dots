@@ -2,6 +2,14 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.22.0] - 2026-09-09
+### Added
+- **Installed `cliamp` Terminal Music Player (`cliamp-bin` `2.2.0-1`) & `yt-dlp` (`2026.08.19-1`)**:
+  - Packaged and installed retro Winamp 2.x-inspired terminal music player `cliamp` v2.2.0 from AUR via `cliamp-bin`.
+  - Installed `yt-dlp` from official repos as an audio extraction and online streaming provider dependency.
+  - Deployed system executable `/usr/bin/cliamp`, desktop application entry `/usr/share/applications/cliamp.desktop`, and hicolor application icons.
+  - Native MPRIS D-Bus integration connects directly to Noctalia's media widgets and Hyprland media shortcuts (`XF86AudioPlay`, `Next`, `Prev`).
+
 ## [2.21.0] - 2026-09-07
 ### Changed
 - **Full System Upgrade & Linux 7.2.3 Kernel (`7.2.3-1-cachyos`)**:
