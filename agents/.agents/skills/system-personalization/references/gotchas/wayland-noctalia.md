@@ -93,3 +93,23 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
   1. Always convert icons to valid RGBA PNG (or scalable SVG) files.
   2. Populate multi-resolution sizes in `~/.local/share/icons/hicolor/{32x32,48x48,64x64,128x128,256x256,512x512}/apps/` and `~/.local/share/pixmaps/`.
   3. Run `gtk-update-icon-cache -f -t ~/.local/share/icons/hicolor` and `update-desktop-database ~/.local/share/applications`.
+
+---
+
+## 7. Noctalia 5.0.1 Deprecated Config Keys Migration (`noctalia config validate`)
+
+- **Symptom**: Noctalia displays an on-screen warning banner: *"There's an error in config.toml, Noctalia is applying the replacement"*.
+- **Root Cause**: In Noctalia 5.0.1 (following upgrade from 5.0.0_beta), several widget schema keys were refactored:
+  - `show_label` on widgets (`temp`, `sysmon_*`) was renamed to `show_value`.
+  - `widget.workspaces.display = "none"` was replaced with `show_labels = false`.
+  Noctalia detects deprecated keys at startup and applies automatic runtime replacements, alerting the user with an overlay banner.
+- **Fix**:
+  1. Run `noctalia config validate` to inspect all schema warnings.
+  2. Update `~/.config/noctalia/config.toml` (in `~/dotfiles/core/.config/noctalia/config.toml`):
+     - Change `show_label = false` to `show_value = false` under `[widget.temp]` and `[widget.sysmon_*]`.
+     - Change `display = "none"` to `show_labels = false` under `[widget.workspaces]`.
+  3. Restart Noctalia cleanly:
+     ```bash
+     killall -TERM noctalia; sleep 0.5; export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1); hyprctl eval 'hl.exec_cmd("noctalia -d")'
+     ```
+
