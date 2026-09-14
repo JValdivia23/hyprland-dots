@@ -2,6 +2,17 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.23.0] - 2026-09-10
+### Added
+- **Two-Way Quick SSH Shortcuts (`jmvp` <-> `java-cu`)**:
+  - **`ssh jmvp` (Laptop -> Remote `10.0.0.108`)**:
+    - Configured Host entry in [`~/.ssh/config`](file:///home/java1127/.ssh/config) for `jmvp` and `10.0.0.108`.
+    - Configured user `jmvp`, primary identity keys (`id_ed25519`, `id_rsa`), and 8-hour socket multiplexing (`ControlMaster auto`, `ControlPath ~/.ssh/sockets/%r@%h:%p`).
+  - **`ssh java-cu` (Remote `10.0.0.108` -> Laptop `10.0.0.8`)**:
+    - Generated dedicated `ed25519` key pair on `jmvp@10.0.0.108` and added public key to [`~/.ssh/authorized_keys`](file:///home/java1127/.ssh/authorized_keys).
+    - Configured `~/.ssh/config` on `jmvp@10.0.0.108` mapping `Host java-cu` to `java1127@10.0.0.8` with socket multiplexing.
+    - Verified instantaneous two-way passwordless connection in both directions.
+
 ## [2.22.0] - 2026-09-09
 ### Added
 - **Installed `cliamp` Terminal Music Player (`cliamp-bin` `2.2.0-1`) & `yt-dlp` (`2026.08.19-1`)**:
