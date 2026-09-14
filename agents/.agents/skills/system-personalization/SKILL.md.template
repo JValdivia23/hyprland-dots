@@ -1,11 +1,11 @@
 ---
 name: system-personalization
-description: "Comprehensive system personalization tracker for cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
+description: "Comprehensive system personalization tracker for {{HOSTNAME}} ({{PRODUCT_NAME}}) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
 version: 2.24.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
-# System Personalization (`cachyos-cu` - MacBookPro15,1)
+# System Personalization (`{{HOSTNAME}}` - {{PRODUCT_NAME}})
 
 Complete documentation of this machine's configuration and personalization. This is a **self-improving skill** — after any system configuration change, software install, or gotcha discovery, update this skill's modular references (`references/changelog.md` and `references/gotchas/`).
 
@@ -39,17 +39,17 @@ Complete documentation of this machine's configuration and personalization. This
 
 | Category | Detail |
 |----------|--------|
-| **Machine** | MacBookPro15,1 |
-| **Hostname** | `cachyos-cu` |
-| **OS** | CachyOS |
-| **Kernel** | `7.2.3-1-cachyos` |
+| **Machine** | {{PRODUCT_NAME}} |
+| **Hostname** | `{{HOSTNAME}}` |
+| **OS** | {{OS}} |
+| **Kernel** | `{{KERNEL}}` |
 | **WM** | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia |
-| **Primary Display** | eDP-1 (Default Display) |
-| **GPU** | Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor |
-| **CPU** | Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz |
-| **RAM & Swap** | 15Gi RAM, 15Gi swap |
-| **Active Profiles** | macbook-t2 |
+| **Primary Display** | {{PRIMARY_DISPLAY}} |
+| **GPU** | {{GPU}} |
+| **CPU** | {{CPU}} |
+| **RAM & Swap** | {{RAM}} |
+| **Active Profiles** | {{ACTIVE_PROFILES}} |
 | **Shell** | `/bin/fish` |
 | **Terminal** | `kitty` (primary), `alacritty` (installed) |
 | **Package Manager**| `pacman` |

@@ -2,6 +2,17 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.24.0] - 2026-09-14
+### Added
+- **Multi-PC Modular 3-Tier Architecture Migration (Ported from `omarchy-dots`)**:
+  - Restructured monolithic flat dotfiles into 3 decoupled tiers:
+    - **Tier 1 (`core/`)**: Universal configs across all machines (`~/.config/hypr/`, `noctalia`, `kitty`, `alacritty`, `fish`, `btop`, `waypaper`, `gtk`, `swayimg`, `zigoku`, `easyeffects`, `niri`, `core/.local/bin/`, `core/.local/share/applications/`, `core/packages.txt`).
+    - **Tier 2 (`profiles/`)**: Hardware-specific profiles (`macbook-t2`, `desktop`, `surface`, `laptop`). Each profile contains isolated `.config/hypr/config/profile/` modules (`monitors.lua`, `environment.lua`, `inputs.lua`), `packages.txt`, `setup.sh`, and `gotchas/`.
+    - **Tier 3 (`agents/`)**: Dynamically probed AI System Personalization skill (`init-skill.sh`, `SKILL.md.template` -> `SKILL.md`, `references/hardware.md`, and dynamic gotchas symlinking).
+  - **Dynamic Hyprland Lua Bootstrap**: `hyprland.lua` loads universal core modules and dynamically resolves hardware overrides via `pcall(require, "config.profile.environment")`, `pcall(require, "config.profile.monitors")`, and `pcall(require, "config.profile.inputs")`.
+  - **New Master Installer (`install.sh`)**: Built-in hardware detection (DMI, PCI, chassis), CLI flags (`--profile`, `--profiles`, `--dry-run`, `--only-stow`, `--only-packages`), non-destructive backup, directory symlink sanitization, and profile post-install hooks.
+  - Verified 0 Hyprland config errors via `hyprctl configerrors` and active Retina 1.33 fractional scaling on `eDP-1`.
+
 ## [2.23.0] - 2026-09-10
 ### Added
 - **Two-Way Quick SSH Shortcuts (`jmvp` <-> `java-cu`)**:

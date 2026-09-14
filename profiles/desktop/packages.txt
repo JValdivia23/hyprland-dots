@@ -1,0 +1,4 @@
+# Desktop Workstation Utility Packages
+pavucontrol
+gamemode
+smartmontools

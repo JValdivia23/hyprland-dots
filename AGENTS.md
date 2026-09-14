@@ -1,70 +1,91 @@
-# AGENTS.md — Repository Guide & Project Rules
+# AGENTS.md — Repository Architecture & AI Assistant Guide
 
-Welcome to the **CachyOS / Arch Linux Automated Dotfiles Repository**. This repository is configured to be managed by AI coding assistants and developers to maintain a fully automated, reproducible desktop environment across machines.
+Welcome to the **CachyOS / Arch Linux Multi-PC Dotfiles Repository** (`~/dotfiles`). This repository is designed for multi-machine Linux desktop automation, featuring CachyOS, Hyprland Lua configuration, Noctalia Wayland shell, GNU Stow orchestration, and a self-improving system personalization skill.
 
----
-
-## 🎯 Project Goal
-
-The objective of this project is to provide **1-command automated provisioning and continuous dotfiles management** for a customized Linux setup featuring:
-- **Hyprland Compositor** (Modular Lua-based configuration)
-- **Noctalia Wayland Shell** (Top bar, application launcher, notifications, widgets)
-- **Kitty & Alacritty Terminals** (Theme synchronization & typography)
-- **Fish Shell** (Custom environment, fastfetch greetings, completions)
-- **macOS Navigation Layer** (Custom keybinds & helper scripts for macOS text editing and window handling)
-- **Self-Improving System Knowledge Base** (`.agents/skills/system-personalization/`)
+All AI coding assistants and developers modifying this repository MUST strictly follow the rules, architecture, and validation protocols detailed in this document.
 
 ---
 
-## 📁 Project Layout & Architecture
+## 🏛️ 3-Tier Repository Architecture
 
-This repository uses **GNU Stow** to manage symlinks from package directories directly into `$HOME`:
+This repository organizes configuration into three decoupled, modular tiers to ensure clean separation of universal defaults, machine-specific hardware quirks, and dynamic AI knowledge:
 
 ```
 ~/dotfiles/
-├── AGENTS.md                   # AI Assistant instructions & repository guide (this file)
-├── README.md                   # User-facing installation & quick reference
-├── .gitignore                  # Exclusion list for credentials, caches, and backups
-├── install.sh                  # Master 1-command installer entrypoint
+├── install.sh                  # Master orchestrator (hardware detection, packages, stow, skill init)
+├── AGENTS.md                   # AI Assistant instructions & architectural rules (this file)
+├── README.md                   # User-facing guide & quick reference
 │
-├── packages/
-│   └── pacman-packages.txt     # Explicit list of all official & CachyOS packages
+├── core/                       # ─── TIER 1: UNIVERSAL CONFIGURATIONS ──────────────────────
+│   ├── .config/
+│   │   ├── hypr/
+│   │   │   ├── hyprland.lua    # Master Hyprland Lua entrypoint (loads core + pcalls profile overrides)
+│   │   │   ├── config/         # Universal Lua modules (animations, binds, colors, decorations,
+│   │   │   │                   # misc, variables, windowrules, workspaces)
+│   │   │   │   ├── monitors.lua    # Generic fallback: hl.monitor({ output = "", scale = 1 })
+│   │   │   │   ├── inputs.lua      # Standard base input
+│   │   │   │   ├── environment.lua # Safe neutral environment (EDITOR=nvim, etc.)
+│   │   │   │   └── autostart.lua   # Universal session autostart
+│   │   │   ├── hypridle.conf   # Idle daemon configuration
+│   │   │   └── xdph.conf       # XDG Desktop Portal Hyprland configuration
+│   │   ├── noctalia/           # Noctalia Wayland shell (bar, launcher, widgets)
+│   │   ├── kitty/              # Kitty terminal
+│   │   ├── alacritty/          # Alacritty terminal
+│   │   ├── fish/               # Fish shell & prompt
+│   │   ├── btop/               # Btop system monitor
+│   │   ├── waypaper/           # Wallpaper manager
+│   │   ├── gtk-3.0/ & gtk-4.0/ # GTK themes & styles
+│   │   ├── swayimg/            # Swayimg image viewer
+│   │   ├── zigoku/             # Zigoku anime streaming config
+│   │   ├── easyeffects/        # EasyEffects audio presets & equalizer
+│   │   └── niri/               # Niri scrollable WM configuration
+│   ├── .local/bin/             # Universal CLI utilities (hypr-toggle-altwin, mac-key-helper, etc.)
+│   ├── .local/share/applications/# Webapps (.desktop launchers & high-res icons)
+│   ├── packages.txt            # Baseline packages required on any machine
+│   └── .stow-local-ignore      # Prevents metadata from stowing to $HOME
 │
-├── scripts/
-│   ├── 01-packages.sh          # Package installation script (pacman & stow)
-│   ├── 02-stow.sh              # Stow deployment with non-destructive backup handler
-│   ├── 03-services.sh          # Systemd units (bluetooth, ufw, LocalSend port 53317, ASUS daemons)
-│   └── 04-shell.sh             # Fish shell default registration
+├── profiles/                   # ─── TIER 2: MODULAR HARDWARE PROFILES ────────────────────
+│   ├── macbook-t2/             # Apple MacBook Pro 15,1 / T2 Subsystem
+│   │   ├── .config/hypr/config/profile/
+│   │   │   ├── monitors.lua    # 2880x1800 @ 1.33 fractional scaling
+│   │   │   ├── environment.lua # AMD radeonsi GPU hardware acceleration flags
+│   │   │   └── inputs.lua      # Apple trackpad gestures & natural scrolling
+│   │   ├── packages.txt        # apple-t2-audio-config, tiny-dfr, t2fanrd
+│   │   ├── setup.sh            # Enables Touch Bar fixes & AMDGPU power management
+│   │   ├── gotchas/            # Apple T2 hardware quirks & documentation
+│   │   └── .stow-local-ignore
+│   │
+│   ├── desktop/                # Multi-Monitor Workstations & Generic Standard PCs
+│   │   ├── .config/hypr/config/profile/
+│   │   │   ├── monitors.lua    # Multi-head layout template (DP-1, DP-2, 144Hz)
+│   │   │   ├── environment.lua # NVIDIA / generic Mesa acceleration template
+│   │   │   └── inputs.lua      # Desktop mouse settings (flat accel, no gestures)
+│   │   ├── packages.txt        # pavucontrol, gamemode
+│   │   ├── setup.sh            # Workstation desktop setup
+│   │   └── .stow-local-ignore
+│   │
+│   ├── surface/                # Microsoft Surface Devices (Surface Book 3 / Surface Pro)
+│   │   ├── .config/hypr/config/profile/
+│   │   │   ├── monitors.lua    # 3000x2000 @ 2.0 integer scaling
+│   │   │   └── inputs.lua      # Touchscreen calibration & stylus rules
+│   │   ├── packages.txt        # surface-dtx-daemon, iptsd
+│   │   ├── setup.sh            # Enables surface-dtx-daemon & iptsd
+│   │   ├── gotchas/            # Surface scaling & tablet detach quirks
+│   │   └── .stow-local-ignore
+│   │
+│   └── laptop/                 # Generic Laptops (ThinkPad, Dell XPS, etc.)
+│       ├── .config/hypr/config/profile/
+│       │   └── inputs.lua      # Touchpad natural scroll & gestures
+│       └── .stow-local-ignore
 │
-├── hypr/                       # Stow package -> ~/.config/hypr/
-│   └── .config/hypr/
-│       ├── hyprland.lua        # Main Lua entrypoint
-│       ├── xdph.conf           # Portal configuration
-│       └── config/             # Modular Lua settings (binds, inputs, monitors, etc.)
-│
-├── noctalia/                   # Stow package -> ~/.config/noctalia/
-│   └── .config/noctalia/
-│       └── config.toml         # Bar widgets, launcher, and session settings
-│
-├── kitty/                      # Stow package -> ~/.config/kitty/
-├── alacritty/                  # Stow package -> ~/.config/alacritty/
-├── fish/                       # Stow package -> ~/.config/fish/
-├── btop/                       # Stow package -> ~/.config/btop/
-├── waypaper/                   # Stow package -> ~/.config/waypaper/
-├── gtk/                        # Stow package -> ~/.config/gtk-3.0, gtk-4.0, nwg-look
-├── swayimg/                    # Stow package -> ~/.config/swayimg/
-│
-├── bin/                        # Stow package -> ~/.local/bin/
-│   └── .local/bin/             # Custom executable helper scripts:
-│                               # mac-key-helper, hypr-window-pop, hypr-toggle-altwin, etc.
-│
-├── webapps/                    # Stow package -> ~/.local/share/applications/
-│   └── .local/share/applications/ # Webapp .desktop launchers & high-res icons (YouTube, AllAnime, AniMatrix, etc.)
-│
-└── agents/                     # Stow package -> ~/.agents/
-    └── .agents/skills/system-personalization/
-        ├── SKILL.md            # System tracking skill definition
-        └── references/         # changelog.md, config-paths.md, gotchas.md, keybindings.md
+└── agents/                     # ─── TIER 3: DYNAMIC AI SYSTEM PERSONALIZATION SKILL ──────
+    ├── .agents/skills/system-personalization/
+    │   ├── SKILL.md.template   # Machine-agnostic template with {{HOSTNAME}}, {{CPU}}, etc.
+    │   ├── SKILL.md            # Live rendered skill for active host
+    │   ├── scripts/init-skill.sh # Probes hardware and generates SKILL.md + hardware.md
+    │   ├── references/         # changelog.md, config-paths.md, keybindings.md, gotchas/
+    │   └── templates/          # Standard templates for changes and gotchas
+    └── .stow-local-ignore
 ```
 
 ---
@@ -73,38 +94,20 @@ This repository uses **GNU Stow** to manage symlinks from package directories di
 
 When modifying this repository or the live system, agents MUST adhere to these rules:
 
-1. **Symlink Awareness**: Files in `~/.config/` and `~/.local/bin/` are symlinked to `~/dotfiles/`. Editing files in either location updates the Git repository.
-2. **Never Overwrite Configs Directly**: Always use targeted edits or search-and-replace to preserve existing customizations, themes, and tool settings.
+1. **Symlink Awareness**: Files in `~/.config/`, `~/.local/bin/`, and `~/.agents/` are live symlinks managed by GNU Stow pointing to `~/dotfiles/`. Editing files in either location updates the Git repository.
+2. **Never Overwrite Configs Directly**: Always use targeted edits (`replace_file_content`, patch, append) to preserve existing customizations, themes, and tool settings.
 3. **Hyprland Lua API Standards**:
    - Hyprland on this machine is configured in **Lua**. Never write legacy Hyprland `.conf` syntax to `~/.config/hypr/config/`.
    - Use `hl.bind` with native dispatcher objects (e.g. `hl.dsp.send_shortcut`, `hl.dsp.window.close()`).
+   - Hardware-specific settings go in `profiles/<name>/.config/hypr/config/profile/`.
    - Always validate changes by running `hyprctl configerrors`.
 4. **Noctalia Integration**:
-   - After editing `noctalia/config.toml`, apply changes via `noctalia msg templates-apply` or test via `noctalia msg status`.
+   - After editing `noctalia/config.toml`, reload via `noctalia msg reload` or test via `noctalia msg status`.
 5. **Interactive Elevated Prompts (`kitty -e`)**:
    - When running administrative commands requiring password authentication (e.g. `sudo pacman`), launch an interactive terminal:
      ```bash
-     kitty -e bash -c "sudo <command>; echo 'Done! Press Enter to close...'; read"
+     export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1)
+     hyprctl eval 'hl.exec_cmd("kitty --title PasswordPrompt -e bash -c \"sudo <command>; echo Done!; read\"")'
      ```
 6. **Self-Improving Protocol**:
-   - After any configuration change, package installation, or bug fix, document the change in `agents/.agents/skills/system-personalization/references/changelog.md` and `references/gotchas.md` if relevant.
-
----
-
-## 🔧 Common Agent Workflows
-
-### Updating Stow Symlinks
-```bash
-cd ~/dotfiles
-bash scripts/02-stow.sh
-```
-
-### Refreshing Exported Package List
-```bash
-pacman -Qne | awk '{print $1}' | sort > ~/dotfiles/packages/pacman-packages.txt
-```
-
-### Checking Compositor Configuration Status
-```bash
-hyprctl configerrors
-```
+   - After any configuration change, package installation, or bug fix, document the change in `agents/.agents/skills/system-personalization/references/changelog.md` and `references/gotchas/` if relevant.

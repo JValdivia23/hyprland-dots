@@ -1,0 +1,6 @@
+^packages\.txt$
+^services\.txt$
+^setup\.sh$
+^scripts
+^gotchas
+^\.stow-local-ignore$
