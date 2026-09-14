@@ -534,7 +534,45 @@ if [ "$DO_SETUP" = true ]; then
         fi
     fi
 
-    # 5. Reload Hyprland and Noctalia if active
+    # 5. Check & synchronize wallpaper library from GitHub fork
+    WALLPAPERS_DIR="$HOME/Pictures/Wallpapers/dharmx-walls"
+    if [ ! -d "$WALLPAPERS_DIR" ]; then
+        echo "--> Wallpaper collection not detected at ~/Pictures/Wallpapers/dharmx-walls."
+        echo "    Synchronizing full wallpaper collection from GitHub fork (JValdivia23/walls)..."
+        if [ "$DRY_RUN" = false ]; then
+            bash "$DOTFILES_DIR/core/.local/bin/cachy-sync-wallpapers" || echo "    Notice: Could not sync wallpapers automatically. Run 'cachy-sync-wallpapers' later."
+        else
+            echo "    [dry-run] Would execute: bash $DOTFILES_DIR/core/.local/bin/cachy-sync-wallpapers"
+        fi
+    else
+        echo "--> Wallpaper collection detected ($WALLPAPERS_DIR)."
+        if [ ! -e "$HOME/Wallpapers" ] && [ ! -L "$HOME/Wallpapers" ]; then
+            ln -sfn "$HOME/Pictures/Wallpapers" "$HOME/Wallpapers" 2>/dev/null || true
+        fi
+    fi
+
+    # 6. Ensure interactive Fish auto-launch guard exists in ~/.bashrc
+    [ -f "$HOME/.bashrc" ] || touch "$HOME/.bashrc"
+    if ! grep -q "Auto-launch fish shell for interactive sessions" "$HOME/.bashrc"; then
+        echo "--> Adding Fish interactive auto-launch guard to ~/.bashrc..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would append Fish auto-launch guard to ~/.bashrc"
+        else
+            cat >> "$HOME/.bashrc" << 'BASHRC_EOF'
+
+# Auto-launch fish shell for interactive sessions (CachyOS terminal experience)
+if command -v fish &>/dev/null; then
+  if [[ $(ps --no-header --pid=$PPID --format=comm) != "fish" && -z ${BASH_EXECUTION_STRING:-} ]]; then
+    shopt -q login_shell && LOGIN_OPTION='--login' || LOGIN_OPTION=''
+    exec fish $LOGIN_OPTION
+  fi
+fi
+BASHRC_EOF
+            echo "    Added Fish auto-launch guard to ~/.bashrc"
+        fi
+    fi
+
+    # 7. Reload Hyprland and Noctalia if active
     if command -v hyprctl &>/dev/null && [ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]; then
         echo "--> Reloading Hyprland configuration..."
         if [ "$DRY_RUN" = false ]; then
