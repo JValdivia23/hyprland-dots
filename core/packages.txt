@@ -12,6 +12,7 @@ fastfetch
 ffmpegthumbnailer
 fish
 git
+github-cli
 grim
 hypridle
 hyprland
