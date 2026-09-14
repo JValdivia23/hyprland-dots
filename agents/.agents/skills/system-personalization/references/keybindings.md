@@ -29,17 +29,20 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 
 ## Application Launchers (`SUPER + SHIFT + <key>`)
 
-| Shortcut | Launch Command | Target App |
-|----------|----------------|------------|
-| `SUPER` + `Return` | `kitty` | Default Terminal |
-| `SUPER` + `SHIFT` + `Return` | `ghostty` | Ghostty Terminal |
-| `SUPER` + `SHIFT` + `B` | `zen-browser` | Zen Web Browser |
-| `SUPER` + `SHIFT` + `F` | `dolphin` | Dolphin File Manager |
-| `SUPER` + `SHIFT` + `A` | `kitty -e lazygit` | LazyGit CLI |
-| `SUPER` + `SHIFT` + `D` | `kitty -e lazydocker` | LazyDocker CLI |
-| `SUPER` + `SHIFT` + `N` | `kitty -e nvim ~/Documents/Notes` | Neovim Notes |
-| `SUPER` + `SHIFT` + `Y` | `gtk-launch YouTube.desktop` | YouTube Web App |
-| `SUPER` + `SHIFT` + `U` | `kitty -e yazi` | Yazi CLI File Manager |
+> [!NOTE]
+> All application launchers use **native focus-or-launch** (`helpers.launch_or_focus`). If the target application is already running on any workspace, Hyprland immediately switches to and focuses the window (or cycles between multiple instances). If not running, it launches cleanly managed by systemd cgroups via `uwsm-app`.
+
+| Shortcut | Launch / Focus Target | Focus-or-Launch Behavior |
+|----------|----------------------|--------------------------|
+| `SUPER` + `Return` | `kitty` | **Multi-instance**: Always spawns a new terminal |
+| `SUPER` + `SHIFT` + `Return` | `ghostty` | Focuses active Ghostty or launches |
+| `SUPER` + `SHIFT` + `B` | `zen-browser` | Focuses active Zen Browser or launches |
+| `SUPER` + `SHIFT` + `F` | `dolphin` | Focuses active Dolphin File Manager or launches |
+| `SUPER` + `SHIFT` + `A` | `lazygit` | Focuses active LazyGit TUI or launches |
+| `SUPER` + `SHIFT` + `D` | `lazydocker` | Focuses active LazyDocker TUI or launches |
+| `SUPER` + `SHIFT` + `N` | `nvim ~/Documents/Notes` | Focuses active Notes session or launches |
+| `SUPER` + `SHIFT` + `Y` | YouTube Webapp | Focuses active YouTube window or launches |
+| `SUPER` + `SHIFT` + `U` | `yazi` | Focuses active Yazi TUI or launches |
 
 ## System Panels & Utilities (`SUPER + <key>`)
 
@@ -52,7 +55,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `,` | Noctalia Settings | Toggle Noctalia Settings menu |
 | `SUPER` + `CONTROL` + `V` | Clipboard | Toggle Clipboard history panel |
 | `SUPER` + `ALT` + `K` / `SUPER` + `SHIFT` + `K` | Layout Toggle | Toggle Super/Alt position swap (Mac vs PC layout) |
-| `SUPER` + `K` | Dynamic Cheat Sheet | Open searchable, floating keybindings cheat sheet |
+| `SUPER` + `K` | Live IPC Cheatsheet | Open instant floating `fzf` cheatsheet querying compositor runtime (`hyprctl binds -j`) |
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `ALT` + `C` | Force-Kill Window | Turn cursor into crosshair to click & kill any window |
 | `SUPER` + `SHIFT` + `L` / `XF86Sleep` | Lock & Suspend | Lock screen and put system to sleep / suspend |

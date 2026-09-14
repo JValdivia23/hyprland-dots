@@ -1,3 +1,5 @@
+local helpers = require("helpers")
+
 local mainMod = "SUPER"
 local noctCall = "noctalia msg "
 local launchPrefix = "uwsm app -- " -- if you are not using UWSM, make this empty (e.g. "")
@@ -7,57 +9,58 @@ local winPop = homeDir .. "/.local/bin/hypr-window-pop"
 local kbdBrightness = homeDir .. "/.local/bin/hypr-kbd-brightness "
 local screenBrightness = homeDir .. "/.local/bin/hypr-screen-brightness "
 local lidHandler = homeDir .. "/.local/bin/hypr-lid-handler "
+local keybindsMenu = homeDir .. "/.local/bin/hypr-keybinds-menu"
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
 ---------------------------
 
 -- Window manipulation
-hl.bind(mainMod .. " + Escape", hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
-hl.bind(mainMod .. " + Q",      hl.dsp.window.close())
-hl.bind(mainMod .. " + W",      hl.dsp.window.close())
-hl.bind(mainMod .. " + T",      hl.dsp.window.float({ action = "toggle" }))
-hl.bind(mainMod .. " + D",      hl.dsp.window.fullscreen({ mode = 1 }))
-hl.bind(mainMod .. " + F",      hl.dsp.window.fullscreen())
-hl.bind(mainMod .. " + J",      hl.dsp.layout("togglesplit"))
-hl.bind(mainMod .. " + P",         hl.dsp.exec_raw("pseudo", ""))
-hl.bind(mainMod .. " + O",         hl.dsp.exec_cmd(winPop))
-hl.bind(mainMod .. " + SHIFT + O", hl.dsp.exec_cmd(winPop .. " pip"))
+helpers.bind(mainMod .. " + Escape", "Toggle session menu", hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
+helpers.bind(mainMod .. " + Q",      "Close active window", hl.dsp.window.close())
+helpers.bind(mainMod .. " + W",      "Close active window", hl.dsp.window.close())
+helpers.bind(mainMod .. " + T",      "Toggle window floating", hl.dsp.window.float({ action = "toggle" }))
+helpers.bind(mainMod .. " + D",      "Toggle monocle fullscreen", hl.dsp.window.fullscreen({ mode = 1 }))
+helpers.bind(mainMod .. " + F",      "Toggle fullscreen", hl.dsp.window.fullscreen())
+helpers.bind(mainMod .. " + J",      "Toggle split layout", hl.dsp.layout("togglesplit"))
+helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.exec_raw("pseudo", ""))
+helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_cmd(winPop))
+helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
 -- Change focus (CTRL + Arrows)
-hl.bind("CONTROL + Left",  hl.dsp.focus({ direction = "left" }))
-hl.bind("CONTROL + Right", hl.dsp.focus({ direction = "right" }))
-hl.bind("CONTROL + Up",    hl.dsp.focus({ direction = "up" }))
-hl.bind("CONTROL + Down",  hl.dsp.focus({ direction = "down" }))
-hl.bind("ALT + Tab",       hl.dsp.window.cycle_next())
+helpers.bind("CONTROL + Left",  "Focus window left",  hl.dsp.focus({ direction = "left" }))
+helpers.bind("CONTROL + Right", "Focus window right", hl.dsp.focus({ direction = "right" }))
+helpers.bind("CONTROL + Up",    "Focus window up",    hl.dsp.focus({ direction = "up" }))
+helpers.bind("CONTROL + Down",  "Focus window down",  hl.dsp.focus({ direction = "down" }))
+helpers.bind("ALT + Tab",       "Cycle next window",  hl.dsp.window.cycle_next())
 
 -- Workspace switching
-hl.bind(mainMod .. " + Tab",       hl.dsp.focus({ workspace = "e+1" }))
-hl.bind(mainMod .. " + SHIFT + Tab", hl.dsp.focus({ workspace = "e-1" }))
+helpers.bind(mainMod .. " + Tab",       "Switch to next workspace", hl.dsp.focus({ workspace = "e+1" }))
+helpers.bind(mainMod .. " + SHIFT + Tab", "Switch to previous workspace", hl.dsp.focus({ workspace = "e-1" }))
 
 -- Swap windows position (SUPER + ALT + Arrows)
-hl.bind(mainMod .. " + ALT + Left",  hl.dsp.exec_cmd("hyprctl dispatch swapwindow l"))
-hl.bind(mainMod .. " + ALT + Right", hl.dsp.exec_cmd("hyprctl dispatch swapwindow r"))
-hl.bind(mainMod .. " + ALT + Up",    hl.dsp.exec_cmd("hyprctl dispatch swapwindow u"))
-hl.bind(mainMod .. " + ALT + Down",  hl.dsp.exec_cmd("hyprctl dispatch swapwindow d"))
+helpers.bind(mainMod .. " + ALT + Left",  "Swap window left",  hl.dsp.exec_cmd("hyprctl dispatch swapwindow l"))
+helpers.bind(mainMod .. " + ALT + Right", "Swap window right", hl.dsp.exec_cmd("hyprctl dispatch swapwindow r"))
+helpers.bind(mainMod .. " + ALT + Up",    "Swap window up",    hl.dsp.exec_cmd("hyprctl dispatch swapwindow u"))
+helpers.bind(mainMod .. " + ALT + Down",  "Swap window down",  hl.dsp.exec_cmd("hyprctl dispatch swapwindow d"))
 
 -- Move active window around workspaces & monitors
-hl.bind(mainMod .. " + SHIFT + mouse_up",             hl.dsp.window.move({ monitor   = "+1" }))
-hl.bind(mainMod .. " + SHIFT + mouse_down",           hl.dsp.window.move({ monitor   = "-1" }))
-hl.bind(mainMod .. " + CONTROL + Right",              hl.dsp.window.move({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + Left",               hl.dsp.window.move({ workspace = "r-1" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + Right",      hl.dsp.window.move({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + Left",       hl.dsp.window.move({ workspace = "r-1" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + mouse_up",   hl.dsp.window.move({ workspace = "r+1" }))
-hl.bind(mainMod .. " + CONTROL + SHIFT + mouse_down", hl.dsp.window.move({ workspace = "r-1" }))
+helpers.bind(mainMod .. " + SHIFT + mouse_up",             "Move window to next monitor", hl.dsp.window.move({ monitor   = "+1" }))
+helpers.bind(mainMod .. " + SHIFT + mouse_down",           "Move window to previous monitor", hl.dsp.window.move({ monitor   = "-1" }))
+helpers.bind(mainMod .. " + CONTROL + Right",              "Move window to relative workspace next", hl.dsp.window.move({ workspace = "r+1" }))
+helpers.bind(mainMod .. " + CONTROL + Left",               "Move window to relative workspace prev", hl.dsp.window.move({ workspace = "r-1" }))
+helpers.bind(mainMod .. " + CONTROL + SHIFT + Right",      "Move window to relative workspace next", hl.dsp.window.move({ workspace = "r+1" }))
+helpers.bind(mainMod .. " + CONTROL + SHIFT + Left",       "Move window to relative workspace prev", hl.dsp.window.move({ workspace = "r-1" }))
+helpers.bind(mainMod .. " + CONTROL + SHIFT + mouse_up",   "Move window to relative workspace next", hl.dsp.window.move({ workspace = "r+1" }))
+helpers.bind(mainMod .. " + CONTROL + SHIFT + mouse_down", "Move window to relative workspace prev", hl.dsp.window.move({ workspace = "r-1" }))
 for i = 1, NUM_WPM do
     local key = i % 10
-    hl.bind(mainMod .. " + SHIFT + CONTROL + " .. key, hl.dsp.window.move({ workspace = "m~" .. i }))
+    helpers.bind(mainMod .. " + SHIFT + CONTROL + " .. key, "Move window to workspace m~" .. i, hl.dsp.window.move({ workspace = "m~" .. i }))
 end
 
 -- Move & Resize with mouse
-hl.bind(mainMod .. " + mouse:272", hl.dsp.window.drag())
-hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize())
+helpers.bind(mainMod .. " + mouse:272", "Move window with mouse", hl.dsp.window.drag())
+helpers.bind(mainMod .. " + mouse:273", "Resize window with mouse", hl.dsp.window.resize())
 
 -------------------------------
 ---- macOS TEXT & EDITING ----
@@ -66,35 +69,54 @@ hl.bind(mainMod .. " + mouse:273", hl.dsp.window.resize())
 local targetWin = "activewindow"
 
 -- Navigation (Line Home / End)
-hl.bind(mainMod .. " + Left",  hl.dsp.send_shortcut({ mods = "", key = "Home", window = targetWin }), { repeating = true })
-hl.bind(mainMod .. " + Right", hl.dsp.send_shortcut({ mods = "", key = "End", window = targetWin }),  { repeating = true })
+helpers.bind(mainMod .. " + Left",  "Move to start of line", hl.dsp.send_shortcut({ mods = "", key = "Home", window = targetWin }), { repeating = true })
+helpers.bind(mainMod .. " + Right", "Move to end of line",   hl.dsp.send_shortcut({ mods = "", key = "End", window = targetWin }),  { repeating = true })
 
 -- Document Navigation (Doc Home / End)
-hl.bind(mainMod .. " + Up",   hl.dsp.send_shortcut({ mods = "CTRL", key = "Home", window = targetWin }), { repeating = true })
-hl.bind(mainMod .. " + Down", hl.dsp.send_shortcut({ mods = "CTRL", key = "End", window = targetWin }),  { repeating = true })
+helpers.bind(mainMod .. " + Up",   "Move to top of document",    hl.dsp.send_shortcut({ mods = "CTRL", key = "Home", window = targetWin }), { repeating = true })
+helpers.bind(mainMod .. " + Down", "Move to bottom of document", hl.dsp.send_shortcut({ mods = "CTRL", key = "End", window = targetWin }),  { repeating = true })
 
 -- Word Navigation & Selection
-hl.bind("ALT + Left",          hl.dsp.send_shortcut({ mods = "CTRL", key = "Left", window = targetWin }),  { repeating = true })
-hl.bind("ALT + Right",         hl.dsp.send_shortcut({ mods = "CTRL", key = "Right", window = targetWin }), { repeating = true })
-hl.bind("ALT + SHIFT + Left",  hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Left", window = targetWin }),  { repeating = true })
-hl.bind("ALT + SHIFT + Right", hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Right", window = targetWin }), { repeating = true })
+helpers.bind("ALT + Left",          "Move backward one word", hl.dsp.send_shortcut({ mods = "CTRL", key = "Left", window = targetWin }),  { repeating = true })
+helpers.bind("ALT + Right",         "Move forward one word",  hl.dsp.send_shortcut({ mods = "CTRL", key = "Right", window = targetWin }), { repeating = true })
+helpers.bind("ALT + SHIFT + Left",  "Select word backward",   hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Left", window = targetWin }),  { repeating = true })
+helpers.bind("ALT + SHIFT + Right", "Select word forward",    hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Right", window = targetWin }), { repeating = true })
 
--- Word & Line Deletion
-hl.bind(mainMod .. " + Backspace", hl.dsp.send_shortcut({ mods = "CTRL", key = "U", window = targetWin }), { repeating = true })
-hl.bind("ALT + Backspace",         hl.dsp.send_shortcut({ mods = "ALT", key = "BackSpace", window = targetWin }), { repeating = true })
+-- Word & Line Deletion (Smart Context-Aware Routing)
+helpers.bind(mainMod .. " + Backspace", "Delete line backward (Smart Terminal/GUI)", function()
+    if helpers.is_terminal() then
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "CTRL", key = "U", window = targetWin }))
+    else
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = targetWin }))
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "BackSpace", window = targetWin }))
+    end
+end, { repeating = true })
+helpers.bind("ALT + Backspace", "Delete word backward", hl.dsp.send_shortcut({ mods = "ALT", key = "BackSpace", window = targetWin }), { repeating = true })
 
 -- Selection (Line Left / Right)
-hl.bind(mainMod .. " + SHIFT + Left",  hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = targetWin }), { repeating = true })
-hl.bind(mainMod .. " + SHIFT + Right", hl.dsp.send_shortcut({ mods = "SHIFT", key = "End", window = targetWin }),  { repeating = true })
-hl.bind(mainMod .. " + SHIFT + Up",    hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Home", window = targetWin }), { repeating = true })
-hl.bind(mainMod .. " + SHIFT + Down",  hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "End", window = targetWin }),  { repeating = true })
+helpers.bind(mainMod .. " + SHIFT + Left",  "Select to start of line",      hl.dsp.send_shortcut({ mods = "SHIFT", key = "Home", window = targetWin }), { repeating = true })
+helpers.bind(mainMod .. " + SHIFT + Right", "Select to end of line",        hl.dsp.send_shortcut({ mods = "SHIFT", key = "End", window = targetWin }),  { repeating = true })
+helpers.bind(mainMod .. " + SHIFT + Up",    "Select to top of document",    hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Home", window = targetWin }), { repeating = true })
+helpers.bind(mainMod .. " + SHIFT + Down",  "Select to bottom of document", hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "End", window = targetWin }),  { repeating = true })
 
--- Global Clipboard Overrides & Text Actions (macOS style)
-hl.bind(mainMod .. " + C",         hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "C", window = targetWin }))
-hl.bind(mainMod .. " + V",         hl.dsp.send_shortcut({ mods = "CTRL", key = "V", window = targetWin }))
-hl.bind(mainMod .. " + X",         hl.dsp.send_shortcut({ mods = "CTRL", key = "X", window = targetWin }))
-hl.bind(mainMod .. " + Z",         hl.dsp.send_shortcut({ mods = "CTRL", key = "Z", window = targetWin }))
-hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Z", window = targetWin }))
+-- Global Clipboard Overrides & Text Actions (Smart Context-Aware Routing)
+helpers.bind(mainMod .. " + C", "Copy selection (Smart Terminal/GUI)", function()
+    if helpers.is_terminal() then
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "C", window = targetWin }))
+    else
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "CTRL", key = "C", window = targetWin }))
+    end
+end)
+helpers.bind(mainMod .. " + V", "Paste from clipboard (Smart Terminal/GUI)", function()
+    if helpers.is_terminal() then
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "V", window = targetWin }))
+    else
+        hl.dispatch(hl.dsp.send_shortcut({ mods = "CTRL", key = "V", window = targetWin }))
+    end
+end)
+helpers.bind(mainMod .. " + X",         "Cut selection",  hl.dsp.send_shortcut({ mods = "CTRL", key = "X", window = targetWin }))
+helpers.bind(mainMod .. " + Z",         "Undo",           hl.dsp.send_shortcut({ mods = "CTRL", key = "Z", window = targetWin }))
+helpers.bind(mainMod .. " + SHIFT + Z", "Redo",           hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", key = "Z", window = targetWin }))
 
 
 ------------------
@@ -102,59 +124,59 @@ hl.bind(mainMod .. " + SHIFT + Z", hl.dsp.send_shortcut({ mods = "CTRL, SHIFT", 
 ------------------
 
 -- Application Launchers (SUPER + SHIFT + <key>)
-hl.bind(mainMod .. " + Return",         hl.dsp.exec_cmd(launchPrefix .. TERMINAL))
-hl.bind(mainMod .. " + SHIFT + Return", hl.dsp.exec_cmd(launchPrefix .. "ghostty"))
-hl.bind(mainMod .. " + SHIFT + B",      hl.dsp.exec_cmd(launchPrefix .. "zen-browser"))
-hl.bind(mainMod .. " + SHIFT + F",      hl.dsp.exec_cmd(launchPrefix .. FILE_MANAGER))
-hl.bind(mainMod .. " + SHIFT + A",      hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " -e lazygit"))
-hl.bind(mainMod .. " + SHIFT + D",      hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " -e lazydocker"))
-hl.bind(mainMod .. " + SHIFT + N",      hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " -e nvim ~/Documents/Notes"))
-hl.bind(mainMod .. " + SHIFT + Y",      hl.dsp.exec_cmd(launchPrefix .. "gtk-launch YouTube.desktop"))
-hl.bind(mainMod .. " + SHIFT + U",      hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " -e yazi"))
+helpers.bind(mainMod .. " + Return",         "Launch Kitty Terminal (New Window)", launchPrefix .. TERMINAL)
+helpers.bind(mainMod .. " + SHIFT + Return", "Launch or focus Ghostty Terminal",    helpers.launch_or_focus("ghostty", launchPrefix .. "ghostty"))
+helpers.bind(mainMod .. " + SHIFT + B",      "Launch or focus Zen Browser",         helpers.launch_or_focus("zen", launchPrefix .. "zen-browser"))
+helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus("dolphin", launchPrefix .. FILE_MANAGER))
+helpers.bind(mainMod .. " + SHIFT + A",      "Launch or focus LazyGit",             helpers.launch_or_focus("lazygit", launchPrefix .. TERMINAL .. " --class lazygit -e lazygit"))
+helpers.bind(mainMod .. " + SHIFT + D",      "Launch or focus LazyDocker",          helpers.launch_or_focus("lazydocker", launchPrefix .. TERMINAL .. " --class lazydocker -e lazydocker"))
+helpers.bind(mainMod .. " + SHIFT + N",      "Launch or focus Notes (Neovim)",      helpers.launch_or_focus("notes", launchPrefix .. TERMINAL .. " --class notes -e nvim ~/Documents/Notes"))
+helpers.bind(mainMod .. " + SHIFT + Y",      "Launch or focus YouTube Webapp",      helpers.launch_or_focus("YouTube", launchPrefix .. "gtk-launch YouTube.desktop"))
+helpers.bind(mainMod .. " + SHIFT + U",      "Launch or focus Yazi",                helpers.launch_or_focus("yazi", launchPrefix .. TERMINAL .. " --class yazi -e yazi"))
 
 -- System Panels & Controls (SUPER + <key>)
-hl.bind("CONTROL + SHIFT + Escape", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " -e btop"))
-hl.bind(mainMod .. " + comma",      hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
-hl.bind(mainMod .. " + E",          hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
-hl.bind(mainMod .. " + Space",      hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
-hl.bind("ALT + Space",              hl.dsp.exec_cmd("waypaper"))
-hl.bind(mainMod .. " + period",     hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
-hl.bind(mainMod .. " + L",          hl.dsp.exec_cmd(noctCall .. "session lock"))
-hl.bind(mainMod .. " + ALT + C",    hl.dsp.exec_cmd("hyprctl kill"))
-hl.bind(mainMod .. " + A",          hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center notifications"))
-hl.bind(mainMod .. " + CONTROL + V",hl.dsp.exec_cmd(noctCall .. "panel-toggle clipboard"))
-hl.bind(mainMod .. " + ALT + K",    hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
-hl.bind(mainMod .. " + SHIFT + K",  hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
-hl.bind(mainMod .. " + K",          hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class Keybindings -e nvim " .. homeDir .. "/.agents/skills/system-personalization/references/keybindings.md"))
-hl.bind("ALT + Return",            hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-quicklook"))
+helpers.bind("CONTROL + SHIFT + Escape", "Launch Btop system monitor", launchPrefix .. TERMINAL .. " -e btop")
+helpers.bind(mainMod .. " + comma",      "Toggle Noctalia settings",   hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
+helpers.bind(mainMod .. " + E",          "Toggle Noctalia control center", hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
+helpers.bind(mainMod .. " + Space",      "Toggle Noctalia app launcher",   hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
+helpers.bind("ALT + Space",              "Open Waypaper wallpaper chooser", hl.dsp.exec_cmd("waypaper"))
+helpers.bind(mainMod .. " + period",     "Open Noctalia emoji picker",     hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
+helpers.bind(mainMod .. " + L",          "Lock desktop session",           hl.dsp.exec_cmd(noctCall .. "session lock"))
+helpers.bind(mainMod .. " + ALT + C",    "Kill window mode",               hl.dsp.exec_cmd("hyprctl kill"))
+helpers.bind(mainMod .. " + A",          "Toggle notification center",     hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center notifications"))
+helpers.bind(mainMod .. " + CONTROL + V","Toggle clipboard history",       hl.dsp.exec_cmd(noctCall .. "panel-toggle clipboard"))
+helpers.bind(mainMod .. " + ALT + K",    "Toggle Command/Alt modifier layout", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
+helpers.bind(mainMod .. " + SHIFT + K",  "Toggle Command/Alt modifier layout", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
+helpers.bind(mainMod .. " + K",          "Interactive Keybindings Cheatsheet (Live IPC)", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class Keybindings -T 'Hyprland Keybindings' -e " .. keybindsMenu))
+helpers.bind("ALT + Return",            "Quick Look preview",             hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-quicklook"))
 
 ---------------------------
 ---- HARDWARE CONTROLS ----
 ---------------------------
 
 -- Audio
-hl.bind("XF86AudioRaiseVolume", hl.dsp.exec_cmd(noctCall .. "volume-up"),   { locked = true, repeating = true })
-hl.bind("XF86AudioLowerVolume", hl.dsp.exec_cmd(noctCall .. "volume-down"), { locked = true, repeating = true })
-hl.bind("XF86AudioMute",        hl.dsp.exec_cmd(noctCall .. "volume-mute"), { locked = true })
-hl.bind("XF86AudioMicMute",     hl.dsp.exec_cmd(noctCall .. "mic-mute"),    { locked = true })
+helpers.bind("XF86AudioRaiseVolume", "Raise audio volume",   hl.dsp.exec_cmd(noctCall .. "volume-up"),   { locked = true, repeating = true })
+helpers.bind("XF86AudioLowerVolume", "Lower audio volume",   hl.dsp.exec_cmd(noctCall .. "volume-down"), { locked = true, repeating = true })
+helpers.bind("XF86AudioMute",        "Toggle audio mute",    hl.dsp.exec_cmd(noctCall .. "volume-mute"), { locked = true })
+helpers.bind("XF86AudioMicMute",     "Toggle mic mute",      hl.dsp.exec_cmd(noctCall .. "mic-mute"),    { locked = true })
 
 -- Media
-hl.bind("XF86AudioPlay",  hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
-hl.bind("XF86AudioPause", hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
-hl.bind("XF86AudioNext",  hl.dsp.exec_cmd(noctCall .. "media next"),     { locked = true })
-hl.bind("XF86AudioPrev",  hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
+helpers.bind("XF86AudioPlay",  "Toggle media play/pause", hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
+helpers.bind("XF86AudioPause", "Toggle media play/pause", hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
+helpers.bind("XF86AudioNext",  "Next media track",        hl.dsp.exec_cmd(noctCall .. "media next"),     { locked = true })
+helpers.bind("XF86AudioPrev",  "Previous media track",    hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
 
 -- Brightness (Display / Screen Backlight)
-hl.bind("XF86MonBrightnessUp",         hl.dsp.exec_cmd(screenBrightness .. "+5%"),   { locked = true, repeating = true })
-hl.bind("XF86MonBrightnessDown",       hl.dsp.exec_cmd(screenBrightness .. "5%-"),   { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessUp",   hl.dsp.exec_cmd(screenBrightness .. "+1%"), { locked = true, repeating = true })
-hl.bind("SHIFT + XF86MonBrightnessDown", hl.dsp.exec_cmd(screenBrightness .. "1%-"), { locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessUp",   hl.dsp.exec_cmd(screenBrightness .. "+10%"), { locked = true, repeating = true })
-hl.bind("CONTROL + XF86MonBrightnessDown", hl.dsp.exec_cmd(screenBrightness .. "10%-"),{ locked = true, repeating = true })
+helpers.bind("XF86MonBrightnessUp",         "Increase screen brightness (5%)",        hl.dsp.exec_cmd(screenBrightness .. "+5%"),   { locked = true, repeating = true })
+helpers.bind("XF86MonBrightnessDown",       "Decrease screen brightness (5%)",        hl.dsp.exec_cmd(screenBrightness .. "5%-"),   { locked = true, repeating = true })
+helpers.bind("SHIFT + XF86MonBrightnessUp",   "Increase screen brightness fine (1%)",   hl.dsp.exec_cmd(screenBrightness .. "+1%"), { locked = true, repeating = true })
+helpers.bind("SHIFT + XF86MonBrightnessDown", "Decrease screen brightness fine (1%)",   hl.dsp.exec_cmd(screenBrightness .. "1%-"), { locked = true, repeating = true })
+helpers.bind("CONTROL + XF86MonBrightnessUp",   "Increase screen brightness coarse (10%)", hl.dsp.exec_cmd(screenBrightness .. "+10%"), { locked = true, repeating = true })
+helpers.bind("CONTROL + XF86MonBrightnessDown", "Decrease screen brightness coarse (10%)", hl.dsp.exec_cmd(screenBrightness .. "10%-"),{ locked = true, repeating = true })
 
 -- Keyboard Backlight
-hl.bind("XF86KbdBrightnessUp",   hl.dsp.exec_cmd(kbdBrightness .. "up"),   { locked = true, repeating = true })
-hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBrightness .. "down"), { locked = true, repeating = true })
+helpers.bind("XF86KbdBrightnessUp",   "Increase keyboard backlight", hl.dsp.exec_cmd(kbdBrightness .. "up"),   { locked = true, repeating = true })
+helpers.bind("XF86KbdBrightnessDown", "Decrease keyboard backlight", hl.dsp.exec_cmd(kbdBrightness .. "down"), { locked = true, repeating = true })
 
 
 -------------------
@@ -162,25 +184,25 @@ hl.bind("XF86KbdBrightnessDown", hl.dsp.exec_cmd(kbdBrightness .. "down"), { loc
 -------------------
 
 -- Screen Capture
-hl.bind(mainMod .. " + SHIFT + P", hl.dsp.exec_cmd("hyprpicker -a"))
-hl.bind("Print",                   hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
-hl.bind("SHIFT + Print",           hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen pick"))
-hl.bind("CONTROL + Print",         hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
-hl.bind(mainMod .. " + Print",     hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
+helpers.bind(mainMod .. " + SHIFT + P", "Pick screen color (hyprpicker)",   hl.dsp.exec_cmd("hyprpicker -a"))
+helpers.bind("Print",                   "Screenshot region",               hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
+helpers.bind("SHIFT + Print",           "Screenshot fullscreen interactive", hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen pick"))
+helpers.bind("CONTROL + Print",         "Screenshot fullscreen",           hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
+helpers.bind(mainMod .. " + Print",     "Screenshot fullscreen",           hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
 
 -- Lock & Suspend
-hl.bind(mainMod .. " + SHIFT + L",  hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"))
-hl.bind("XF86Sleep",                hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"), { locked = true })
+helpers.bind(mainMod .. " + SHIFT + L",  "Lock session and suspend", hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"))
+helpers.bind("XF86Sleep",                "System sleep",             hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"), { locked = true })
 
 -- Laptop Lid Switch (Clamshell & Ultra-Low Power Mode)
-hl.bind("switch:on:Lid Switch",     hl.dsp.exec_cmd(lidHandler .. "close"), { locked = true })
-hl.bind("switch:off:Lid Switch",    hl.dsp.exec_cmd(lidHandler .. "open"),  { locked = true })
+helpers.bind("switch:on:Lid Switch",     "Clamshell lid closed handler", hl.dsp.exec_cmd(lidHandler .. "close"), { locked = true })
+helpers.bind("switch:off:Lid Switch",    "Clamshell lid opened handler", hl.dsp.exec_cmd(lidHandler .. "open"),  { locked = true })
 
 -- Theming, Wallpaper & Night Light
-hl.bind(mainMod .. " + SHIFT + W", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
-hl.bind(mainMod .. " + ALT + N",   hl.dsp.exec_cmd(noctCall .. "nightlight-toggle"))
-hl.bind(mainMod .. " + ALT + T",   hl.dsp.exec_cmd(noctCall .. "theme-mode-toggle"))
-hl.bind(mainMod .. " + CONTROL + I", hl.dsp.exec_cmd(noctCall .. "caffeine-toggle"))
+helpers.bind(mainMod .. " + SHIFT + W", "Toggle Noctalia wallpaper panel", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
+helpers.bind(mainMod .. " + ALT + N",   "Toggle night light",             hl.dsp.exec_cmd(noctCall .. "nightlight-toggle"))
+helpers.bind(mainMod .. " + ALT + T",   "Toggle dark/light theme mode",   hl.dsp.exec_cmd(noctCall .. "theme-mode-toggle"))
+helpers.bind(mainMod .. " + CONTROL + I", "Toggle caffeine mode",         hl.dsp.exec_cmd(noctCall .. "caffeine-toggle"))
 
 -------------------------------
 ---- WORKSPACES & MONITORS ----
@@ -189,36 +211,35 @@ hl.bind(mainMod .. " + CONTROL + I", hl.dsp.exec_cmd(noctCall .. "caffeine-toggl
 -- Switch to workspace with SUPER + [1-9, 0]
 for i = 1, 10 do
     local key = i % 10
-    hl.bind(mainMod .. " + " .. key, hl.dsp.focus({ workspace = i }))
+    helpers.bind(mainMod .. " + " .. key, "Switch to workspace " .. i, hl.dsp.focus({ workspace = i }))
 end
 
 -- Move active window to workspace with SUPER + SHIFT + [1-9, 0]
 for i = 1, 10 do
     local key = i % 10
-    hl.bind(mainMod .. " + SHIFT + " .. key, hl.dsp.window.move({ workspace = tostring(i) }))
+    helpers.bind(mainMod .. " + SHIFT + " .. key, "Move window to workspace " .. i, hl.dsp.window.move({ workspace = tostring(i) }))
 end
 
 -- Focus monitors with SUPER + ALT + [1-3]
-hl.bind(mainMod .. " + ALT + 1", hl.dsp.focus({ monitor = MONITOR1 }))
-hl.bind(mainMod .. " + ALT + 2", hl.dsp.focus({ monitor = MONITOR2 }))
-hl.bind(mainMod .. " + ALT + 3", hl.dsp.focus({ monitor = MONITOR3 }))
+helpers.bind(mainMod .. " + ALT + 1", "Focus monitor 1", hl.dsp.focus({ monitor = MONITOR1 }))
+helpers.bind(mainMod .. " + ALT + 2", "Focus monitor 2", hl.dsp.focus({ monitor = MONITOR2 }))
+helpers.bind(mainMod .. " + ALT + 3", "Focus monitor 3", hl.dsp.focus({ monitor = MONITOR3 }))
 
 -- Single-Key Multi-Monitor Controls (SUPER + grave / ~)
-hl.bind(mainMod .. " + grave",           hl.dsp.focus({ monitor = "+1" }))
-hl.bind(mainMod .. " + SHIFT + grave",   hl.dsp.window.move({ monitor = "+1" }))
-hl.bind(mainMod .. " + CONTROL + grave", hl.dsp.exec_raw("movecurrentworkspacetomonitor", "+1"))
+helpers.bind(mainMod .. " + grave",           "Focus next monitor",                 hl.dsp.focus({ monitor = "+1" }))
+helpers.bind(mainMod .. " + SHIFT + grave",   "Move active window to next monitor", hl.dsp.window.move({ monitor = "+1" }))
+helpers.bind(mainMod .. " + CONTROL + grave", "Move workspace to next monitor",     hl.dsp.exec_raw("movecurrentworkspacetomonitor", "+1"))
 
 -- Move to adjacent workspaces and next empty on a given monitor
-hl.bind(mainMod .. " + CONTROL + Down",        hl.dsp.focus({ workspace = "emptym" }))
+helpers.bind(mainMod .. " + CONTROL + Down",  "Focus next empty workspace", hl.dsp.focus({ workspace = "emptym" }))
 
 -- Scroll through existing workspaces & monitors
-hl.bind(mainMod .. " + mouse_down",           hl.dsp.focus({ workspace = "m+1" }))
-hl.bind(mainMod .. " + mouse_up",             hl.dsp.focus({ workspace = "m-1" }))
-hl.bind(mainMod .. " + CONTROL + mouse_up",   hl.dsp.focus({ workspace = "m+1" }))
-hl.bind(mainMod .. " + CONTROL + mouse_down", hl.dsp.focus({ workspace = "m-1" }))
+helpers.bind(mainMod .. " + mouse_down",           "Scroll to next workspace",     hl.dsp.focus({ workspace = "m+1" }))
+helpers.bind(mainMod .. " + mouse_up",             "Scroll to previous workspace", hl.dsp.focus({ workspace = "m-1" }))
+helpers.bind(mainMod .. " + CONTROL + mouse_up",   "Scroll to next workspace",     hl.dsp.focus({ workspace = "m+1" }))
+helpers.bind(mainMod .. " + CONTROL + mouse_down", "Scroll to previous workspace", hl.dsp.focus({ workspace = "m-1" }))
 
 -- Special workspace (scratchpad)
-hl.bind(mainMod .. " + S",       hl.dsp.workspace.toggle_special())
-hl.bind(mainMod .. " + ALT + S", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
-hl.bind(mainMod .. " + SHIFT + S", hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
-
+helpers.bind(mainMod .. " + S",       "Toggle scratchpad workspace",     hl.dsp.workspace.toggle_special())
+helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
+helpers.bind(mainMod .. " + SHIFT + S", "Screenshot region",             hl.dsp.exec_cmd(noctCall .. "screenshot-region"))

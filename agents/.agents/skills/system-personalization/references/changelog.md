@@ -2,6 +2,21 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.25.0] - 2026-09-14
+### Added
+- **Native Metadata-Driven Keybinding Architecture (`helpers.lua`)**:
+  - Implemented `helpers.lua` (`~/.config/hypr/helpers.lua` in `core/.config/hypr/helpers.lua`) providing native compositor integration:
+    - **Metadata-Driven `bind()` (`helpers.bind`)**: Automatically injects human-readable descriptions into Hyprland's internal C++ binding registry (`options.description`), exposing all 139 compositor bindings to live IPC queries. Bare commands are automatically wrapped in systemd cgroups via `uwsm-app --`.
+    - **Native Focus-or-Launch (`helpers.launch_or_focus`)**: Programmatically queries `hl.get_windows()` across all workspaces. If the target application class or title exists, Hyprland focuses its address directly (`hl.dispatch(hl.dsp.focus({ window = "address:" .. client.address }))`). If the active window is already the application, it cycles seamlessly between open instances. Spawns cleanly via `uwsm-app` if absent. Applied across Zen Browser, Dolphin, LazyGit, LazyDocker, Neovim Notes, YouTube, and Yazi.
+    - **Dynamic Context-Aware Key Routing (`helpers.is_terminal` / `helpers.route_key`)**: Inspects `hl.get_active_window().class` at trigger time to route macOS-style shortcuts:
+      - Line Delete (`SUPER + BackSpace`): Dispatches `CTRL + U` in terminal emulators (`kitty`, `ghostty`, `alacritty`, `foot`), and `Shift + Home` followed by `BackSpace` in GUI applications.
+      - Smart Copy (`SUPER + C`): Dispatches `CTRL + SHIFT + C` in terminals (preventing process `SIGINT` interruption), and native `CTRL + C` in GUI applications (preventing accidental browser DevTools DOM inspection).
+      - Smart Paste (`SUPER + V`): Dispatches `CTRL + SHIFT + V` in terminals and `CTRL + V` in GUI applications.
+  - **Live IPC Keybindings Cheatsheet (`hypr-keybinds-menu`)**:
+    - Deployed `~/.local/bin/hypr-keybinds-menu` (`core/.local/bin/hypr-keybinds-menu`).
+    - Queries runtime bindings directly from the compositor via `hyprctl binds -j`, decodes modifier masks (`SUPER`, `ALT`, `CTRL`, `SHIFT`), filters entries with descriptions, and presents a fast, searchable popup via `fzf`.
+    - Mapped to `SUPER + K` in a floating, centered Kitty window (`class = "^(Keybindings)$"`).
+
 ## [2.24.0] - 2026-09-14
 ### Added
 - **Multi-PC Modular 3-Tier Architecture Migration (Ported from `omarchy-dots`)**:
