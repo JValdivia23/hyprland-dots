@@ -60,17 +60,17 @@ Complete documentation of this machine's configuration and personalization. This
 
 | File / Folder | Content |
 |---------------|---------|
-| [`references/hardware.md`](file:///home/java1127/.agents/skills/system-personalization/references/hardware.md) | Physical hardware specs, CPU, GPU, displays, and audio |
-| [`references/current-state.md`](file:///home/java1127/.agents/skills/system-personalization/references/current-state.md) | Live snapshot (OS, kernel, active package versions, active helper scripts) |
-| [`references/config-paths.md`](file:///home/java1127/.agents/skills/system-personalization/references/config-paths.md) | Config files, Lua modules, touchpad gesture specs, and edit rules |
-| [`references/keybindings.md`](file:///home/java1127/.agents/skills/system-personalization/references/keybindings.md) | Complete keyboard shortcuts reference from `binds.lua` |
-| [`references/gotchas/`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/) | **Topic-specific gotchas & troubleshooting**: |
-| ├── [`hyprland.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/hyprland.md) | Hyprland Lua syntax, IPC window dispatchers, modifier repetition, copy shortcut |
-| ├── [`wayland-noctalia.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/wayland-noctalia.md) | Noctalia messaging reload/restart, Satty screenshot piping, Quick Look |
-| ├── [`networking.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
-| └── [`terminal-ssh.md`](file:///home/java1127/.agents/skills/system-personalization/references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
-| [`references/changelog.md`](file:///home/java1127/.agents/skills/system-personalization/references/changelog.md) | Dated log of system configuration changes |
-| [`templates/change-entry.md`](file:///home/java1127/.agents/skills/system-personalization/templates/change-entry.md) | Template for changelog updates |
-| [`scripts/snapshot.sh`](file:///home/java1127/.agents/skills/system-personalization/scripts/snapshot.sh) | Bash script to capture current system state to stdout |
+| [`references/hardware.md`](references/hardware.md) | Physical hardware specs, CPU, GPU, displays, and audio |
+| [`references/current-state.md`](references/current-state.md) | Live snapshot (OS, kernel, active package versions, active helper scripts) |
+| [`references/config-paths.md`](references/config-paths.md) | Config files, Lua modules, touchpad gesture specs, and edit rules |
+| [`references/keybindings.md`](references/keybindings.md) | Complete keyboard shortcuts reference from `binds.lua` |
+| [`references/gotchas/`](references/gotchas/) | **Topic-specific gotchas & troubleshooting**: |
+| ├── [`hyprland.md`](references/gotchas/hyprland.md) | Hyprland Lua syntax, IPC window dispatchers, modifier repetition, copy shortcut |
+| ├── [`wayland-noctalia.md`](references/gotchas/wayland-noctalia.md) | Noctalia messaging reload/restart, Satty screenshot piping, Quick Look |
+| ├── [`networking.md`](references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
+| └── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
+| [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
+| [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |
+| [`scripts/snapshot.sh`](scripts/snapshot.sh) | Bash script to capture current system state to stdout |
 
 *(Note: Hardware-specific gotchas, such as Apple T2 or Microsoft Surface, are dynamically symlinked into `references/gotchas/` by the active profile.)*

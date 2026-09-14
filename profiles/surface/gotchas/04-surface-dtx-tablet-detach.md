@@ -62,5 +62,5 @@ surface dtx get-latchstatus
 Confirm status reports `Closed` when attached, and transitions to `Open` when `surface dtx request` is invoked.
 
 ## Related References
-- [`~/.config/hypr/bindings.lua`](file:///home/jmvp/.config/hypr/bindings.lua)
+- `~/.config/hypr/config/binds.lua`
 - Linux Surface DTX Subsystem: `https://github.com/linux-surface/surface-dtx-daemon`

@@ -67,6 +67,6 @@ sudo systemctl enable --now iptsd@dev-hidraw4.service
   ```
 
 ## Related References
-- [`~/.config/hypr/monitors.lua`](file:///home/jmvp/.config/hypr/monitors.lua)
-- [`~/.config/hypr/input.lua`](file:///home/jmvp/.config/hypr/input.lua)
+- `~/.config/hypr/config/profile/monitors.lua`
+- `~/.config/hypr/config/profile/inputs.lua`
 - Linux Surface Project: `https://github.com/linux-surface/linux-surface`

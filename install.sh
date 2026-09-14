@@ -402,7 +402,7 @@ if [ "$DO_STOW" = true ]; then
         "--ignore=^gotchas"
         "--ignore=^\.stow-local-ignore$"
         "--ignore=^SKILL\.md\.template$"
-        "--ignore=^scripts/init-skill\.sh$"
+        "--ignore=init-skill\.sh$"
         "--ignore=__pycache__"
         "--ignore=\.pyc$"
     )

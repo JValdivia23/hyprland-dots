@@ -10,8 +10,12 @@ A dated log of all package changes, configurations, script modifications, and ha
     - **Tier 2 (`profiles/`)**: Hardware-specific profiles (`macbook-t2`, `desktop`, `surface`, `laptop`). Each profile contains isolated `.config/hypr/config/profile/` modules (`monitors.lua`, `environment.lua`, `inputs.lua`), `packages.txt`, `setup.sh`, and `gotchas/`.
     - **Tier 3 (`agents/`)**: Dynamically probed AI System Personalization skill (`init-skill.sh`, `SKILL.md.template` -> `SKILL.md`, `references/hardware.md`, and dynamic gotchas symlinking).
   - **Dynamic Hyprland Lua Bootstrap**: `hyprland.lua` loads universal core modules and dynamically resolves hardware overrides via `pcall(require, "config.profile.environment")`, `pcall(require, "config.profile.monitors")`, and `pcall(require, "config.profile.inputs")`.
-  - **New Master Installer (`install.sh`)**: Built-in hardware detection (DMI, PCI, chassis), CLI flags (`--profile`, `--profiles`, `--dry-run`, `--only-stow`, `--only-packages`), non-destructive backup, directory symlink sanitization, and profile post-install hooks.
-  - Verified 0 Hyprland config errors via `hyprctl configerrors` and active Retina 1.33 fractional scaling on `eDP-1`.
+  - **Wallpaper Fork Integration & Sync Utility**:
+    - Created `core/.local/bin/cachy-sync-wallpapers` syncing shallow clone (`--depth 1`) from `https://github.com/JValdivia23/walls.git` into `~/Pictures/Wallpapers/dharmx-walls` (1567 curated wallpapers) with fallback to `dharmx/walls.git`.
+    - Automatically creates convenience symlink `~/Wallpapers -> ~/Pictures/Wallpapers`.
+    - Fixed Hyprland `Alt+Space` wallpaper selector keybinding to invoke `waypaper` directly from `$PATH`.
+  - **New Master Installer (`install.sh`)**: Built-in hardware detection (DMI, PCI, chassis), CLI flags (`--profile`, `--profiles`, `--dry-run`, `--only-stow`, `--only-packages`), non-destructive backup, directory symlink sanitization, automated wallpaper sync on fresh setup, and profile post-install hooks.
+  - **Fresh Install Audit Remediations**: Verified zero hardcoded usernames (`$HOME` / `sh -c` portable paths), corrected script executable permissions, added Stow ignore for skill init scripts, and confirmed clean Hyprland config status (`hyprctl configerrors`).
 
 ## [2.23.0] - 2026-09-10
 ### Added

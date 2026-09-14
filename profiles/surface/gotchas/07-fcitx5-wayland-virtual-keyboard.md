@@ -48,6 +48,6 @@ fcitx5 -d --replace
 2. Verify that the fcitx5 input panel activates and allows on-screen text input directly into Wayland applications.
 
 ## Related References
-- [`~/.config/hypr/bindings.lua`](file:///home/jmvp/.config/hypr/bindings.lua)
+- `~/.config/hypr/config/binds.lua`
 - [`03-surface-scaling-and-touch.md`](03-surface-scaling-and-touch.md)
 - [`04-surface-dtx-tablet-detach.md`](04-surface-dtx-tablet-detach.md)
