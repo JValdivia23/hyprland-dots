@@ -3,6 +3,13 @@
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
 ## [Unreleased]
+### Changed
+- **OpenCode pacman -> curl installer (`surface`)**:
+  - Removed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -Rns opencode` (interactive Kitty `hl.exec_cmd` prompt per Rule 8).
+  - Installed upstream `v2.0.5` via `curl -fsSL https://opencode.ai/v2/install | bash` to `~/.opencode/bin/opencode`; installer appended `fish_add_path /home/jmvp/.opencode/bin` to `core/.config/fish/config.fish` (stowed, no overwrite).
+  - Verified: `which opencode` -> `~/.opencode/bin/opencode`, `opencode --version` -> `v2.0.5`, `opencode upgrade` -> `Using method: curl`, `already installed` (fixes `installation method not found`).
+  - Note: `cachyos-extra`/`AUR` builds are unsupported for self-update; keep `packages.txt` free of `opencode` to avoid shadowing `/usr/bin/opencode` over `~/.opencode/bin`.
+  - Symlinked `~/.local/bin/opencode` -> `~/.opencode/bin/opencode` for bash/non-fish `PATH` fluency (fish uses `fish_add_path`, bash uses `~/.local/bin`); verified `opencode upgrade` in both shells.
 ### Fixed
 - **Fastfetch terminal greeting cleanup and alignment (`core/.local/bin/fastfetch-custom`, `surface`)**:
   - **Mini Logo Alignment**: Stripped raw DMI/SKU string from `Host`, restoring clean `Surface Book 3` and preventing line width blowout that shoved the mini CachyOS logo to column 89+.

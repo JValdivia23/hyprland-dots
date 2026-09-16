@@ -16,3 +16,6 @@ set -gx VISUAL nvim
 
 # Local bin path
 fish_add_path "$HOME/.local/bin"
+
+# opencode
+fish_add_path /home/jmvp/.opencode/bin
