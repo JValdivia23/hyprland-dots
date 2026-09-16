@@ -21,7 +21,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `SHIFT` + `O` | Video PiP & Pin | Small video PiP (560x315) in bottom-right corner & pin across workspaces |
 | `CTRL` + `Left` / `Right` / `Up` / `Down` | Focus Direction | Change focus to adjacent window |
 | `ALT` + `Tab` | Cycle Next | Cycle focus through windows |
-| `SUPER` + `ALT` + `Left` / `Right` / `Up` / `Down` | Swap Window | Swap positions with adjacent window |
+| `CTRL` + `SHIFT` + Arrows / `SUPER` + `ALT` + Arrows | Swap Window | Swap positions with adjacent window (`hl.dsp.window.swap`) |
 | `SUPER` + `Tab` / `SUPER` + `SHIFT` + `Tab` | Workspace Switch | Switch to next / previous workspace |
 | `SUPER` + `CONTROL` + `Left` / `Right` | Move WS (Relative) | Move active window to next/prev workspace |
 | `SUPER` + Left Click Drag | Drag Move | Move floating window |

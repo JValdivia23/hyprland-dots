@@ -2,6 +2,14 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.30.0] - 2026-09-15
+### Added
+- **Native Directional Window Swapping (`CTRL + SHIFT + Arrows`)**:
+  - Implemented `CTRL + SHIFT + Left/Right/Up/Down` in `core/.config/hypr/config/binds.lua` matching Omarchy muscle memory.
+  - Upgraded window swapping dispatchers from external subshell commands (`hyprctl dispatch swapwindow`) to native compositor API `hl.dsp.window.swap({ direction = ... })` for instantaneous, zero-latency execution.
+  - Preserved `SUPER + ALT + Arrows` as alternative layout-agnostic binding.
+  - Registered descriptions in Hyprland's internal table, exposing them to `SUPER + K` live IPC search.
+
 ## [2.29.0] - 2026-09-15
 ### Changed
 - **Microsoft Surface Profile Modernization & Omarchy Cleanup (`profiles/surface/`)**:
