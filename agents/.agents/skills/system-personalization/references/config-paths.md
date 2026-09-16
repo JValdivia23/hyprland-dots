@@ -106,6 +106,7 @@ Custom shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating image/vector previews via `swayimg`. |
 | `hypr-kbd-brightness` | Keyboard Backlight Control | Triggered by `Fn + Up / Down` to step keyboard brightness (0-3) with visual notification. |
 | `hypr-lid-handler` | Laptop Clamshell & DPMS Handler | Triggered by `switch:on/off:Lid Switch` to manage DPMS power, keyboard light, and power profiles on lid close/open. |
+| `fastfetch-custom` | Terminal Greeting Fetch Script | Triggered by `fish_greeting` in Fish; renders clean two-column system specs, hardware details, and mini CachyOS logo. |
 
 ---
 

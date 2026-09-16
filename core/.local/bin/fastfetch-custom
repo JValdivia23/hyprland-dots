@@ -1,17 +1,42 @@
 #!/usr/bin/env python3
+import getpass
+import os
+import re
+import socket
 import subprocess
 
 def main():
+    env = os.environ.copy()
+    if 'WAYLAND_DISPLAY' not in env:
+        sig_dir = f"/run/user/{os.getuid()}/hypr"
+        if os.path.isdir(sig_dir):
+            try:
+                sigs = os.listdir(sig_dir)
+                if sigs:
+                    env['HYPRLAND_INSTANCE_SIGNATURE'] = sigs[0]
+                    env['WAYLAND_DISPLAY'] = 'wayland-1'
+                    env['XDG_CURRENT_DESKTOP'] = 'Hyprland'
+                    env['XDG_SESSION_DESKTOP'] = 'Hyprland'
+            except Exception:
+                pass
+
+    modules = "OS:Host:Kernel:Uptime:Packages:Shell:Display:WM:Theme:Icons:Cursor:Terminal:CPU:GPU:Memory:Swap:Disk:LocalIP:Battery:Locale:Sound"
     try:
-        raw = subprocess.check_output(['fastfetch', '--logo', 'none'], stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore')
+        raw = subprocess.check_output(['fastfetch', '-s', modules, '--logo', 'none'], env=env, stderr=subprocess.DEVNULL).decode('utf-8', errors='ignore')
     except Exception:
         return
 
     data = {}
-    for line in raw.split('\n'):
+    batteries = []
+    for line in raw.splitlines():
         if ':' in line:
             k, v = line.split(':', 1)
-            data[k.strip()] = v.strip()
+            k = k.strip()
+            v = v.strip()
+            if k.startswith('Battery'):
+                batteries.append((k, v))
+            else:
+                data[k] = v
 
     C_GREEN = "\033[1;32m"
     C_CYAN = "\033[1;36m"
@@ -44,29 +69,78 @@ def main():
 
     def clean_val(key, val):
         if key == 'Host':
-            return val.replace('GA401IV_GA401IV (1.0)', '').strip() or val
+            val = re.sub(r'\s*\([^)]*:[^)]*\)', '', val)
+            val = val.replace('GA401IV_GA401IV (1.0)', '').strip()
+            return val
+        if 'WM' in key:
+            return re.sub(r'\s*\((Wayland|X11)\)', '', val).strip()
         if 'GPU' in key:
+            is_int = '[Integrated]' in val or 'iGPU' in val or 'Intel' in val
             v = val.replace(" [Discrete]", "").replace(" [Integrated]", "").strip()
             if "Pro Series" in v:
                 v = v.replace("Pro Series", "Pro 560X")
-            return f"{v} (dGPU)" if "dGPU" not in v and "iGPU" not in v else v
+            tag = "(iGPU)" if is_int else "(dGPU)"
+            return f"{v} {tag}" if "dGPU" not in v and "iGPU" not in v else v
         if 'Display' in key:
-            return val.replace(' in 15",', '').replace(' [Built-in]', '').strip()
+            v = val.replace(' in 15",', '').replace(' [Built-in]', '').strip()
+            return v
         if 'CPU' in key:
             return val.replace('(R)', '').replace('(TM)', '').strip()
         if 'Battery' in key:
             return val.replace(' hours,', 'h').replace(' hour,', 'h').replace(' mins remaining', 'm').replace(' min remaining', 'm').replace(' remaining', '')
+        if 'Sound' in key or 'Audio' in key:
+            return val.split(' (')[0].strip() if '(' in val else val
         return val
 
-    import getpass, socket
+    def format_battery():
+        if not batteries:
+            return clean_val('Battery', get_match('Battery'))
+        if len(batteries) == 1:
+            return clean_val('Battery', batteries[0][1])
+        pcts = []
+        status = ""
+        for name, b_val in batteries:
+            m = re.search(r'(\d+)%', b_val)
+            if m:
+                pcts.append(int(m.group(1)))
+            if '[' in b_val and not status:
+                status = b_val[b_val.find('['):b_val.find(']')+1]
+        if len(pcts) == 2:
+            avg_pct = round((pcts[0] + pcts[1]) / 2)
+            return f"{avg_pct}% ({pcts[0]}% Tab / {pcts[1]}% Base) {status}".strip()
+        return f"{batteries[0][1]} / {batteries[1][1]}"
+
+    def get_icons():
+        if data.get('Icons'):
+            return data['Icons']
+        try:
+            out = subprocess.check_output(['gsettings', 'get', 'org.gnome.desktop.interface', 'icon-theme'], stderr=subprocess.DEVNULL).decode().strip().strip("'\"")
+            if out:
+                return out
+        except Exception:
+            pass
+        return "Adwaita"
+
     current_user = getpass.getuser()
     current_host = socket.gethostname()
+
+    wm_val = clean_val("WM", data.get("Window Manager") or data.get("WM") or "")
+    audio_val = clean_val("Sound", data.get("Sound") or data.get("Audio") or "")
+    if not audio_val:
+        try:
+            with open('/sys/class/dmi/id/sys_vendor') as f:
+                if 'Apple' in f.read():
+                    audio_val = "Apple Audio (aaudio)"
+        except Exception:
+            pass
+    if not audio_val:
+        audio_val = "Built-in Audio"
 
     top_left_data = [
         ("OS", data.get("OS", "")),
         ("Kernel", data.get("Kernel", "")),
         ("Host", clean_val("Host", data.get("Host", ""))),
-        ("WM", data.get("WM", "")),
+        ("WM", wm_val),
         ("CPU", clean_val("CPU", data.get("CPU", ""))),
         ("GPU", clean_val("GPU", get_match("GPU"))),
         ("Display", clean_val("Display", get_match("Display"))),
@@ -79,16 +153,16 @@ def main():
     bottom_specs = [
         (("RAM", data.get('Memory', '')), ("Disk", get_match('Disk'))),
         (("Swap", data.get('Swap', '')), ("Theme", data.get('Theme', ''))),
-        (("Icons", data.get('Icons', '')), ("Cursor", data.get('Cursor', ''))),
-        (("Battery", clean_val("Battery", get_match('Battery'))), ("Local IP", get_match('Local IP'))),
-        (("Locale", data.get('Locale', '')), ("Audio", "Apple Audio (aaudio)"))
+        (("Icons", get_icons()), ("Cursor", data.get('Cursor', ''))),
+        (("Battery", format_battery()), ("Local IP", get_match('Local IP'))),
+        (("Locale", data.get('Locale', '')), ("Audio", audio_val))
     ]
 
     print(f"{C_GREEN}{current_user}{C_RESET}@{C_GREEN}{current_host}{C_RESET}")
     print(f"{C_CYAN}" + "─" * 74 + f"{C_RESET}")
 
     max_top_width = max(len(f"{k}: {v}") for k, v in top_left_data)
-    pad_target = max(max_top_width + 2, 45)
+    pad_target = max(max_top_width + 2, 46)
 
     for i in range(11):
         k, v = top_left_data[i]
@@ -99,13 +173,15 @@ def main():
         spaces = " " * pad_len
         print(f"{left_str}{spaces}{logo}")
 
+    col1_target = max(max(len(f"{k1}: {v1}") for (k1, v1), _ in bottom_specs) + 2, 36)
+
     for (k1, v1), (k2, v2) in bottom_specs:
         p1 = f"{k1}: {v1}"
         str1 = f"{C_KEY}{k1}{C_RESET}: {C_VAL}{v1}{C_RESET}"
-        pad1 = max(0, 36 - len(p1))
+        pad1 = max(0, col1_target - len(p1))
         spaces1 = " " * pad1
         str2 = f"{C_KEY}{k2}{C_RESET}: {C_VAL}{v2}{C_RESET}"
-        print(f"{str1}{spaces1} \033[90m│\033[0m {str2}")
+        print(f"{str1}{spaces1}\033[90m│\033[0m {str2}")
 
     print(f"\n     {color_palette_1}   {color_palette_2}")
 

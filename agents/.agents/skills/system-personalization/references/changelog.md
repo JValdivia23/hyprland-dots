@@ -4,6 +4,14 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **Fastfetch terminal greeting cleanup and alignment (`core/.local/bin/fastfetch-custom`, `surface`)**:
+  - **Mini Logo Alignment**: Stripped raw DMI/SKU string from `Host`, restoring clean `Surface Book 3` and preventing line width blowout that shoved the mini CachyOS logo to column 89+.
+  - **Window Manager**: Added support for fastfetch's `Window Manager:` key alongside `WM:`, fixing blank `WM: ` to properly display `Hyprland 0.56.2`.
+  - **GPU Tagging**: Differentiated integrated (`iGPU`) from discrete (`dGPU`) graphics; Intel Iris Plus Graphics G7 is now accurately tagged as `(iGPU)` instead of forcing `(dGPU)`.
+  - **Audio Detection**: Replaced hardcoded `"Apple Audio (aaudio)"` with dynamic fastfetch `Sound` detection (`Built-in Audio Analog Stereo`), retaining Apple Audio fallback only on Apple hardware DMI.
+  - **Icons Fallback**: Added GSettings fallback for `Icons` (`Adwaita`) when fastfetch detects no icon theme from GTK configs.
+  - **Dual Battery Support**: Added combined dual battery calculation for Surface devices (`80% (79% Tab / 82% Base) [Discharging]`).
+  - **Aligned Columns**: Made bottom spec table divider (`│`) calculate column width dynamically to prevent misalignment across varying metric lengths.
 - **Fish duplicate `.local/bin` PATH (`core/.config/fish/config.fish`, `surface`)**: removed `set -gx PATH "/home/jmvp/.local/bin" $PATH` added by Antigravity CLI installer; kept canonical `fish_add_path "$HOME/.local/bin"` (avoids duplicate entries in `fish_user_paths`).
 - **Omarchy-style display scaling (`surface`)**: terminal/shell felt oversized from stacked scaling (compositor `x2` × Noctalia `ui_scale 1.2` × `bar scale 1.1` × large terminal fonts), while Omarchy keeps compositor at 2x and scales text with one knob.
   - `profiles/surface/.../profile/monitors.lua`: `eDP-1` mode pinned `3000x2000@60` -> `preferred` (kept `scale 2`, `GDK_SCALE 2` — correct for 267 PPI); added commented Omarchy-style `1.6/1.75` (4K) and `1/1` (1080p/1440p) alternatives.
