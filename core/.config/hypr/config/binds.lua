@@ -232,7 +232,19 @@ helpers.bind(mainMod .. " + ALT + 3", "Focus monitor 3", hl.dsp.focus({ monitor 
 -- Single-Key Multi-Monitor Controls (SUPER + grave / ~)
 helpers.bind(mainMod .. " + grave",           "Focus next monitor",                 hl.dsp.focus({ monitor = "+1" }))
 helpers.bind(mainMod .. " + SHIFT + grave",   "Move active window to next monitor", hl.dsp.window.move({ monitor = "+1" }))
-helpers.bind(mainMod .. " + CONTROL + grave", "Move workspace to next monitor",     hl.dsp.exec_raw("movecurrentworkspacetomonitor", "+1"))
+helpers.bind(mainMod .. " + CONTROL + grave", "Move workspace to next monitor",     hl.dsp.workspace.move({ monitor = "+1" }))
+
+-- Directional Window to Monitor (SUPER + SHIFT + ALT + Arrows)
+helpers.bind(mainMod .. " + SHIFT + ALT + Left",  "Move window to left monitor",   hl.dsp.window.move({ monitor = "l" }))
+helpers.bind(mainMod .. " + SHIFT + ALT + Right", "Move window to right monitor",  hl.dsp.window.move({ monitor = "r" }))
+helpers.bind(mainMod .. " + SHIFT + ALT + Up",    "Move window to top monitor",    hl.dsp.window.move({ monitor = "u" }))
+helpers.bind(mainMod .. " + SHIFT + ALT + Down",  "Move window to bottom monitor", hl.dsp.window.move({ monitor = "d" }))
+
+-- Directional Workspace to Monitor (SUPER + CONTROL + ALT + Arrows)
+helpers.bind(mainMod .. " + CONTROL + ALT + Left",  "Move workspace to left monitor",   hl.dsp.workspace.move({ monitor = "l" }))
+helpers.bind(mainMod .. " + CONTROL + ALT + Right", "Move workspace to right monitor",  hl.dsp.workspace.move({ monitor = "r" }))
+helpers.bind(mainMod .. " + CONTROL + ALT + Up",    "Move workspace to top monitor",    hl.dsp.workspace.move({ monitor = "u" }))
+helpers.bind(mainMod .. " + CONTROL + ALT + Down",  "Move workspace to bottom monitor", hl.dsp.workspace.move({ monitor = "d" }))
 
 -- Move to adjacent workspaces and next empty on a given monitor
 helpers.bind(mainMod .. " + CONTROL + Down",  "Focus next empty workspace", hl.dsp.focus({ workspace = "emptym" }))

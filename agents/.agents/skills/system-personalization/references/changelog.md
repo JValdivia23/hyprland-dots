@@ -2,6 +2,18 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.32.0] - 2026-09-15
+### Added
+- **Combined Directional Cross-Monitor Architecture (`core/.config/hypr/config/binds.lua`)**:
+  - Implemented symmetrical directional cross-monitor dispatchers:
+    - **Directional Window to Monitor (`SUPER + SHIFT + ALT + Arrows`)**: Moves the focused window to the Left / Right / Top / Bottom adjacent monitor (`hl.dsp.window.move({ monitor = "l/r/u/d" })`).
+    - **Directional Workspace to Monitor (`SUPER + CONTROL + ALT + Arrows`)**: Moves the active workspace and all its tiled windows to the Left / Right / Top / Bottom adjacent monitor (`hl.dsp.workspace.move({ monitor = "l/r/u/d" })`).
+  - Upgraded single-key monitor cycle bindings to native Lua API:
+    - `SUPER + grave (~)`: Focus next monitor (`hl.dsp.focus({ monitor = "+1" })`).
+    - `SUPER + SHIFT + grave`: Move active window to next monitor (`hl.dsp.window.move({ monitor = "+1" })`).
+    - `SUPER + CONTROL + grave`: Move active workspace to next monitor (`hl.dsp.workspace.move({ monitor = "+1" })`).
+  - Updated keybindings reference and registered all 8 new bindings with live IPC descriptions (`SUPER + K`).
+
 ## [2.31.0] - 2026-09-15
 ### Added
 - **Turnkey Multi-PC Wallpaper Synchronization (`cachy-sync-wallpapers`, `core/packages.txt`)**:

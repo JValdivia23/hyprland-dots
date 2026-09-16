@@ -22,6 +22,9 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `CTRL` + `Left` / `Right` / `Up` / `Down` | Focus Direction | Change focus to adjacent window |
 | `ALT` + `Tab` | Cycle Next | Cycle focus through windows |
 | `CTRL` + `SHIFT` + Arrows / `SUPER` + `ALT` + Arrows | Swap Window | Swap positions with adjacent window (`hl.dsp.window.swap`) |
+| `SUPER` + `SHIFT` + `ALT` + Arrows | Move Window to Monitor | Move focused window to Left / Right / Top / Bottom monitor (`hl.dsp.window.move`) |
+| `SUPER` + `CONTROL` + `ALT` + Arrows | Move Workspace to Monitor | Move entire workspace to Left / Right / Top / Bottom monitor (`hl.dsp.workspace.move`) |
+| `SUPER` + `grave` (`~`) / `SHIFT` + `grave` / `CONTROL` + `grave` | Cycle Monitor Controls | Focus next monitor / Move window to next monitor / Move workspace to next monitor |
 | `SUPER` + `Tab` / `SUPER` + `SHIFT` + `Tab` | Workspace Switch | Switch to next / previous workspace |
 | `SUPER` + `CONTROL` + `Left` / `Right` | Move WS (Relative) | Move active window to next/prev workspace |
 | `SUPER` + Left Click Drag | Drag Move | Move floating window |
