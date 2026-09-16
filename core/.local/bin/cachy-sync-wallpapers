@@ -63,7 +63,14 @@ fi
 
 if command -v noctalia-precache-wallpapers >/dev/null 2>&1; then
     echo "--> Pre-caching Noctalia wallpaper thumbnails..."
-    noctalia-precache-wallpapers "$WALLPAPERS_DIR" || true
+    # Widths = tile physical px (thumbnailTargetPx) measured per machine via
+    # fresh-open forensics (new files in ~/.cache/noctalia/thumbnails).
+    # surface (eDP-1 scale 2, ui_scale 1.2): 428 grid + 451/541 alt views.
+    # macbook-t2 (Retina scale 1.33): 361. Override per host if measured
+    # widths differ: NOCTALIA_THUMB_WIDTHS="428 451" cachy-sync-wallpapers
+    for w in ${NOCTALIA_THUMB_WIDTHS:-428 451 541 361}; do
+        noctalia-precache-wallpapers "$WALLPAPERS_DIR" --width "$w" || true
+    done
 fi
 
 # Ensure Noctalia wallpaper panel state defaults to shuffle & flat view

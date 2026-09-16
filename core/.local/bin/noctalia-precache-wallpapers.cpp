@@ -44,7 +44,13 @@ int main(int argc, char* argv[]) {
 
     fs::path wp_dir = fs::path(home) / "Pictures/Wallpapers";
     fs::path cache_dir = fs::path(home) / ".cache/noctalia/thumbnails";
-    int width = 361;
+    // Default = tile physical size (thumbnailTargetPx) measured on Surface
+    // Book 3 (eDP-1 3000x2000@scale2, ui_scale 1.2). This is per-machine:
+    // MacBook-T2 Retina measures 361. Re-measure via fresh-open forensics
+    // (widths of newly generated files in ~/.cache/noctalia/thumbnails)
+    // after any panel/resolution/scale change. Always pass all widths with
+    // demand, e.g. separate passes: --width 428 --width 451 --width 541.
+    int width = 428;
 
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
@@ -87,6 +93,13 @@ int main(int argc, char* argv[]) {
 
         total_scanned++;
         std::string p = dir_entry.path().string();
+        // Key MUST use fs::last_write_time ticks exactly like Noctalia's
+        // cachePathForSource() (src/render/core/thumbnail_service.cpp):
+        //   file_size + last_write_time.time_since_epoch().count()
+        // Do NOT "fix" this to stat() Unix nanos — file_clock epoch differs
+        // from Unix epoch but is consistent between Noctalia and this tool
+        // (same libstdc++), verified empirically: 163 fileclock@428 hits vs
+        // 0 stat@428 hits on Noctalia 5.1.0 (2026-09-16).
         std::error_code ec;
         auto sz = fs::file_size(p, ec);
         if (ec) continue;
@@ -136,7 +149,11 @@ int main(int argc, char* argv[]) {
                 const auto& job = jobs[idx];
                 std::string tmp_dst = job.dst + ".tmp." + std::to_string(getpid()) + "_" + std::to_string(idx) + ".webp";
 
-                std::string cmd = "vipsthumbnail \"" + job.src + "\" --size " + std::to_string(width) + "x -o \"" + tmp_dst + "\" 2>/dev/null";
+                // Box-fit LONG edge to <width>, mirroring Noctalia's
+                // resizeThumbnail() (scales max(w,h) -> targetPx). Hash key
+                // only covers the targetPx number, but matching pixels keeps
+                // the grid crisp for both landscape and portrait sources.
+                std::string cmd = "vipsthumbnail \"" + job.src + "\" --size " + std::to_string(width) + "x" + std::to_string(width) + " -o \"" + tmp_dst + "\" 2>/dev/null";
                 int ret = system(cmd.c_str());
 
                 if (ret == 0 && fs::exists(tmp_dst)) {
