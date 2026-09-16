@@ -42,14 +42,46 @@ COUNT=$(find "$WALLPAPERS_DIR" -type f \( -name '*.jpg' -o -name '*.png' -o -nam
 echo "-------------------------------------------------------"
 echo "✅ Synchronization complete! Total wallpapers available: $COUNT"
 
-if ! command -v noctalia-precache-wallpapers >/dev/null 2>&1 && [ -f "$HOME/dotfiles/core/.local/bin/noctalia-precache-wallpapers.cpp" ]; then
+# Locate C++ pre-cacher source code
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CPP_SRC=""
+for candidate in \
+    "$SCRIPT_DIR/noctalia-precache-wallpapers.cpp" \
+    "$HOME/dotfiles/core/.local/bin/noctalia-precache-wallpapers.cpp" \
+    "$HOME/.local/bin/noctalia-precache-wallpapers.cpp"; do
+    if [ -f "$candidate" ]; then
+        CPP_SRC="$candidate"
+        break
+    fi
+done
+
+if ! command -v noctalia-precache-wallpapers >/dev/null 2>&1 && [ -n "$CPP_SRC" ]; then
     echo "--> Compiling noctalia-precache-wallpapers..."
-    g++ -O3 -std=c++20 "$HOME/dotfiles/core/.local/bin/noctalia-precache-wallpapers.cpp" -o "$HOME/.local/bin/noctalia-precache-wallpapers" 2>/dev/null || true
+    mkdir -p "$HOME/.local/bin"
+    g++ -O3 -std=c++20 "$CPP_SRC" -o "$HOME/.local/bin/noctalia-precache-wallpapers" 2>/dev/null || true
 fi
 
 if command -v noctalia-precache-wallpapers >/dev/null 2>&1; then
     echo "--> Pre-caching Noctalia wallpaper thumbnails..."
     noctalia-precache-wallpapers "$WALLPAPERS_DIR" || true
+fi
+
+# Ensure Noctalia wallpaper panel state defaults to shuffle & flat view
+STATE_FILE="$HOME/.local/state/noctalia/state.toml"
+if [ ! -f "$STATE_FILE" ]; then
+    mkdir -p "$(dirname "$STATE_FILE")"
+    cat > "$STATE_FILE" << 'STATE_EOF'
+[wallpaper_panel]
+flatten = true
+sort = "random"
+STATE_EOF
+elif ! grep -q "\[wallpaper_panel\]" "$STATE_FILE"; then
+    cat >> "$STATE_FILE" << 'STATE_EOF'
+
+[wallpaper_panel]
+flatten = true
+sort = "random"
+STATE_EOF
 fi
 
 echo "   Select any wallpaper via Noctalia (Alt+Space or Super+Shift+W)."

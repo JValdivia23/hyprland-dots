@@ -15,6 +15,7 @@ fastfetch
 ffmpegthumbnailer
 fish
 fzf
+gcc
 git
 github-cli
 grim
@@ -26,6 +27,7 @@ jq
 kitty
 lazydocker
 lazygit
+libvips
 localsend
 micro
 mpv

@@ -2,6 +2,13 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.31.0] - 2026-09-15
+### Added
+- **Turnkey Multi-PC Wallpaper Synchronization (`cachy-sync-wallpapers`, `core/packages.txt`)**:
+  - Added `gcc` and `libvips` to [`core/packages.txt`](file:///home/java1127/dotfiles/core/packages.txt), ensuring both the C++20 compiler and `vipsthumbnail` engine are automatically installed by `install.sh` on any fresh CachyOS/Arch device.
+  - Enhanced [`cachy-sync-wallpapers`](file:///home/java1127/dotfiles/core/.local/bin/cachy-sync-wallpapers) with robust multi-path source candidate discovery for `noctalia-precache-wallpapers.cpp`.
+  - Added automated state initialization in `cachy-sync-wallpapers` to seed `~/.local/state/noctalia/state.toml` with `flatten = true` and `sort = "random"` out of the box on first boot.
+
 ## [2.30.0] - 2026-09-15
 ### Added
 - **Native Directional Window Swapping (`CTRL + SHIFT + Arrows`)**:
