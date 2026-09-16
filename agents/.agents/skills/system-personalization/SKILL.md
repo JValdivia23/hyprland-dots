@@ -1,11 +1,11 @@
 ---
 name: system-personalization
-description: "Comprehensive system personalization tracker for cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
+description: "Comprehensive system personalization tracker for surface (Surface Book 3) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
 version: 2.24.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
-# System Personalization (`cachyos-cu` - MacBookPro15,1)
+# System Personalization (`surface` - Surface Book 3)
 
 Complete documentation of this machine's configuration and personalization. This is a **self-improving skill** — after any system configuration change, software install, or gotcha discovery, update this skill's modular references (`references/changelog.md` and `references/gotchas/`).
 
@@ -39,17 +39,17 @@ Complete documentation of this machine's configuration and personalization. This
 
 | Category | Detail |
 |----------|--------|
-| **Machine** | MacBookPro15,1 |
-| **Hostname** | `cachyos-cu` |
+| **Machine** | Surface Book 3 |
+| **Hostname** | `surface` |
 | **OS** | CachyOS |
-| **Kernel** | `7.2.3-1-cachyos` |
+| **Kernel** | `6.19.8-arch1-3-surface` |
 | **WM** | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia |
-| **Primary Display** | eDP-1 (Default Display) |
-| **GPU** | Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor |
-| **CPU** | Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz |
-| **RAM & Swap** | 15Gi RAM, 15Gi swap |
-| **Active Profiles** | macbook-t2 |
+| **Primary Display** | eDP-1 (3000x2000@60Hz, scale 2) |
+| **GPU** | Intel Corporation Iris Plus Graphics G7 |
+| **CPU** | Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz |
+| **RAM & Swap** | 7.4Gi RAM, 16Gi swap |
+| **Active Profiles** | surface |
 | **Shell** | `/bin/fish` |
 | **Terminal** | `kitty` (primary), `alacritty` (installed) |
 | **Package Manager**| `pacman` |

@@ -1,39 +1,35 @@
 # Current System State
 
-Live system snapshot automatically generated on Mon Sep 14 12:16:27 AM MDT 2026.
+Live system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026.
 
 ## Operating System & Kernel
 - **OS**: CachyOS
-- **Kernel**: `7.2.3-1-cachyos`
+- **Kernel**: `6.19.8-arch1-3-surface`
 - **Shell**: `/bin/fish`
-- **Compositor**: HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)
-Hyprland
-- **Active Profiles**: macbook-t2
+- **Compositor**: Hyprland 0.56.2 built from branch v0.56.2 at commit efb50993780079460b0cbed1363e2166a2de1d9f clean ([gha] Nix: update inputs).
+- **Active Profiles**: surface
 
 ## System Specs & Display
-- **Product**: MacBookPro15,1 (`cachyos-cu`)
-- **CPU**: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
-- **GPU**: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor
-- **RAM**: 15Gi RAM, 15Gi swap
-- **Primary Display**: eDP-1 (Default Display)
+- **Product**: Surface Book 3 (`surface`)
+- **CPU**: Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz
+- **GPU**: Intel Corporation Iris Plus Graphics G7
+- **RAM**: 7.4Gi RAM, 16Gi swap
+- **Primary Display**: eDP-1 (3000x2000@60Hz, scale 2)
 
 ## Key Installed Packages & Utilities
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.56.2-2.1 | Core / Profile Utility |
-| noctalia | 5.0.1-1.1 | Core / Profile Utility |
+| hyprland | 0.56.2-3.1 | Core / Profile Utility |
+| noctalia | 5.1.0-1.1 | Core / Profile Utility |
 | kitty | 0.48.2-1.1 | Core / Profile Utility |
 | alacritty | 0.17.0-1.2 | Core / Profile Utility |
-| fish | 4.9.2-1 | Core / Profile Utility |
+| fish | 4.9.3-1 | Core / Profile Utility |
 | btop | 1.4.7-1.1 | Core / Profile Utility |
-| satty | 0.19.0-1 | Screenshot Annotation Editor |
 | swayimg | 5.6-1.1 | Core / Profile Utility |
-| dolphin | 26.08.0-5.1 | Core / Profile Utility |
+| dolphin | 26.08.1-1.1 | Core / Profile Utility |
 | easyeffects | 8.2.9-1.1 | Core / Profile Utility |
 | localsend | 1.17.0-4 | Core / Profile Utility |
-| tiny-dfr | 0.3.2-2 | Core / Profile Utility |
-| apple-t2-audio-config | 0.3-2 | Core / Profile Utility |
 
 ## Compositor Health
-- **Hyprland Errors**: Active errors detected (run 'hyprctl configerrors')
+- **Hyprland Errors**: None (clean)

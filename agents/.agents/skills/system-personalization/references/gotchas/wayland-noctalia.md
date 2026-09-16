@@ -52,10 +52,11 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
   3. Legacy `waypaper` had Python single-threaded overhead and GTK list stalls.
 - **Architecture & Solution**:
   1. **Native Noctalia Panel**: Both `ALT + Space` and `SUPER + SHIFT + W` route to `noctalia msg panel-toggle wallpaper`.
-  2. **Cache Hash Key**: Noctalia v5 hashes `path + "\n" + file_size + "\n" + mtime_nanos + "\n361\nthumbnail-service-v2"` using 64-bit FNV-1a, stored as 16-hex `.webp` in `~/.cache/noctalia/thumbnails/`.
-  3. **High-Performance Pre-cacher**: Run `noctalia-precache-wallpapers` (C++20 utility utilizing `vipsthumbnail` across all 16 cores) to batch-generate thumbnails in ~30s for the entire collection.
+  2. **Cache Hash Key**: Noctalia v5 hashes `path + "\n" + file_size + "\n" + last_write_time ticks + "\n" + targetPx + "\nthumbnail-service-v2"` (64-bit FNV-1a, 16-hex `.webp` in `~/.cache/noctalia/thumbnails/`). Ticks = `fs::last_write_time().time_since_epoch().count()` verbatim — do NOT convert to Unix nanos.
+  3. **High-Performance Pre-cacher**: Run `noctalia-precache-wallpapers` (C++20 utility utilizing `vipsthumbnail` across all cores) to batch-generate thumbnails (~30s on 16 threads, ~135s on 8-thread Surface for 1637 stills).
   4. Automatically invoked by `cachy-sync-wallpapers` upon syncing new wallpapers.
   5. **Random Shuffle**: Enabled via `sort = "random"` in `~/.local/state/noctalia/state.toml` (or by clicking the `arrows-random` sort icon in the panel header). Refreshing via the circular arrow icon re-shuffles instantly.
+- **Gotcha (2026-09-16)**: `targetPx` is per-machine, not fixed 361 — it is the tile's physical px (`lround(max(cellW,cellH) * renderScale)`). `surface` needs `428 451 541`, `macbook-t2` needs `361`. Warm every width with demand (`cachy-sync-wallpapers` loops them; override via `NOCTALIA_THUMB_WIDTHS`). Verify with a live panel open (~0 new files), never with the tool's own "already cached" count.
 
 ---
 

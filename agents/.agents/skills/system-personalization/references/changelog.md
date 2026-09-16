@@ -2,6 +2,37 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [Unreleased]
+### Fixed
+- **Fish duplicate `.local/bin` PATH (`core/.config/fish/config.fish`, `surface`)**: removed `set -gx PATH "/home/jmvp/.local/bin" $PATH` added by Antigravity CLI installer; kept canonical `fish_add_path "$HOME/.local/bin"` (avoids duplicate entries in `fish_user_paths`).
+
+## [2.37.0] - 2026-09-16
+### Changed
+- **OpenCode v1.18.31 -> v2.0.3 (`surface`, `pacman`)**:
+  - Installed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -S opencode` (explicit install, ~197M). Deps satisfied: `curl glibc icu ripgrep tar`, `wl-clipboard` already present.
+  - Removed shadowing v1 curl-install binary `~/.opencode/bin/opencode` (backed up to `~/opencode-v1-backup-20260916.tar.gz` + `~/.config/opencode/opencode.jsonc.v1.bak`); removed empty `~/.opencode/bin/` and the `# Opencode path` `fish_add_path` block from `~/.config/fish/config.fish`; cleared stale `~/.opencode/bin` from universal `fish_user_paths`.
+  - Verified: `which opencode` -> `/usr/bin/opencode`, `opencode --version` -> `v2.0.3`, `opencode --help` OK.
+  - Note: V1/V2 share the `opencode` command (no side-by-side); `opencode.jsonc` kept as-is (minimal `$schema`-only, V2 reads V1 shape in-memory); first TUI start will auto-create `~/.config/opencode/cli.json` from old `tui.json` if present. Breaking changes to port later: plugin API, server API, permissions/tools schema (see v2 migrate guide).
+
+## [2.36.0] - 2026-09-16
+### Fixed
+- **Noctalia wallpaper panel slow every open — true root cause (`surface`, Noctalia 5.1.0)**:
+  - **Supersedes 2.35.0 (retracted)**: the `stat()` mtime theory was wrong. Re-verified against upstream `noctalia-shell` source (`src/render/core/thumbnail_service.cpp`): disk key = FNV-1a of `path + "\n" + file_size + "\n" + last_write_time.ticks + "\n" + targetPx + "\nthumbnail-service-v2"` — i.e. `fs::last_write_time` ticks, exactly what the ORIGINAL pre-cacher used. Proof: 163 `fileclock@428` hits vs 0 `stat@428` hits in live cache.
+  - **Real bug #1 — wrong width**: `WallpaperTile::thumbnailTargetPx()` requests the tile's PHYSICAL display size (`lround(max(cellW,cellH) * renderScale)`), so width is per-machine/per-layout, not fixed 361. Measured on `surface` (eDP-1 scale 2, ui_scale 1.2): grid tiles = **428px** (MacBook-T2 Retina = 361 — which is why the macbook-t2 solution worked there). All 1637 `stat@361` files from 2.35.0 were orphans Noctalia never requests here — deleted (freed ~19M).
+  - **Real bug #2 — one width is not enough**: secondary views request **451px** (87 files) and **541px** (24 files) variants of the same wallpapers.
+  - **Fix**: pre-cacher default width `361 -> 428`, `vipsthumbnail` geometry `--size Wx` -> box `--size WxW` (matches Noctalia long-edge downscale for portraits), `cachy-sync-wallpapers` now warms `428 451 541 361` (overridable via `NOCTALIA_THUMB_WIDTHS`, covers both machines).
+  - **Warmed `surface` cache**: 1452 + 1550 + 1613 jobs (~7 min total, 8 threads), cache now 4914 files / 73M. Live 12s panel-open test: **27 misses -> 1** (single 990px header preview, now cached). Grid renders instantly.
+  - Only 2–4 Noctalia decode workers serve misses, so any future miss (new wallpapers, layout change) still stutters briefly — re-run `cachy-sync-wallpapers` after pulls or panel/resolution changes.
+
+## [2.35.0] - 2026-09-16 (RETRACTED — see 2.36.0)
+### Fixed
+- **Noctalia pre-cacher mtime hash mismatch (`core/.local/bin/noctalia-precache-wallpapers.cpp`)**:
+  - **Issue**: Pre-cacher used `fs::last_write_time(p).time_since_epoch().count()` for the thumbnail hash key, but `file_clock` epoch is implementation-defined (observed negative counts on libstdc++), while Noctalia keys on Unix `mtime_nanos` (`stat st_mtim`). Generated thumbnails never hit — cache stayed cold (114 files / 2.1M for 1637 wallpapers on `surface`).
+  - **Fix**: Switched to `stat()` (`st_mtime * 1e9 + st_mtim.tv_nsec`), matching Noctalia's `path + "\n" + size + "\n" + mtime_nanos + "\n361\nthumbnail-service-v2"` FNV-1a key. Verified stat-hash exists post-run.
+  - **Warmed `surface` cache**: full run `noctalia-precache-wallpapers ~/Pictures/Wallpapers` — 1637 stills (989 jpg + 555 png + 72 jpeg + 21 webp), 1613 jobs in 135.3s on 8 threads, cache now 1751 files / 21M with 1637/1637 hits on re-run. Wallpaper panel (`ALT+Space`) grid now renders instantly.
+  - Deleted 24 wrong-hash thumbnails generated during validation before the fix.
+  - **RETRACTION**: self-consistency checks ("already cached") only proved the tool agreed with itself, not with Noctalia. The `stat()` files were orphans (deleted in 2.36.0). Lesson: always verify with a live Noctalia open (new-file count) and against upstream source.
+
 ## [2.34.0] - 2026-09-15
 ### Added
 - **Native Window Grouping / Stacking Keybindings (`core/.config/hypr/config/binds.lua`)**:
