@@ -266,3 +266,7 @@ helpers.bind(mainMod .. " + CONTROL + mouse_down", "Scroll to previous workspace
 helpers.bind(mainMod .. " + S",       "Toggle scratchpad workspace",     hl.dsp.workspace.toggle_special())
 helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
 helpers.bind(mainMod .. " + SHIFT + S", "Screenshot region",             hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
+
+-- Display scale stepper (Omarchy-style steps: 1x, 1.25x, 1.6x, 2x, 3x, 4x; runtime only)
+helpers.bind(mainMod .. " + slash",       "Increase monitor scale", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-monitor-scale up"))
+helpers.bind(mainMod .. " + ALT + slash", "Decrease monitor scale", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-monitor-scale down"))

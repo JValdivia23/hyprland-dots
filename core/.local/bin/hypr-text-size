@@ -1,0 +1,164 @@
+#!/usr/bin/env bash
+# ~/.local/bin/hypr-text-size
+# Scale text everywhere — Noctalia shell, GTK apps, and terminals.
+# Usage: hypr-text-size [size|reset]   (no args prints current)
+#
+# Same-as-Omarchy behavior (mirrors upstream `omarchy-display-text-size`,
+# adapted from the omarchy shell to Noctalia). One knob drives three settings
+# in lockstep, all anchored to the default of 12px:
+#   • Noctalia shell ui_scale  (~/.config/noctalia/config.toml [accessibility])
+#     (12px -> 1.0, i.e. ui_scale = size / 12)
+#   • GNOME/GTK's text-scaling-factor    (12px -> 1.0, quantized so the GTK
+#     interface font lands on a whole point size)
+#   • the terminal font point size       (12px -> 9pt, so terminal_pt = px * 9/12)
+# Accepts an integer from 9 to 20 (px).
+
+MIN=9
+MAX=20
+GKEY_SCHEMA="org.gnome.desktop.interface"
+GKEY_NAME="text-scaling-factor"
+
+# Anchors: 12px == ui_scale 1.0 == GTK factor 1.0 == 9pt terminal font.
+TERM_DEFAULT_PT=9
+SHELL_DEFAULT_PX=12
+
+NOCTALIA_CONFIG="$HOME/.config/noctalia/config.toml"
+
+usage() {
+    echo "Usage: hypr-text-size [size|reset]"
+    echo "  (no args)   print the current text size, GTK factor, and terminal size"
+    echo "  <size>      set text size in px ($MIN–$MAX); shell + GTK + terminals together"
+    echo "  reset       return all three to their defaults (12px / 1.0 / 9pt)"
+}
+
+# ---- Noctalia ui_scale: 12px == 1.0 ----
+
+current_px() {
+    [[ -f $NOCTALIA_CONFIG ]] || return 0
+    local scale
+    scale="$(grep -oP '^ui_scale[[:space:]]*=[[:space:]]*\K[0-9.]+' "$NOCTALIA_CONFIG" | head -1)"
+    [[ -n $scale ]] || return 0
+    awk -v u="$scale" -v b="$SHELL_DEFAULT_PX" 'BEGIN { printf "%d", int(u * b + 0.5) }'
+}
+
+ui_scale_for() {
+    awk -v s="$1" -v b="$SHELL_DEFAULT_PX" 'BEGIN { printf "%.2f", s / b }'
+}
+
+set_ui_scale() {
+    local scale="$1"
+    [[ -f $NOCTALIA_CONFIG ]] || return 0
+    sed -i -E "s/^(ui_scale[[:space:]]*=[[:space:]]*).*/\1$scale/" "$NOCTALIA_CONFIG"
+    noctalia msg config-reload >/dev/null 2>&1 || true
+}
+
+reset_ui_scale() {
+    set_ui_scale "1.00"
+}
+
+# ---- GTK text-scaling-factor (same quantize-to-whole-point formula as Omarchy) ----
+
+gtk_font_pt() {
+    local name pt
+    name="$(gsettings get "$GKEY_SCHEMA" font-name 2>/dev/null)"
+    pt="${name%\'}"
+    pt="${pt##* }"
+    if [[ $pt =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+        echo "$pt"
+    else
+        echo 11
+    fi
+}
+
+set_factor() {
+    gsettings set "$GKEY_SCHEMA" "$GKEY_NAME" "$1" 2>/dev/null || true
+}
+
+# ---- terminal font point size (12px -> 9pt) ----
+
+term_pt_for() {
+    awk -v s="$1" -v p="$TERM_DEFAULT_PT" -v b="$SHELL_DEFAULT_PX" \
+        'BEGIN { printf "%d", int(s * p / b + 0.5) }'
+}
+
+set_terminal_size() {
+    local pt="$1"
+
+    if [[ -f ~/.config/alacritty/alacritty.toml ]]; then
+        sed -i -E "s/^size[[:space:]]*=.*/size = $pt/" ~/.config/alacritty/alacritty.toml
+    fi
+
+    if [[ -f ~/.config/kitty/kitty.conf ]]; then
+        if grep -q '^font_size' ~/.config/kitty/kitty.conf; then
+            sed -i -E "s/^font_size[[:space:]]+.*/font_size $pt.0/" ~/.config/kitty/kitty.conf
+        else
+            printf 'font_size                   %s.0\n' "$pt" >>~/.config/kitty/kitty.conf
+        fi
+        pkill -USR1 kitty 2>/dev/null || true
+    fi
+
+    if [[ -f ~/.config/ghostty/config ]]; then
+        sed -i -E "s/^font-size = .*/font-size = $pt/" ~/.config/ghostty/config
+        pkill -SIGUSR2 ghostty 2>/dev/null || true
+    fi
+
+    if [[ -f ~/.config/foot/foot.ini ]]; then
+        sed -i -E "s/(:size=)[0-9.]+/\1$pt/" ~/.config/foot/foot.ini
+        # Foot has no config-reload signal: running instances keep their
+        # startup size until relaunched; new windows pick up the change.
+    fi
+}
+
+term_current_pt() {
+    if [[ -f ~/.config/kitty/kitty.conf ]]; then
+        grep -oP '^font_size[[:space:]]+\K[0-9.]+' ~/.config/kitty/kitty.conf | head -1
+    elif [[ -f ~/.config/alacritty/alacritty.toml ]]; then
+        grep -oP '^size[[:space:]]*=[[:space:]]*\K[0-9.]+' ~/.config/alacritty/alacritty.toml | head -1
+    elif [[ -f ~/.config/ghostty/config ]]; then
+        grep -oP '^font-size = \K[0-9.]+' ~/.config/ghostty/config | head -1
+    elif [[ -f ~/.config/foot/foot.ini ]]; then
+        grep -oP ':size=\K[0-9.]+' ~/.config/foot/foot.ini | head -1
+    fi
+}
+
+case "${1:-}" in
+    -h | --help)
+        usage
+        exit 0
+        ;;
+    "")
+        cur="$(current_px)"
+        size="${cur:-12 (default)}"
+        factor="$(gsettings get "$GKEY_SCHEMA" "$GKEY_NAME" 2>/dev/null)"
+        term="$(term_current_pt)"
+        printf 'text size: %s px\nnoctalia ui_scale: %s\ngtk text-scaling-factor: %s\nterminal font: %s pt\n' \
+            "$size" "$(grep -oP '^ui_scale[[:space:]]*=[[:space:]]*\K[0-9.]+' "$NOCTALIA_CONFIG" | head -1)" \
+            "$factor" "${term:-n/a}"
+        exit 0
+        ;;
+    reset | default)
+        reset_ui_scale
+        gsettings reset "$GKEY_SCHEMA" "$GKEY_NAME" 2>/dev/null || true
+        set_terminal_size "$TERM_DEFAULT_PT"
+        exit 0
+        ;;
+esac
+
+size="$1"
+if [[ ! $size =~ ^[0-9]+$ ]] || ((size < MIN || size > MAX)); then
+    echo "Size must be an integer between $MIN and $MAX (px)." >&2
+    usage >&2
+    exit 1
+fi
+
+# Noctalia side: ui_scale multiplier anchored so 12px == 1.0.
+set_ui_scale "$(ui_scale_for "$size")"
+
+# GTK side: multiplier anchored so 12px == 1.0, quantized so the interface
+# font renders at a whole point size.
+factor="$(awk -v s="$size" -v b="$SHELL_DEFAULT_PX" -v f="$(gtk_font_pt)" \
+    'BEGIN { printf "%.4f", int(f * s / b + 0.5) / f }')"
+set_factor "$factor"
+
+# Terminal side: point size anchored so 12px == 9pt.
+set_terminal_size "$(term_pt_for "$size")"

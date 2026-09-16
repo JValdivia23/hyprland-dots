@@ -5,6 +5,13 @@ A dated log of all package changes, configurations, script modifications, and ha
 ## [Unreleased]
 ### Fixed
 - **Fish duplicate `.local/bin` PATH (`core/.config/fish/config.fish`, `surface`)**: removed `set -gx PATH "/home/jmvp/.local/bin" $PATH` added by Antigravity CLI installer; kept canonical `fish_add_path "$HOME/.local/bin"` (avoids duplicate entries in `fish_user_paths`).
+- **Omarchy-style display scaling (`surface`)**: terminal/shell felt oversized from stacked scaling (compositor `x2` × Noctalia `ui_scale 1.2` × `bar scale 1.1` × large terminal fonts), while Omarchy keeps compositor at 2x and scales text with one knob.
+  - `profiles/surface/.../profile/monitors.lua`: `eDP-1` mode pinned `3000x2000@60` -> `preferred` (kept `scale 2`, `GDK_SCALE 2` — correct for 267 PPI); added commented Omarchy-style `1.6/1.75` (4K) and `1/1` (1080p/1440p) alternatives.
+  - New `core/.local/bin/hypr-monitor-scale up|down`: cycles focused monitor through `1, 1.25, 1.6, 2, 3, 4` at runtime (Omarchy `Super+/` equivalent; reboot restores profile default).
+  - `core/.config/hypr/config/binds.lua`: `Super+slash` / `Super+Alt+slash` wired to the stepper.
+  - Unified text sizes: kitty `font_size 11.0`, `window_padding_width 25->14`; alacritty `size 12.0->11.0`; Noctalia `ui_scale 1.20->1.0`, `bar scale 1.10->1.0`.
+  - New `core/.local/bin/hypr-text-size [size|reset]` — same-as-Omarchy one knob (`12px -> 9pt terminal`, `pt = round(px*9/12)`): writes kitty (`USR1` live-reload) + alacritty + ghostty/foot if present, Noctalia `ui_scale = px/12` + `config-reload`, GTK `text-scaling-factor` (quantized). Baseline applied: `hypr-text-size 12` (kitty/alacritty now 9pt, `ui_scale 1.00`, GTK `1.0`).
+  - Verified: `hyprctl reload` + `hyprctl configerrors` clean, `eDP-1 scale 2` steady, `noctalia msg config-reload` OK (note: skill's `msg reload` is stale — correct cmd on 5.1.0 is `config-reload`). New terminals pick up font sizes on open; kitty live-reloads via `USR1`.
 
 ## [2.37.0] - 2026-09-16
 ### Changed
