@@ -15,7 +15,7 @@ if ! grep -q "\[linux-surface\]" /etc/pacman.conf 2>/dev/null; then
     sudo bash -c 'cat >> /etc/pacman.conf << '\''REPO_EOF'\''
 
 [linux-surface]
-Server = https://pkg.surfacelinux.org/arch/
+Server = https://pkg.surfacelinux.com/arch/
 REPO_EOF'
     sudo pacman -Sy
     echo "--> [linux-surface] repository configured successfully."
