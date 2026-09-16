@@ -1,10 +1,12 @@
--- Microsoft Surface Touchscreen, Stylus & Touchpad Configuration
+-- Microsoft Surface Touchscreen, Stylus & Precision Touchpad Configuration
 hl.config({
     input = {
         touchpad = {
             natural_scroll = true,
             tap_to_click = true,
             clickfinger_behavior = true,
+            scroll_factor = 0.4,
+            disable_while_typing = false,
         },
         touchdevice = {
             output = "eDP-1",

@@ -343,10 +343,23 @@ if [ "$DO_PACKAGES" = true ]; then
         fi
     fi
 
-    # 1. Core universal packages
+    # 1. Profile pre-install hooks (e.g. custom repository setup)
+    for p in "${STOWABLE_PROFILES[@]}"; do
+        if [ -f "$DOTFILES_DIR/profiles/$p/pre-install.sh" ]; then
+            echo "--> Running pre-install hook for profile '$p'..."
+            if [ "$DRY_RUN" = true ]; then
+                echo "    [dry-run] Would execute: bash $DOTFILES_DIR/profiles/$p/pre-install.sh"
+            else
+                chmod +x "$DOTFILES_DIR/profiles/$p/pre-install.sh"
+                bash "$DOTFILES_DIR/profiles/$p/pre-install.sh"
+            fi
+        fi
+    done
+
+    # 2. Core universal packages
     install_packages_list "$DOTFILES_DIR/core/packages.txt"
 
-    # 2. Profile packages
+    # 3. Profile packages
     for p in "${STOWABLE_PROFILES[@]}"; do
         if [ -f "$DOTFILES_DIR/profiles/$p/packages.txt" ]; then
             install_packages_list "$DOTFILES_DIR/profiles/$p/packages.txt"
@@ -396,6 +409,7 @@ if [ "$DO_STOW" = true ]; then
 
     STOW_IGNORE_FLAGS=(
         "--ignore=^packages\.txt$"
+        "--ignore=^pre-install\.sh$"
         "--ignore=^services\.txt$"
         "--ignore=^setup\.sh$"
         "--ignore=^scripts"

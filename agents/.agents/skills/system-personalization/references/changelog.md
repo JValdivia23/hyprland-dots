@@ -2,6 +2,22 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.29.0] - 2026-09-15
+### Changed
+- **Microsoft Surface Profile Modernization & Omarchy Cleanup (`profiles/surface/`)**:
+  - Reset `profiles/surface` to a lean, minimal CachyOS baseline:
+    - **Package Source**: Updated `packages.txt` with official binary repository package names (`linux-surface`, `linux-surface-headers`, `iptsd`, `surface-dtx-daemon`, `surface-control`).
+    - **Automated Repository Setup (`pre-install.sh`)**: Created profile pre-install hook to automatically import the official Surface signing key (`56C464BAAC421453`) and configure `[linux-surface]` (`https://pkg.surfacelinux.org/arch/`) in `/etc/pacman.conf` prior to package synchronization.
+    - **Precision Touchpad Calibration (`inputs.lua`)**: Configured `scroll_factor = 0.4` and `disable_while_typing = false` to eliminate hyperactive trackpad scrolling under Hyprland.
+    - **Hardware Keybindings (`binds.lua`)**: Implemented native Surface shortcuts via `helpers.bind`:
+      - `SUPER + ALT + D`: Requests tablet base detachment (`surface dtx request`) with desktop notification.
+      - `SUPER + ALT + V`: Toggles on-screen virtual keyboard panel (`fcitx5-remote -t`).
+    - **Bootloader & Services (`setup.sh`)**: Automated enabling of `surface-dtx-daemon.service` and `iptsd.service`, and configured `/etc/limine-entry-tool.d/zz-surface-kernel.conf` to prioritize `linux-surface` as default boot entry.
+    - **Omarchy Bloat Removal**: Wiped 5 legacy Omarchy gotchas and obsolete `services.txt`, leaving an empty `gotchas/` folder ready for fresh CachyOS documentation.
+- **Installer Hook Architecture (`install.sh`)**:
+  - Added profile `pre-install.sh` lifecycle hook executed before package manager synchronization.
+  - Added `--ignore=^pre-install\.sh$` to GNU Stow deployment flags.
+
 ## [2.28.0] - 2026-09-15
 ### Added
 - **Native Noctalia Wallpaper Panel Acceleration & Multi-threaded Pre-cacher (`noctalia-precache-wallpapers`)**:
