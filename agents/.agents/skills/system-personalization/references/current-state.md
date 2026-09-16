@@ -27,7 +27,7 @@ Hyprland
 | alacritty | 0.17.0-1.2 | Core / Profile Utility |
 | fish | 4.9.2-1 | Core / Profile Utility |
 | btop | 1.4.7-1.1 | Core / Profile Utility |
-| waypaper | 2.8-1 | Core / Profile Utility |
+| satty | 0.19.0-1 | Screenshot Annotation Editor |
 | swayimg | 5.6-1.1 | Core / Profile Utility |
 | dolphin | 26.08.0-5.1 | Core / Profile Utility |
 | easyeffects | 8.2.9-1.1 | Core / Profile Utility |

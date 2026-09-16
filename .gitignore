@@ -5,6 +5,7 @@
 *.swp
 *~
 *.log
+core/.local/bin/noctalia-precache-wallpapers
 
 # Sensitive credentials and keys
 *.key

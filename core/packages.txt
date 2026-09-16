@@ -21,7 +21,6 @@ grim
 hypridle
 hyprland
 hyprlock
-hyprpaper
 hyprpicker
 jq
 kitty
@@ -47,7 +46,6 @@ swayimg
 ttf-meslo-nerd
 ufw
 uwsm
-waypaper
 wget
 wl-clipboard
 xdg-desktop-portal-gtk

@@ -139,7 +139,7 @@ helpers.bind("CONTROL + SHIFT + Escape", "Launch Btop system monitor", launchPre
 helpers.bind(mainMod .. " + comma",      "Toggle Noctalia settings",   hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
 helpers.bind(mainMod .. " + E",          "Toggle Noctalia control center", hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
 helpers.bind(mainMod .. " + Space",      "Toggle Noctalia app launcher",   hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
-helpers.bind("ALT + Space",              "Open Waypaper wallpaper chooser", hl.dsp.exec_cmd("waypaper"))
+helpers.bind("ALT + Space",              "Toggle Noctalia wallpaper panel", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
 helpers.bind(mainMod .. " + period",     "Open Noctalia emoji picker",     hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
 helpers.bind(mainMod .. " + L",          "Lock desktop session",           hl.dsp.exec_cmd(noctCall .. "session lock"))
 helpers.bind(mainMod .. " + ALT + C",    "Kill window mode",               hl.dsp.exec_cmd("hyprctl kill"))

@@ -33,7 +33,6 @@ This repository organizes configuration into three decoupled, modular tiers to e
 │   │   ├── alacritty/          # Alacritty terminal
 │   │   ├── fish/               # Fish shell & prompt
 │   │   ├── btop/               # Btop system monitor
-│   │   ├── waypaper/           # Wallpaper manager
 │   │   ├── gtk-3.0/ & gtk-4.0/ # GTK themes & styles
 │   │   ├── swayimg/            # Swayimg image viewer
 │   │   ├── zigoku/             # Zigoku anime streaming config

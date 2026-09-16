@@ -23,16 +23,17 @@ else
     fi
 fi
 
-# Deploy AMDGPU AC/Battery power profile switch rule if AMD GPU present
+# Deploy AMDGPU AC/Battery power profile switch rule and boot service if AMD GPU present
 if lspci 2>/dev/null | grep -iq "radeon"; then
-    if [ ! -f "/etc/udev/rules.d/99-amdgpu-power.rules" ]; then
-        echo "    Deploying AMDGPU power switching rule..."
-        if command -v sudo &>/dev/null; then
-            sudo cp -v "$SCRIPT_DIR/scripts/amdgpu-power-switch.sh" /usr/local/bin/amdgpu-power-switch.sh 2>/dev/null || true
-            sudo chmod +x /usr/local/bin/amdgpu-power-switch.sh 2>/dev/null || true
-            sudo cp -v "$SCRIPT_DIR/scripts/99-amdgpu-power.rules" /etc/udev/rules.d/99-amdgpu-power.rules 2>/dev/null || true
-            sudo udevadm control --reload-rules 2>/dev/null || true
-        fi
+    echo "    Deploying AMDGPU and PCIe ASPM power switching rules..."
+    if command -v sudo &>/dev/null; then
+        sudo cp -v "$SCRIPT_DIR/scripts/amdgpu-power-switch.sh" /usr/local/bin/amdgpu-power-switch.sh 2>/dev/null || true
+        sudo chmod +x /usr/local/bin/amdgpu-power-switch.sh 2>/dev/null || true
+        sudo cp -v "$SCRIPT_DIR/scripts/99-amdgpu-power.rules" /etc/udev/rules.d/99-amdgpu-power.rules 2>/dev/null || true
+        sudo udevadm control --reload-rules 2>/dev/null || true
+        sudo cp -v "$SCRIPT_DIR/scripts/amdgpu-power-setup.service" /etc/systemd/system/amdgpu-power-setup.service 2>/dev/null || true
+        sudo systemctl daemon-reload 2>/dev/null || true
+        sudo systemctl enable --now amdgpu-power-setup.service 2>/dev/null || true
     fi
 fi
 

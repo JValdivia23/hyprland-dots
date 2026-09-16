@@ -64,7 +64,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SHIFT` + `Print` | Window / Pick Screenshot | Interactive monitor / window pick screenshot |
 | `CTRL` + `Print` / `SUPER` + `Print` | Fullscreen Screenshot | Fullscreen screenshot with annotation editor (Satty) |
 | `SUPER` + `SHIFT` + `W` | Wallpaper Panel | Toggle Noctalia wallpaper panel |
-| `ALT` + `Space` | Waypaper GUI | Open Waypaper GUI (folder/subfolder browsing, rotation timer, random wallpaper) |
+| `ALT` + `Space` | Wallpaper Panel | Toggle Noctalia wallpaper panel (instant, shuffled, pre-cached) |
 | `ALT` + `Return` | Quick Look Preview | Open macOS-style floating Quick Look overlay (`swayimg`) over highlighted file |
 | `SUPER` + `ALT` + `N` | Night Light Toggle | Toggle night light / warm temperature color filter |
 | `SUPER` + `ALT` + `T` | Dark/Light Toggle | Toggle desktop theme between dark and light mode |

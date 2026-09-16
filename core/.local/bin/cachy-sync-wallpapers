@@ -41,5 +41,16 @@ fi
 COUNT=$(find "$WALLPAPERS_DIR" -type f \( -name '*.jpg' -o -name '*.png' -o -name '*.webp' \) 2>/dev/null | wc -l)
 echo "-------------------------------------------------------"
 echo "✅ Synchronization complete! Total wallpapers available: $COUNT"
-echo "   Select any wallpaper via 'waypaper' (Alt+Space) or Noctalia (Super+Shift+W)."
+
+if ! command -v noctalia-precache-wallpapers >/dev/null 2>&1 && [ -f "$HOME/dotfiles/core/.local/bin/noctalia-precache-wallpapers.cpp" ]; then
+    echo "--> Compiling noctalia-precache-wallpapers..."
+    g++ -O3 -std=c++20 "$HOME/dotfiles/core/.local/bin/noctalia-precache-wallpapers.cpp" -o "$HOME/.local/bin/noctalia-precache-wallpapers" 2>/dev/null || true
+fi
+
+if command -v noctalia-precache-wallpapers >/dev/null 2>&1; then
+    echo "--> Pre-caching Noctalia wallpaper thumbnails..."
+    noctalia-precache-wallpapers "$WALLPAPERS_DIR" || true
+fi
+
+echo "   Select any wallpaper via Noctalia (Alt+Space or Super+Shift+W)."
 echo "======================================================="

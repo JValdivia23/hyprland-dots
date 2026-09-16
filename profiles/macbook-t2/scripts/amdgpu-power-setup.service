@@ -1,0 +1,11 @@
+[Unit]
+Description=Apple T2 AMDGPU and PCIe ASPM Power Setup
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/amdgpu-power-switch.sh auto
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target graphical.target

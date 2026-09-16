@@ -45,7 +45,6 @@ hl.window_rule({
 })
 
 -- Apps
-hl.window_rule({ match = { class = "^(waypaper|Waypaper)$" }, float = true, center = true, size = { "monitor_w*0.65", "monitor_h*0.75" } })
 hl.window_rule({ match = { class = "^(swayimg)$" }, float = true, center = true, size = { "monitor_w*0.65", "monitor_h*0.75" } })
 hl.window_rule({ match = { class = "^(Keybindings)$" }, float = true, center = true, size = { "monitor_w*0.55", "monitor_h*0.70" } })
 hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, monitor = PRIMARY_MONITOR, center = true, fullscreen_state = 0 })

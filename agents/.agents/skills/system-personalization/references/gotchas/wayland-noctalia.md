@@ -45,41 +45,17 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
 
 ## 5. Wallpaper Selector (`ALT + Space`) Loading Latency & Caching
 
-- **Symptom**: Pressing `ALT + Space` shows a `"Caching wallpapers..."` banner and freezes for 7–10 seconds before opening the wallpaper grid.
+- **Symptom**: Opening wallpaper selectors or scrolling through 1,600+ wallpapers suffers from latency, loading placeholders, or stuttering.
 - **Root Cause**:
-  1. Stock `/usr/bin/waypaper` unconditionally displays the caching label even when all thumbnails exist.
-  2. Stock Waypaper loads all 1,700+ full thumbnail pixbufs into GTK widgets before showing the grid.
-  3. Generating thumbnails for new wallpapers is single-threaded and sequential.
-- **Fix**:
-  1. Route `ALT + Space` in `~/.config/hypr/config/binds.lua` to the progressive rendering build in `~/.local/share/waypaper/venv/bin/waypaper` (which renders the first 20 items in `< 0.05s`).
-  2. If thousands of new wallpapers are added, generate thumbnails in parallel using Python `ThreadPoolExecutor`:
-     ```python
-     python3 -c "
-     import os, hashlib, pathlib
-     from concurrent.futures import ThreadPoolExecutor
-     from PIL import Image
-
-     cache_dir = pathlib.Path('~/.cache/waypaper').expanduser()
-     cache_dir.mkdir(parents=True, exist_ok=True)
-     wallpapers_dir = pathlib.Path('~/Pictures/Wallpapers').expanduser()
-
-     images = [os.path.join(r, f) for r, _, fs in os.walk(wallpapers_dir) for f in fs if f.lower().endswith(('.jpg', '.jpeg', '.png', '.webp', '.gif'))]
-
-     def cache_one(img):
-         try:
-             real_path_bytes = bytes(os.path.realpath(img), encoding='UTF-8')
-             out_path = cache_dir / f'{hashlib.md5(real_path_bytes, usedforsecurity=False).hexdigest()}.png'
-             if not out_path.exists():
-                 with Image.open(img) as im:
-                     im.thumbnail((240, 240))
-                     im.save(out_path, 'PNG')
-         except Exception:
-             pass
-
-     with ThreadPoolExecutor(max_workers=16) as ex:
-         list(ex.map(cache_one, images))
-     "
-     ```
+  1. Noctalia v5 generates thumbnails lazily on-demand as wallpapers scroll into view.
+  2. Each uncached image requires full-size CPU decode, scale-down to 361px, and WebP encoding.
+  3. Legacy `waypaper` had Python single-threaded overhead and GTK list stalls.
+- **Architecture & Solution**:
+  1. **Native Noctalia Panel**: Both `ALT + Space` and `SUPER + SHIFT + W` route to `noctalia msg panel-toggle wallpaper`.
+  2. **Cache Hash Key**: Noctalia v5 hashes `path + "\n" + file_size + "\n" + mtime_nanos + "\n361\nthumbnail-service-v2"` using 64-bit FNV-1a, stored as 16-hex `.webp` in `~/.cache/noctalia/thumbnails/`.
+  3. **High-Performance Pre-cacher**: Run `noctalia-precache-wallpapers` (C++20 utility utilizing `vipsthumbnail` across all 16 cores) to batch-generate thumbnails in ~30s for the entire collection.
+  4. Automatically invoked by `cachy-sync-wallpapers` upon syncing new wallpapers.
+  5. **Random Shuffle**: Enabled via `sort = "random"` in `~/.local/state/noctalia/state.toml` (or by clicking the `arrows-random` sort icon in the panel header). Refreshing via the circular arrow icon re-shuffles instantly.
 
 ---
 

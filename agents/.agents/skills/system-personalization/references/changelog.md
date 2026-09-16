@@ -2,6 +2,36 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.28.0] - 2026-09-15
+### Added
+- **Native Noctalia Wallpaper Panel Acceleration & Multi-threaded Pre-cacher (`noctalia-precache-wallpapers`)**:
+  - Reverse-engineered Noctalia v5's internal thumbnail caching engine: discovered 64-bit FNV-1a hash key `path + "\n" + file_size + "\n" + mtime_nanos + "\n361\nthumbnail-service-v2"` stored as 16-hex WebP files in `~/.cache/noctalia/thumbnails/`.
+  - Created high-performance C++ utility [`noctalia-precache-wallpapers`](file:///home/java1127/dotfiles/core/.local/bin/noctalia-precache-wallpapers) utilizing `vipsthumbnail` across all 16 hardware threads. Batch-cached all 1,410 remaining wallpapers in 30.9 seconds (1,659 total thumbnails in cache).
+  - Integrated `noctalia-precache-wallpapers` into [`cachy-sync-wallpapers`](file:///home/java1127/dotfiles/core/.local/bin/cachy-sync-wallpapers) to automatically pre-cache newly downloaded wallpapers.
+  - Configured Noctalia's native Random Shuffle mode in `~/.local/state/noctalia/state.toml` (`sort = "random"` and `flatten = true`).
+  - Remapped **`ALT + Space`** in [`binds.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/binds.lua#L142) from `waypaper` to Noctalia's native wallpaper panel (`noctalia msg panel-toggle wallpaper`), providing instantaneous startup, zero CPU decode lag, and locked 60 FPS scrolling.
+
+### Removed
+- **Legacy Waypaper & Hyprpaper Wallpaper Architecture**:
+  - Terminated running `hyprpaper` process that was occluding Noctalia's native wallpaper layer on Wayland layer 0.
+  - Deleted obsolete `~/.cache/waypaper` (67 MB) and `~/.local/share/waypaper` (28 MB venv/repo).
+  - Cleaned up stowed configuration `~/dotfiles/core/.config/waypaper/` and `~/.config/waypaper/`.
+  - Removed floating window rule for Waypaper in [`windowrules.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/windowrules.lua).
+  - Removed `waypaper` and `hyprpaper` from [`core/packages.txt`](file:///home/java1127/dotfiles/core/packages.txt) and launched interactive Kitty prompt for pacman removal.
+  - Updated [`AGENTS.md`](file:///home/java1127/dotfiles/AGENTS.md) and [`references/current-state.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/current-state.md).
+
+## [2.27.0] - 2026-09-15
+### Added
+- **Boot-Time AMDGPU & PCIe ASPM Power Optimization Service (`amdgpu-power-setup.service`)**:
+  - Created [`amdgpu-power-setup.service`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-setup.service) to automatically enforce `powersupersave` PCIe Active State Power Management and AMD GPU `POWER_SAVING` profile on boot.
+  - Updated [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) to deploy, enable, and start `amdgpu-power-setup.service`.
+  - Created [`apply-power-optimizations-and-upgrade`](file:///home/java1127/.local/bin/apply-power-optimizations-and-upgrade) helper script to automate setup and launch package upgrade interactively in Kitty via Hyprland IPC.
+
+### Fixed
+- **Hung Background Process & Power Leak Prevention**:
+  - Terminated hung `git-remote-https` process (PID 27045) running continuously in a tight loop since Sep 14, restoring deeper Intel CPU package sleep states (C8–C10).
+  - Powered down inactive Bluetooth controller (`bluetoothctl power off`), reducing idle radio power draw.
+
 ## [2.26.0] - 2026-09-15
 ### Added
 - **Fresh Install Package Completeness Synchronization (`core/packages.txt`)**:
