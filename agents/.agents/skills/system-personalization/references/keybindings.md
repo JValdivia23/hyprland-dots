@@ -19,6 +19,11 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `P` | Pseudo Split | Toggle pseudo dwindle layout |
 | `SUPER` + `O` | Pop-out & Pin | Float, resize (1100x700), center, & pin window across workspaces |
 | `SUPER` + `SHIFT` + `O` | Video PiP & Pin | Small video PiP (560x315) in bottom-right corner & pin across workspaces |
+| `SUPER` + `G` | Toggle Group / Stacking | Collapse window into / out of tabbed group slot (`hl.dsp.group.toggle`) |
+| `SUPER` + `ALT` + `G` | Move Out of Group | Remove active window from grouped stack (`hl.dsp.exec_raw("moveoutofgroup")`) |
+| `SUPER` + `ALT` + `Tab` | Cycle Next in Group | Switch to next window tab within active group (`hl.dsp.group.next`) |
+| `SUPER` + `ALT` + `SHIFT` + `Tab` | Cycle Prev in Group | Switch to previous window tab within active group (`hl.dsp.group.prev`) |
+| `SUPER` + `CONTROL` + `G` | Toggle Group Lock | Lock/unlock active group (`hl.dsp.group.lock_active`) |
 | `CTRL` + `Left` / `Right` / `Up` / `Down` | Focus Direction | Change focus to adjacent window |
 | `ALT` + `Tab` | Cycle Next | Cycle focus through windows |
 | `CTRL` + `SHIFT` + Arrows / `SUPER` + `ALT` + Arrows | Swap Window | Swap positions with adjacent window (`hl.dsp.window.swap`) |

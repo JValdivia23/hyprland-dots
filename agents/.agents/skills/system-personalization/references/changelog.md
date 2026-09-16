@@ -2,6 +2,18 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.34.0] - 2026-09-15
+### Added
+- **Native Window Grouping / Stacking Keybindings (`core/.config/hypr/config/binds.lua`)**:
+  - Implemented Hyprland native window grouping and tabbed stacking matching Omarchy muscle memory:
+    - **Toggle Group / Stacking (`SUPER + G`)**: Toggles the active window into a group or merges/unmerges it with adjacent groups via native Lua dispatcher `hl.dsp.group.toggle()`.
+    - **Move Window Out of Group (`SUPER + ALT + G`)**: Explicitly extracts the focused window from a tabbed group stack into regular tiled layout (`hl.dsp.exec_raw("moveoutofgroup", "")`).
+    - **Cycle Window in Group (`SUPER + ALT + Tab` / `SUPER + ALT + SHIFT + Tab`)**: Cycles forward and backward through tabs within the active group stack (`hl.dsp.group.next()` and `hl.dsp.group.prev()`).
+    - **Toggle Group Lock (`SUPER + CONTROL + G`)**: Toggles group lock state (`hl.dsp.group.lock_active()`) to prevent auto-swallowing or accidental group merging.
+  - Leverages pre-configured CachyOS groupbar theming (`CACHYLBLUE` / `CACHYLGREEN` in `decorations.lua`).
+  - Registered all 5 bindings with live IPC metadata descriptions, exposing them to the interactive cheatsheet (`SUPER + K`).
+  - Updated [`references/keybindings.md`](references/keybindings.md) with complete group management shortcuts.
+
 ## [2.33.0] - 2026-09-15
 ### Fixed
 - **Diagnosed Post-Update Keyboard Inoperability & Linux 7.2.5 T2 Driver Regression**:

@@ -27,6 +27,13 @@ helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.exec_raw("ps
 helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_cmd(winPop))
 helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
+-- Window grouping / stacking
+helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacking", hl.dsp.group.toggle())
+helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.exec_raw("moveoutofgroup", ""))
+helpers.bind(mainMod .. " + ALT + Tab",         "Cycle next window in group",        hl.dsp.group.next())
+helpers.bind(mainMod .. " + ALT + SHIFT + Tab", "Cycle previous window in group",   hl.dsp.group.prev())
+helpers.bind(mainMod .. " + CONTROL + G",       "Toggle group lock",                 hl.dsp.group.lock_active())
+
 -- Change focus (CTRL + Arrows)
 helpers.bind("CONTROL + Left",  "Focus window left",  hl.dsp.focus({ direction = "left" }))
 helpers.bind("CONTROL + Right", "Focus window right", hl.dsp.focus({ direction = "right" }))
