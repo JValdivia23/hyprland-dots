@@ -10,11 +10,6 @@ function fish_greeting
     end
 end
 
-# Opencode path
-if test -d "$HOME/.opencode/bin"
-    fish_add_path "$HOME/.opencode/bin"
-end
-
 # Environment variables
 set -gx EDITOR nvim
 set -gx VISUAL nvim
