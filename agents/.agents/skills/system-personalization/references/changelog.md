@@ -2,6 +2,14 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.33.0] - 2026-09-15
+### Fixed
+- **Diagnosed Post-Update Keyboard Inoperability & Linux 7.2.5 T2 Driver Regression**:
+  - **Issue**: Internal Apple keyboard, trackpad, Touch Bar, and audio stopped functioning after upgrading from `linux-cachyos 7.2.3-1` to `7.2.5-1`.
+  - **Root Cause**: Upstream CachyOS removed the `7.2/t2` branch in the `7.2.5-1` release, omitting the staging `t2bce` drivers (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`). Without `t2bce_vhci`, the virtual USB host controller (Bus 7) failed to enumerate, leaving the internal keyboard and input devices disconnected.
+  - **Resolution**: Created turnkey rollback script [`cachy-downgrade-kernel-723`](file:///home/java1127/.local/bin/cachy-downgrade-kernel-723) to reinstall `linux-cachyos-7.2.3-1`, `linux-cachyos-headers-7.2.3-1`, and `linux-cachyos-nvidia-open-7.2.3-1` from local cache, pin them in `/etc/pacman.conf` (`IgnorePkg`), regenerate boot entries, and reboot cleanly. Staged in `profiles/macbook-t2/scripts/cachy-downgrade-kernel-723.sh`.
+  - Documented complete troubleshooting procedure in `references/gotchas/apple-t2.md` (Section 9).
+
 ## [2.32.0] - 2026-09-15
 ### Added
 - **Combined Directional Cross-Monitor Architecture (`core/.config/hypr/config/binds.lua`)**:

@@ -124,5 +124,17 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   ```
   Then regenerate initramfs via `sudo mkinitcpio -P` and `sudo limine-mkinitcpio-install < /dev/null`.
 
+---
+
+## 9. Linux 7.2.5+ Upstream Regression: Missing T2 Drivers (`t2bce`) & Unresponsive Keyboard/Trackpad
+
+- **Symptom**: After updating to `linux-cachyos 7.2.5-1`, the internal Apple keyboard, trackpad, Touch Bar, and audio stop working completely. No keyboard device appears in `/proc/bus/input/devices`, and PCI device `02:00.1` (`Apple Inc. T2 Bridge Controller [106b:1801]`) has no kernel driver bound (`lspci -k -s 02:00.1`).
+- **Root Cause**: Upstream CachyOS removed the `7.2/t2` kernel patch branch in the `7.2.5-1` release. As a result, the `t2bce` modules (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`) were not compiled into `linux-cachyos 7.2.5-1`. Without `t2bce_vhci`, USB Bus 7 (the virtual host controller for internal input devices) is never created.
+- **Recovery Procedure**:
+  1. Boot into **`linux-cachyos-lts`** (e.g. `6.18.50-3`), which retains the full `t2bce` driver stack in `/usr/lib/modules/<version>/kernel/drivers/staging/t2bce/` and initializes all internal T2 peripherals reliably.
+     - Note: During bootloader display (Limine / rEFInd), the internal keyboard works via UEFI hardware emulation, allowing easy arrow-key navigation to the LTS entry.
+  2. Alternatively, downgrade `linux-cachyos` back to `7.2.3-1` from `/var/cache/pacman/pkg/` and pin it in `/etc/pacman.conf` under `IgnorePkg` until CachyOS restores the T2 patches in the main kernel.
+
+
 
 
