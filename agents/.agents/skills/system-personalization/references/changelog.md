@@ -2,6 +2,20 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.35.0] - 2026-09-15
+### Added
+- **Custom CachyOS Live & Install ISO for Microsoft Surface Book 3 (`~/surface-iso-build/`)**:
+  - Built custom bootable CachyOS ISO (`cachyos-desktop-linux-260915.iso`, 2.8 GB) tailored for Surface Book 3 (Intel Core i5/i7 10th Gen Ice Lake, `x86-64-v3`).
+  - Integrated `linux-surface` 6.19.8 kernel, `linux-surface-headers`, `iptsd` (IPTS touchscreen/stylus daemon), `surface-control`, and `surface-dtx-daemon` (clipboard detachment).
+  - Configured live bootloaders (`grub`, `systemd-boot`, `syslinux`) and `mkinitcpio` (`linux-surface.preset`) to boot directly into `vmlinuz-linux-surface` with enabled touchscreen and detachment daemons.
+  - Automated Calamares installer for instant whole-disk installation:
+    - Pre-selects **Erase disk** with **Btrfs** root filesystem.
+    - Sets UEFI System Partition (ESP) to **4096 MiB (4 GiB)** matching CachyOS official recommendations for Limine/systemd-boot.
+    - Enables **Swap (with Hibernate)** automatically (`initialSwapChoice: suspend` and `userSwapChoices: [none, suspend]`), creating a swap partition sized for RAM hibernation and configuring mkinitcpio `resume` hook and bootloader resume UUID parameter.
+    - Injects `[linux-surface]` repository into target `/etc/pacman.conf` and imports Maximilian Luz's signing key (`56C464BAAC421453`) so updates work seamlessly via `pacman -Syu`.
+- **Surface Dotfiles Profile Pre-Install Repository Fix (`profiles/surface/pre-install.sh`)**:
+  - Corrected official Surface Linux repository server URL from outdated `pkg.surfacelinux.org` to active `pkg.surfacelinux.com`.
+
 ## [2.34.0] - 2026-09-15
 ### Added
 - **Native Window Grouping / Stacking Keybindings (`core/.config/hypr/config/binds.lua`)**:
