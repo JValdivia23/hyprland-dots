@@ -130,10 +130,24 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 - **Symptom**: After updating to `linux-cachyos 7.2.5-1`, the internal Apple keyboard, trackpad, Touch Bar, and audio stop working completely. No keyboard device appears in `/proc/bus/input/devices`, and PCI device `02:00.1` (`Apple Inc. T2 Bridge Controller [106b:1801]`) has no kernel driver bound (`lspci -k -s 02:00.1`).
 - **Root Cause**: Upstream CachyOS removed the `7.2/t2` kernel patch branch in the `7.2.5-1` release. As a result, the `t2bce` modules (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`) were not compiled into `linux-cachyos 7.2.5-1`. Without `t2bce_vhci`, USB Bus 7 (the virtual host controller for internal input devices) is never created.
-- **Recovery Procedure**:
-  1. Boot into **`linux-cachyos-lts`** (e.g. `6.18.50-3`), which retains the full `t2bce` driver stack in `/usr/lib/modules/<version>/kernel/drivers/staging/t2bce/` and initializes all internal T2 peripherals reliably.
-     - Note: During bootloader display (Limine / rEFInd), the internal keyboard works via UEFI hardware emulation, allowing easy arrow-key navigation to the LTS entry.
-  2. Alternatively, downgrade `linux-cachyos` back to `7.2.3-1` from `/var/cache/pacman/pkg/` and pin it in `/etc/pacman.conf` under `IgnorePkg` until CachyOS restores the T2 patches in the main kernel.
+- **Recovery Procedures**:
+  1. **Option A: Boot into `linux-cachyos-lts` (6.18.50-3)**:
+     - Retains the full `t2bce` driver stack in `/usr/lib/modules/<version>/kernel/drivers/staging/t2bce/` and initializes all internal T2 peripherals reliably.
+     - Note: During bootloader display (Limine / rEFInd), the internal keyboard works via UEFI hardware emulation, allowing easy arrow-key navigation to select the LTS entry.
+  2. **Option B: Downgrade to `linux-cachyos 7.2.3-1` (Preserves Linux 7.2 stack)**:
+     - Reinstall from pacman cache: `linux-cachyos-7.2.3-1` and `linux-cachyos-headers-7.2.3-1`.
+     - **Crucial Pacman Gotcha (`nvidia-utils` conflict)**: If `linux-cachyos-nvidia-open` was installed from a generic installer profile, downgrading will fail with `cannot resolve "nvidia-utils=610.57.04", a dependency of "linux-cachyos-nvidia-open"`. Because the MacBookPro15,1 uses AMD Radeon Pro 560X graphics, `linux-cachyos-nvidia-open` is completely unused and MUST be uninstalled prior to downgrading:
+       ```bash
+       sudo pacman -Rdd --noconfirm linux-cachyos-nvidia-open
+       ```
+     - **Pacman Upgrade Pinning (`/etc/pacman.conf`)**:
+       Pin the kernel packages to prevent subsequent `pacman -Syu` upgrades from re-breaking the hardware before CachyOS fixes the T2 branch:
+       ```ini
+       IgnorePkg = linux-cachyos linux-cachyos-headers
+       ```
+- **Turnkey Automation Script**:
+  Staged in [`profiles/macbook-t2/scripts/cachy-downgrade-kernel-723.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/cachy-downgrade-kernel-723.sh) and installed to [`~/.local/bin/cachy-downgrade-kernel-723`](file:///home/java1127/.local/bin/cachy-downgrade-kernel-723). Handles removal of obsolete nvidia modules, cached package reinstallation, pacman pinning, initramfs rebuild, and safe reboot.
+
 
 
 
