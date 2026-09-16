@@ -1,16 +1,20 @@
 # Universal Desktop & Shell Packages for CachyOS Hyprland
 alacritty
 awesome-terminal-fonts
+brave-origin-bin
+brightnessctl
 btop
 cachyos-fish-config
 cachyos-hypr-noctalia
 cantarell-fonts
+cliamp-bin
 curl
 dolphin
 easyeffects
 fastfetch
 ffmpegthumbnailer
 fish
+fzf
 git
 github-cli
 grim
@@ -18,8 +22,10 @@ hypridle
 hyprland
 hyprlock
 hyprpaper
+hyprpicker
 jq
 kitty
+lazydocker
 lazygit
 localsend
 micro
@@ -40,11 +46,14 @@ stow
 swayimg
 ttf-meslo-nerd
 ufw
+uwsm
 waypaper
 wget
 wl-clipboard
 xdg-desktop-portal-gtk
 xdg-desktop-portal-hyprland
 xdg-user-dirs
+xorg-xhost
 yazi
+yt-dlp
 zen-browser-bin

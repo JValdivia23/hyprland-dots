@@ -2,6 +2,26 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.26.0] - 2026-09-15
+### Added
+- **Fresh Install Package Completeness Synchronization (`core/packages.txt`)**:
+  - Added 8 missing runtime dependencies to `core/packages.txt` to guarantee 100% turnkey deployment on fresh CachyOS/Arch installations:
+    - `uwsm`: Session manager backend providing `uwsm-app --` cgroups wrapping for all application launchers.
+    - `brightnessctl`: Hardware controller for screen/keyboard brightness keys and `hypridle` inactivity dimming.
+    - `fzf`: Interactive fuzzy selector backend for `SUPER + K` (`hypr-keybinds-menu`).
+    - `hyprpicker`: Color picker tool for `SUPER + SHIFT + P`.
+    - `lazydocker`: Container management TUI for `SUPER + SHIFT + D`.
+    - `brave-origin-bin`: Underlying browser engine for all custom WebApp desktop launchers (YouTube, AllAnime, etc.).
+    - `cliamp-bin` & `yt-dlp`: Retro terminal audio player and streaming backend.
+    - `xorg-xhost`: Root authorization helper for XWayland applications invoked in `autostart.lua`.
+
+### Changed
+- **Decoupled Dynamic Wallpaper Rotation State (`waypaper`)**:
+  - Enabled `use_xdg_state = True` in `core/.config/waypaper/config.ini`, storing dynamic wallpaper selection in `~/.local/state/waypaper/state.ini` to prevent hourly git working tree modifications.
+- **Synchronized Active Color Palettes & Restored Theme Symlinks**:
+  - Synchronized latest active Material 3 wallpaper palette across Alacritty, Btop, and Kitty.
+  - Re-linked `~/.config/kitty/themes/noctalia.conf` into Stow dotfiles tree.
+
 ## [2.25.0] - 2026-09-14
 ### Added
 - **Native Metadata-Driven Keybinding Architecture (`helpers.lua`)**:
