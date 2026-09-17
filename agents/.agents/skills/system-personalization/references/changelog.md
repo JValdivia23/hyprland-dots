@@ -15,6 +15,10 @@ A dated log of all package changes, configurations, script modifications, and ha
   - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
   - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
 ### Added
+- **XH Multi-Page Media Hub WebApp (`core`, 2026-09-17)**:
+  - Ported `xh-launch` Python launcher, `XH.desktop`, and `XH.png` from `omarchy-dots` to `core/`.
+  - Installed launcher to `~/.local/bin/xh-launch`, desktop entry to `~/.local/share/applications/XH.desktop`, and icons to `~/.local/share/icons/`.
+  - Configured to launch Brave (`brave-origin`) in container mode (`~/.config/brave-webapps/containers/diagnostics`) with automatic Hyprland group/tab window merging.
 - **Smart Tiered Sleep (`suspend-then-hibernate`) (`surface`, 2026-09-17)**:
   - Configured modular systemd drop-in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf`: enabled `AllowSuspendThenHibernate=yes`, set `HibernateDelaySec=90min`, and set `HibernateOnACPower=no`.
   - Configured modular systemd logind drop-in `/etc/systemd/logind.conf.d/10-lid-sleep.conf`: set `HandleLidSwitch=suspend-then-hibernate` on battery and `HandleLidSwitchExternalPower=suspend` on AC charger. Reloaded `systemd-logind` safely via SIGHUP.
