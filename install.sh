@@ -600,6 +600,16 @@ BASHRC_EOF
         fi
     fi
 
+    # 8. Synchronize Zen Browser custom keybindings
+    if command -v zen-browser &>/dev/null; then
+        echo "--> Synchronizing Zen Browser custom keybindings..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: bash $DOTFILES_DIR/core/.local/bin/zen-keybinds-sync --apply"
+        else
+            bash "$DOTFILES_DIR/core/.local/bin/zen-keybinds-sync" --apply || echo "    Notice: Could not sync Zen keybindings automatically."
+        fi
+    fi
+
     echo ""
 else
     echo "==> [4/4] Skipping post-install setup."

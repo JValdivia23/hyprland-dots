@@ -26,7 +26,15 @@ A dated log of all package changes, configurations, script modifications, and ha
 - **Firmware reverse-engineering tooling (`surface`, 2026-09-17)**:
   - Installed user-approved `cabextract 1.11-3.1` (`sudo pacman -S --needed cabextract`, 0.10 MiB installed, Snapper snapshots 21/22) after `bsdtar` proved unable to decompress Microsoft's LZX-21 CAB folders.
   - Used bounded HTTP range reads against the official MSI to extract and MSI-hash-verify five small base files (PD `.cfu`/`.offer.bin`, two KIP `.offer.bin`, two `.cat`) without downloading the 1.67 GB bundle. No firmware flashed.
+- **Universal Zen Browser keybinding synchronization (`core`, 2026-09-17)**:
+  - Saved canonical keybindings template to `core/.local/share/zen/zen-keyboard-shortcuts.json` (stowed to `~/.local/share/zen/`).
+  - Created executable sync utility `core/.local/bin/zen-keybinds-sync` (stowed to `~/.local/bin/zen-keybinds-sync`): supports `--status`, `--apply` (with auto-detection across all active profiles, running-process safety check, and automatic pre-seeding of fresh profiles), and `--export`.
+  - Wired automated keybinding synchronization into universal post-install setup (Step 4/4) in `install.sh`. Tested and verified via `install.sh --dry-run`.
 ### Changed
+- **Zen Browser Tab vs. Workspace Shortcut Collision (`surface`, 2026-09-17)**:
+  - **Issue**: Both browser tab selection (`key_selectTab1`..`8`, `key_selectLastTab`) and Zen workspace switching (`zen-workspace-switch-1`..`10`) defaulted to `accel: true` (<kbd>Ctrl</kbd> + <kbd>1..9</kbd>) on Linux, causing keyboard shortcut collision inside Zen Browser.
+  - **Fix**: Re-mapped tab switching to <kbd>Alt</kbd> + <kbd>1..9</kbd> (`modifiers.alt = true`, `modifiers.accel = false`) in `~/.config/zen/1q66wgda.Default (release)/zen-keyboard-shortcuts.json` while Zen was closed. Zen workspace switching retained on <kbd>Ctrl</kbd> + <kbd>1..9</kbd>, <kbd>0</kbd>. Backed up original to `zen-keyboard-shortcuts.json.bak`.
+  - **Documentation**: Documented modifier mappings, CLI manipulation via `jq`/Python, and in-memory reload gotchas in `references/gotchas/zen-browser.md`.
 - **OpenCode pacman -> curl installer (`surface`)**:
   - Removed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -Rns opencode` (interactive Kitty `hl.exec_cmd` prompt per Rule 8).
   - Installed upstream `v2.0.5` via `curl -fsSL https://opencode.ai/v2/install | bash` to `~/.opencode/bin/opencode`; installer appended `fish_add_path /home/jmvp/.opencode/bin` to `core/.config/fish/config.fish` (stowed, no overwrite).
