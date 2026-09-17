@@ -4,3 +4,4 @@ linux-surface-headers
 iptsd
 surface-dtx-daemon
 surface-control
+wvkbd

@@ -34,6 +34,8 @@ Base system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026;
 | fwupd-efi | 1.8-2 | fwupd UEFI capsule helper dependency; installed 2026-09-17 |
 | passim | 0.1.12-1.1 | fwupd local-cache dependency; installed 2026-09-17 |
 | cabextract | 1.11-3.1 | LZX CAB extraction for official MSI range-fetch forensics; installed 2026-09-17 |
+| wvkbd | 0.20-1 | Minimal on-screen touch virtual keyboard for Wayland/Hyprland; installed 2026-09-17 |
+| scdoc | 1.11.5-1.1 | Make dependency for wvkbd manual generation; installed 2026-09-17 |
 
 ## Compositor Health
 - **Hyprland Errors**: None (clean)

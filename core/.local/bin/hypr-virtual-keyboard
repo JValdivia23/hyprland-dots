@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# hypr-virtual-keyboard - Toggle wvkbd on-screen virtual keyboard for Hyprland
+# ==============================================================================
+
+if ! command -v wvkbd-mobintl &>/dev/null; then
+    notify-send -u critical "Virtual Keyboard" "wvkbd-mobintl is not installed."
+    exit 1
+fi
+
+if pgrep -x "wvkbd-mobintl" >/dev/null; then
+    pkill -RTMIN -x "wvkbd-mobintl"
+else
+    # Launch wvkbd detached (calibrated for Surface Book 3 touch display)
+    nohup wvkbd-mobintl -L 320 -H 320 >/dev/null 2>&1 &
+fi

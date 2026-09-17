@@ -124,3 +124,10 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `Fn` + `F6` / `SUPER` + `SHIFT` + `S` / `Print` | Region Screenshot | Select region screenshot with annotation editor (Satty) |
 | `SUPER` + `S` | Toggle Scratchpad | Toggle visibility of hidden Scratchpad overlay |
 | `SUPER` + `ALT` + `S` | Move to Scratchpad | Move focused window to Scratchpad silently |
+
+## Surface Profile & Tablet Shortcuts
+
+| Shortcut | Action | Description |
+|----------|--------|-------------|
+| `SUPER` + `ALT` + `D` | Detach Base | Request Surface Book tablet/base detachment (`surface dtx request`) |
+| `SUPER` + `ALT` + `V` | Virtual Keyboard | Toggle on-screen virtual keyboard overlay (`hypr-virtual-keyboard` / `wvkbd`) |

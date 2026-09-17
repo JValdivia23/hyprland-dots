@@ -2,7 +2,7 @@
 Version=1.0
 Name=XH
 Comment=Multi-Page Media Hub
-Exec=xh-launch
+Exec=sh -c 'PATH="$HOME/.local/bin:$PATH" xh-launch'
 Terminal=false
 Type=Application
 Icon=XH
