@@ -448,12 +448,40 @@ if [ "$DO_STOW" = true ]; then
 
     # Link custom webapp icons to standard XDG directories
     if [ -d "$DOTFILES_DIR/core/.local/share/applications/icons" ]; then
+        mkdir -p "$HOME/.local/share/icons" \
+                 "$HOME/.local/share/pixmaps" \
+                 "$HOME/.local/share/icons/hicolor/256x256/apps" \
+                 "$HOME/.local/share/icons/hicolor/512x512/apps" \
+                 "$HOME/.local/share/icons/hicolor/scalable/apps"
+
         for icon in "$DOTFILES_DIR"/core/.local/share/applications/icons/*; do
             if [ -f "$icon" ]; then
                 filename="$(basename "$icon")"
+                name="${filename%.*}"
+                ext="${filename##*.}"
+                lower="$(echo "$name" | tr '[:upper:]' '[:lower:]').$ext"
+
                 ln -sf "$icon" "$HOME/.local/share/icons/$filename" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/icons/$lower" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/pixmaps/$filename" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/pixmaps/$lower" 2>/dev/null || true
+
+                if [ "$ext" = "png" ]; then
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/256x256/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/256x256/apps/$lower" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/512x512/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/512x512/apps/$lower" 2>/dev/null || true
+                elif [ "$ext" = "svg" ]; then
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/scalable/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/scalable/apps/$lower" 2>/dev/null || true
+                fi
             fi
         done
+
+        if command -v gtk-update-icon-cache &>/dev/null; then
+            gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
+            gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+        fi
     fi
 
     # Update desktop application database
