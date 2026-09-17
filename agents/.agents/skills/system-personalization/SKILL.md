@@ -68,7 +68,8 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`hyprland.md`](references/gotchas/hyprland.md) | Hyprland Lua syntax, IPC window dispatchers, modifier repetition, copy shortcut |
 | ├── [`wayland-noctalia.md`](references/gotchas/wayland-noctalia.md) | Noctalia messaging reload/restart, Satty screenshot piping, Quick Look |
 | ├── [`networking.md`](references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
-| └── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
+| ├── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
+| └── [`battery-upower.md`](references/gotchas/battery-upower.md) | Surface dual-battery calculation desync (~300%) & UPower service recovery |
 | [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
 | [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |
 | [`scripts/snapshot.sh`](scripts/snapshot.sh) | Bash script to capture current system state to stdout |

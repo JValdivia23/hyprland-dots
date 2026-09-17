@@ -3,6 +3,29 @@
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
 ## [Unreleased]
+### Investigated
+- **Direct base firmware interface discovered (`surface`, 2026-09-17)**:
+  - At user request to investigate reverse engineering, decoded cached Surface base HID descriptors and identified a CFU-compatible collection on `01:15:02:05:00` (`045E:09A6`, currently `hidraw2`). Stock fwupd's USB-backed CFU transport does not directly cover the Surface Aggregator `BUS_HOST` interface.
+  - An identity-checked, read-only `HIDIOCGFEATURE` query for report `0x20` successfully returned 61 bytes through an interactive sudo terminal. Header reports three records and protocol revision 4; the probe's exit code 2 was its deliberate rejection of unverified revision-4 interpretation, not failed communication.
+  - **Component mapping completed same day**: range-fetched five small files from Microsoft's official `SurfaceBook3_Win11_22621_25.013.34389.0.msi` (full 1.67 GB never downloaded; ~116 MB bounded range reads) and hash-verified them against the MSI `MsiFileHash` table. Live `0x12`/`3.6.1` matches `SurfaceBookBaseV3_PD.offer.bin`; live `0x10`/`10.602.139` matches both KIP offer blobs; live `0xFE`/`0.0.0` is the expected CFU offer-information sentinel. All base components are current, so stale base firmware does not explain the charging fault.
+  - Preserved raw response, descriptor hash, temporary probe/log paths, transport evidence, offer mapping, and file hashes in the Surface battery/USB-C gotcha. Charging remains unresolved; no firmware write was performed.
+- **USB-C charging failure after monitor connection (`surface`, 2026-09-16–17; unresolved)**:
+  - User reports failure across reboot/OS reinstall, three chargers, different known-good cables, the proposed recovery test, and charging the detached base. Surface Connect charging and USB-C external video work; only CachyOS is installed.
+  - Read-only samples: kernel `ADP1 online=0`, tablet battery not charging, base battery discharging; UPower agrees and reports plausible combined capacity. UEFI `23.101.140` and SAM `10.600.139` match the newest respective entries in Microsoft's published Book 3 history; base/PD controller firmware was not fully inventoried.
+  - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
+  - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
+### Added
+- **Smart Tiered Sleep (`suspend-then-hibernate`) (`surface`, 2026-09-17)**:
+  - Configured modular systemd drop-in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf`: enabled `AllowSuspendThenHibernate=yes`, set `HibernateDelaySec=90min`, and set `HibernateOnACPower=no`.
+  - Configured modular systemd logind drop-in `/etc/systemd/logind.conf.d/10-lid-sleep.conf`: set `HandleLidSwitch=suspend-then-hibernate` on battery and `HandleLidSwitchExternalPower=suspend` on AC charger. Reloaded `systemd-logind` safely via SIGHUP.
+  - Updated `~/.config/hypr/hypridle.conf` 15-minute inactivity trigger to invoke `systemctl suspend-then-hibernate` and restarted `hypridle`.
+  - Result: The laptop retains instant <0.5s `s2idle` wake for daytime breaks under 90 minutes (~1.8% battery loss), but automatically enters zero-watt NVMe hibernation for overnight or extended storage, eliminating the ~20% overnight drain.
+- **Firmware diagnostic tooling (`surface`, 2026-09-17)**:
+  - Installed user-approved `fwupd 2.1.7-1.1`, plus dependencies `fwupd-efi 1.8-2` and `passim 0.1.12-1.1`, with `sudo pacman -S --needed fwupd` through interactive Kitty/Hyprland. Pacman completed successfully and created Snapper snapshots 19/20.
+  - Verified package versions, firmware/device enumeration, LVFS metadata refresh, and update query. `fwupd.service` D-Bus-activated successfully; `fwupd-refresh.timer` is disabled. `hyprctl configerrors` clean. Updated installed-package reference and Surface charging gotchas.
+- **Firmware reverse-engineering tooling (`surface`, 2026-09-17)**:
+  - Installed user-approved `cabextract 1.11-3.1` (`sudo pacman -S --needed cabextract`, 0.10 MiB installed, Snapper snapshots 21/22) after `bsdtar` proved unable to decompress Microsoft's LZX-21 CAB folders.
+  - Used bounded HTTP range reads against the official MSI to extract and MSI-hash-verify five small base files (PD `.cfu`/`.offer.bin`, two KIP `.offer.bin`, two `.cat`) without downloading the 1.67 GB bundle. No firmware flashed.
 ### Changed
 - **OpenCode pacman -> curl installer (`surface`)**:
   - Removed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -Rns opencode` (interactive Kitty `hl.exec_cmd` prompt per Rule 8).
@@ -11,6 +34,11 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Note: `cachyos-extra`/`AUR` builds are unsupported for self-update; keep `packages.txt` free of `opencode` to avoid shadowing `/usr/bin/opencode` over `~/.opencode/bin`.
   - Symlinked `~/.local/bin/opencode` -> `~/.opencode/bin/opencode` for bash/non-fish `PATH` fluency (fish uses `fish_add_path`, bash uses `~/.local/bin`); verified `opencode upgrade` in both shells.
 ### Fixed
+- **Surface Book 300% battery percentage calculation desync (`surface`, UPower)**:
+  - **Issue**: Noctalia status bar and `upower DisplayDevice` reported impossible `299.032%` (~300%) battery level while discharging normally.
+  - **Root Cause**: Surface Book base battery (`BAT2`, 45.3 Wh) suffered transient EC communication timeout (`power_supply BAT2: driver failed to report 'present' property: -110`). UPower's `up_device_battery_update_info()` cleared D-Bus property `energy-full` to 0 but failed to clear internal comparison cache `priv->energy_full_reported`. Upon battery recovery, UPower skipped updating D-Bus `energy-full`. Composite `DisplayDevice` summed total energy from both batteries (43.27 Wh) but divided only by tablet battery `BAT1` capacity (14.47 Wh), yielding ~300% (upstream UPower issue #336).
+  - **Fix**: Restarted UPower service via interactive Kitty prompt per Rule 8 (`sudo systemctl restart upower`), restoring correct `DisplayDevice` capacity (59.79 Wh) and percentage (~70.2%).
+  - **Documentation**: Documented full architecture and recovery procedures in `profiles/surface/gotchas/battery-upower.md` (symlinked into skill `references/gotchas/battery-upower.md`).
 - **Fastfetch terminal greeting cleanup and alignment (`core/.local/bin/fastfetch-custom`, `surface`)**:
   - **Mini Logo Alignment**: Stripped raw DMI/SKU string from `Host`, restoring clean `Surface Book 3` and preventing line width blowout that shoved the mini CachyOS logo to column 89+.
   - **Window Manager**: Added support for fastfetch's `Window Manager:` key alongside `WM:`, fixing blank `WM: ` to properly display `Hyprland 0.56.2`.
@@ -462,6 +490,3 @@ A dated log of all package changes, configurations, script modifications, and ha
 - Modularized configurations into Stow package groups (`hypr`, `noctalia`, `kitty`, `alacritty`, `fish`, `btop`, `waypaper`, `gtk`, `swayimg`, `bin`, `agents`, `webapps`, `zigoku`).
 - Built automated 1-command installer `install.sh` and modular provisioning scripts.
 - Published repository to GitHub as [`JValdivia23/hyprland-dots`](https://github.com/JValdivia23/hyprland-dots).
-
-
-
