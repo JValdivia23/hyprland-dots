@@ -646,6 +646,16 @@ BASHRC_EOF
         fi
     fi
 
+    # 9. Auto-calibrate display scaling and terminal text size (Omarchy-style)
+    if [ -f "$DOTFILES_DIR/core/.local/bin/hypr-autoscale" ]; then
+        echo "--> Auto-calibrating display scaling and terminal font size..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: python3 $DOTFILES_DIR/core/.local/bin/hypr-autoscale --apply --profile \"$ACTIVE_PROFILES\""
+        else
+            python3 "$DOTFILES_DIR/core/.local/bin/hypr-autoscale" --apply --profile "$ACTIVE_PROFILES" || echo "    Notice: Could not auto-calibrate text size."
+        fi
+    fi
+
     echo ""
 else
     echo "==> [4/4] Skipping post-install setup."

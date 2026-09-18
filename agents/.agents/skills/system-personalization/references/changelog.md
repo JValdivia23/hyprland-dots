@@ -15,6 +15,13 @@ A dated log of all package changes, configurations, script modifications, and ha
   - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
   - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
 ### Added
+- **Automatic Display Scale & Text-Size Calibration (`core`, 2026-09-17)**:
+  - Created `core/.local/bin/hypr-autoscale` (symlinked to `~/.local/bin/hypr-autoscale`): Profile-aware and EDID-driven auto-calibrator that automatically detects display pixel density (PPI) and applies the ideal Omarchy-style text scaling.
+  - High-DPI / Retina screens (PPI >= 200, `surface`, `macbook-t2`): sets text size 12px (Terminal 9.0pt, UI scale 1.00x).
+  - Medium High-DPI screens (150 <= PPI < 200, 27" 4K): sets text size 13px (Terminal 10.0pt).
+  - Standard DPI screens (PPI < 150, 1080p/1440p, `desktop`, generic `laptop`): sets text size 14px (Terminal 11.0pt, UI scale 1.17x).
+  - Wired into `install.sh` Step 4/4 Post-Install Setup to guarantee "it just works" out of the box on clean installs across different hardware.
+  - Added `--follow-symlinks` to `hypr-text-size` sed commands to prevent breaking GNU Stow symlinks into detached local files.
 - **Omarchy-Aligned Capture & OCR Suite (`core`, 2026-09-17)**:
   - Installed `tesseract 5.5.3-1.1`, `tesseract-data-eng 4.1.0-5`, and `wf-recorder 0.6.0-2.1` via pacman through interactive Kitty/Hyprland terminal.
   - Created `core/.local/bin/hypr-screenshot` (symlinked to `~/.local/bin/hypr-screenshot`): Smart screenshot tool feeding active window and monitor geometry candidate boxes to `slurp`. Enables single-click snapping to any hovered window, single-click to capture desktop, or click-and-drag for freeform region; pipes directly into Satty annotation editor with default save path `~/Pictures/Screenshots/`. Also supports `active` window and `fullscreen` flags.
