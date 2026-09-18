@@ -67,16 +67,20 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `ALT` + `C` | Force-Kill Window | Turn cursor into crosshair to click & kill any window |
 | `SUPER` + `SHIFT` + `L` / `XF86Sleep` | Lock & Suspend | Lock screen and put system to sleep / suspend |
-| `SUPER` + `SHIFT` + `P` | Color Picker | Launch `hyprpicker -a` (click to copy hex) |
-| `Print` / `SUPER` + `SHIFT` + `S` | Region Screenshot | Select region screenshot with annotation editor (Satty) |
-| `SHIFT` + `Print` | Window / Pick Screenshot | Interactive monitor / window pick screenshot |
-| `CTRL` + `Print` / `SUPER` + `Print` | Fullscreen Screenshot | Fullscreen screenshot with annotation editor (Satty) |
+| `Print` / `SUPER` + `SHIFT` + `S` | Smart Screenshot | Click any window to snap/capture, click desktop for full screen, or drag region (opens in Satty) |
+| `SHIFT` + `Print` | Active Window Screenshot | Capture the currently active focused window immediately (opens in Satty) |
+| `CONTROL` + `Print` | Fullscreen Screenshot | Capture entire screen immediately (opens in Satty) |
+| `SUPER` + `Print` / `SUPER` + `SHIFT` + `P` | Color Picker | Launch `hyprpicker -a` (click pixel to copy hex color code) |
+| `ALT` + `Print` / `SUPER` + `ALT` + `SHIFT` + `S` | Screen Recording | Toggle screen recording on/off via `wf-recorder` (saves to `~/Videos/Captures/`) |
+| `SUPER` + `CONTROL` + `Print` / `SUPER` + `CONTROL` + `SHIFT` + `S` | OCR Text Extraction | Select region or window to extract text to clipboard via Tesseract OCR |
+| `SUPER` + `CONTROL` + `C` | Capture Menu | Floating launcher menu with all screenshot, window, OCR, record, and picker actions |
 | `SUPER` + `SHIFT` + `W` | Wallpaper Panel | Toggle Noctalia wallpaper panel |
 | `ALT` + `Space` | Wallpaper Panel | Toggle Noctalia wallpaper panel (instant, shuffled, pre-cached) |
 | `ALT` + `Return` | Quick Look Preview | Open macOS-style floating Quick Look overlay (`swayimg`) over highlighted file |
 | `SUPER` + `ALT` + `N` | Night Light Toggle | Toggle night light / warm temperature color filter |
-| `SUPER` + `ALT` + `T` | Dark/Light Toggle | Toggle desktop theme between dark and light mode |
 | `SUPER` + `CONTROL` + `I` | Caffeine Toggle | Toggle Caffeine (idle inhibitor) to prevent automatic sleep/idle |
+| `Menu` / `Super_R` (Tap) | Context Menu | Open right-click context menu in active window (`release = true`) |
+| `Menu` / `Super_R` (Hold) | Super Modifier | Acts as `SUPER` in all combinations (`+ Return` for Kitty, `+ Space` for Noctalia launcher, etc.) |
 
 ## macOS Text Editing & Selection
 
@@ -121,7 +125,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `SHIFT` + `` ` `` | Move Window Next Mon | Move active window to the next monitor |
 | `SUPER` + `CONTROL` + `` ` `` | Move Workspace Next Mon | Move current workspace to the next monitor |
 | `SUPER` + `ALT` + `1` / `2` / `3` | Focus Monitor | Focus monitor 1, 2, or 3 |
-| `Fn` + `F6` / `SUPER` + `SHIFT` + `S` / `Print` | Region Screenshot | Select region screenshot with annotation editor (Satty) |
+| `Fn` + `F6` / `SUPER` + `SHIFT` + `S` / `Print` | Smart Screenshot | Click any window to snap/capture, click desktop for full screen, or drag region (opens in Satty) |
 | `SUPER` + `S` | Toggle Scratchpad | Toggle visibility of hidden Scratchpad overlay |
 | `SUPER` + `ALT` + `S` | Move to Scratchpad | Move focused window to Scratchpad silently |
 

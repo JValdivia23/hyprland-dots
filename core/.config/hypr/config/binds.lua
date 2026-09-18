@@ -10,6 +10,10 @@ local kbdBrightness = homeDir .. "/.local/bin/hypr-kbd-brightness "
 local screenBrightness = homeDir .. "/.local/bin/hypr-screen-brightness "
 local lidHandler = homeDir .. "/.local/bin/hypr-lid-handler "
 local keybindsMenu = homeDir .. "/.local/bin/hypr-keybinds-menu"
+local hyprScreenshot = homeDir .. "/.local/bin/hypr-screenshot "
+local hyprOcr = homeDir .. "/.local/bin/hypr-ocr"
+local hyprRecord = homeDir .. "/.local/bin/hypr-record"
+local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
@@ -160,6 +164,7 @@ helpers.bind(mainMod .. " + ALT + K",    "Toggle Command/Alt modifier layout", h
 helpers.bind(mainMod .. " + SHIFT + K",  "Toggle Command/Alt modifier layout", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
 helpers.bind(mainMod .. " + K",          "Interactive Keybindings Cheatsheet (Live IPC)", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class Keybindings -T 'Hyprland Keybindings' -e " .. keybindsMenu))
 helpers.bind("ALT + Return",            "Quick Look preview",             hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-quicklook"))
+helpers.bind("SUPER + SUPER_R",         "Trigger Context Menu on Right Super tap", hl.dsp.send_shortcut({ mods = "", key = "Menu", window = "activewindow" }), { release = true })
 
 ---------------------------
 ---- HARDWARE CONTROLS ----
@@ -194,12 +199,18 @@ helpers.bind("XF86KbdBrightnessDown", "Decrease keyboard backlight", hl.dsp.exec
 ---- UTILITIES ----
 -------------------
 
--- Screen Capture
-helpers.bind(mainMod .. " + SHIFT + P", "Pick screen color (hyprpicker)",   hl.dsp.exec_cmd("hyprpicker -a"))
-helpers.bind("Print",                   "Screenshot region",               hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
-helpers.bind("SHIFT + Print",           "Screenshot fullscreen interactive", hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen pick"))
-helpers.bind("CONTROL + Print",         "Screenshot fullscreen",           hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
-helpers.bind(mainMod .. " + Print",     "Screenshot fullscreen",           hl.dsp.exec_cmd(noctCall .. "screenshot-fullscreen"))
+-- Screen Capture & Recording (Omarchy-aligned suite)
+helpers.bind("Print",                             "Smart screenshot (Window / Region / Desktop)", hl.dsp.exec_cmd(hyprScreenshot .. "smart"))
+helpers.bind(mainMod .. " + SHIFT + S",           "Smart screenshot (Window / Region / Desktop)", hl.dsp.exec_cmd(hyprScreenshot .. "smart"))
+helpers.bind("SHIFT + Print",                     "Screenshot active window",                     hl.dsp.exec_cmd(hyprScreenshot .. "active"))
+helpers.bind("CONTROL + Print",                   "Screenshot fullscreen",                        hl.dsp.exec_cmd(hyprScreenshot .. "fullscreen"))
+helpers.bind(mainMod .. " + Print",               "Pick screen color (hyprpicker)",               hl.dsp.exec_cmd("hyprpicker -a"))
+helpers.bind(mainMod .. " + SHIFT + P",           "Pick screen color (hyprpicker)",               hl.dsp.exec_cmd("hyprpicker -a"))
+helpers.bind("ALT + Print",                       "Toggle screen recording",                      hl.dsp.exec_cmd(hyprRecord))
+helpers.bind(mainMod .. " + ALT + SHIFT + S",     "Toggle screen recording",                      hl.dsp.exec_cmd(hyprRecord))
+helpers.bind(mainMod .. " + CONTROL + Print",     "Extract text with OCR to clipboard",         hl.dsp.exec_cmd(hyprOcr))
+helpers.bind(mainMod .. " + CONTROL + SHIFT + S", "Extract text with OCR to clipboard",         hl.dsp.exec_cmd(hyprOcr))
+helpers.bind(mainMod .. " + CONTROL + C",         "Interactive Capture Menu",                     hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class CaptureMenu -T 'Screen Capture' -e " .. captureMenu))
 
 -- Lock & Suspend
 helpers.bind(mainMod .. " + SHIFT + L",  "Lock session and suspend", hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"))
@@ -265,7 +276,6 @@ helpers.bind(mainMod .. " + CONTROL + mouse_down", "Scroll to previous workspace
 -- Special workspace (scratchpad)
 helpers.bind(mainMod .. " + S",       "Toggle scratchpad workspace",     hl.dsp.workspace.toggle_special())
 helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
-helpers.bind(mainMod .. " + SHIFT + S", "Screenshot region",             hl.dsp.exec_cmd(noctCall .. "screenshot-region"))
 
 -- Display scale stepper (Omarchy-style steps: 1x, 1.25x, 1.6x, 2x, 3x, 4x; runtime only)
 helpers.bind(mainMod .. " + slash",       "Increase monitor scale", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-monitor-scale up"))

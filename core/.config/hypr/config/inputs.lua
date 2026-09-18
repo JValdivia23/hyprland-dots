@@ -4,7 +4,7 @@
 hl.config({
     input = {
         accel_profile = "adaptive",
-        kb_options = "",
+        kb_options = "altwin:menu_win",
         repeat_rate = 40,
         repeat_delay = 600,
     },

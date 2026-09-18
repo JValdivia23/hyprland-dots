@@ -15,6 +15,32 @@ A dated log of all package changes, configurations, script modifications, and ha
   - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
   - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
 ### Added
+- **Omarchy-Aligned Capture & OCR Suite (`core`, 2026-09-17)**:
+  - Installed `tesseract 5.5.3-1.1`, `tesseract-data-eng 4.1.0-5`, and `wf-recorder 0.6.0-2.1` via pacman through interactive Kitty/Hyprland terminal.
+  - Created `core/.local/bin/hypr-screenshot` (symlinked to `~/.local/bin/hypr-screenshot`): Smart screenshot tool feeding active window and monitor geometry candidate boxes to `slurp`. Enables single-click snapping to any hovered window, single-click to capture desktop, or click-and-drag for freeform region; pipes directly into Satty annotation editor with default save path `~/Pictures/Screenshots/`. Also supports `active` window and `fullscreen` flags.
+  - Created `core/.local/bin/hypr-ocr` (symlinked to `~/.local/bin/hypr-ocr`): Region / window text extraction tool using `grim` + `slurp` + `tesseract -l eng` piped into `wl-copy` with instant notification.
+  - Created `core/.local/bin/hypr-record` (symlinked to `~/.local/bin/hypr-record`): Lightweight toggle screen recorder via `wf-recorder` (30fps, geometry selection, auto-saving to `~/Videos/Captures/`).
+  - Created `core/.local/bin/hypr-capture-menu` (symlinked to `~/.local/bin/hypr-capture-menu`): Interactive floating capture selector launched via `fzf` in dedicated `--class CaptureMenu` Kitty popup.
+  - Added floating window rule for `CaptureMenu` in `core/.config/hypr/config/windowrules.lua`.
+  - Registered full Omarchy-aligned keybindings in `core/.config/hypr/config/binds.lua`:
+    - `Print` / `SUPER + SHIFT + S` -> Smart Screenshot (Window click / Region drag)
+    - `SHIFT + Print` -> Active Window Screenshot (instant)
+    - `CONTROL + Print` -> Fullscreen Screenshot
+    - `SUPER + Print` / `SUPER + SHIFT + P` -> Color Picker (`hyprpicker -a`)
+    - `ALT + Print` / `SUPER + ALT + SHIFT + S` -> Screen Recording Toggle
+    - `SUPER + CONTROL + Print` / `SUPER + CONTROL + SHIFT + S` -> OCR Text Extraction
+    - `SUPER + CONTROL + C` -> Interactive Capture Menu
+  - Validated clean Hyprland IPC reload with 0 config errors (`hyprctl configerrors`). Updated `references/keybindings.md`.
+- **Portable Windows diagnostic USB preparation tooling (`surface`, 2026-09-17)**:
+  - User authorized preparing the 128 GB-class Lexar USB after moving it to USB-A. Installed `qemu-system-x86 11.1.1-2`, `wimlib 1.14.5-3.1`, `msitools 0.106-3.1`, and `libisoburn 1.5.8.2-1.1` (xorriso provider), plus dependencies including `edk2-ovmf 202608-1` and `ntfsprogs 2026.7.7-1.1`. Pacman completed successfully through an interactive Kitty terminal; Snapper snapshots 27/28.
+  - Downloaded Windows 11 Enterprise Evaluation 25H2 x64 from Microsoft's Evaluation Center; SHA-256 matches its official verification PDF (`a61adeab895ef5a4db436e0a7011c92a2ff17bb0357f58b13bbc4062e535e7b9`). Downloaded the full official Surface Book 3 MSI for driver staging, following the earlier range-only CFU investigation.
+  - Assembled 41 runtime driver INFs (92.56 MiB) including the Surface battery/serial-hub/HID/UCSI stack; selected files checked against MSI sizes and available hashes. Working artifacts are under `~/.cache/opencode/surface-windows-usb/`; `/tmp` is RAM-backed and unsuitable for the 6.60 GiB ISO.
+- **Right-Click / Menu Key Dual-Role Super Modifier (`core`, 2026-09-17)**:
+  - Enabled native XKB option `altwin:menu_win` in [`~/.config/hypr/config/inputs.lua`](file:///home/jmvp/.config/hypr/config/inputs.lua) (synced to `dotfiles/core/`), mapping the physical Context Menu (Right-Click) key to `Super_R`.
+  - Added clean-tap release binding in [`~/.config/hypr/config/binds.lua`](file:///home/jmvp/.config/hypr/config/binds.lua) (`SUPER + SUPER_R`, `release = true`) to dispatch native `Menu` event to the active window via `hl.dsp.send_shortcut`, opening the right-click context menu when tapped alone.
+  - When held or chorded (e.g., `Right-Click Key + Return`), engages `SUPER` modifier to open Kitty or trigger any Hyprland Super shortcuts; chord consumption prevents the context menu from opening upon key release.
+  - Updated [`~/.local/bin/hypr-toggle-altwin`](file:///home/jmvp/.local/bin/hypr-toggle-altwin) to preserve `altwin:menu_win` when toggling between PC layout (`altwin:menu_win`) and Mac layout (`altwin:swap_lalt_lwin,altwin:menu_win`).
+  - Completely native implementation: zero new packages, zero background daemons, zero sudo elevation required.
 - **Noctalia Bar Caffeine Widget (`core`, 2026-09-17)**:
   - Added native `caffeine` widget to the top bar center lane (`center = [ "caffeine", "workspaces", "spacer_1", "active_window" ]`) positioned immediately to the left of the workspace pills.
   - Configured widget theme styling in `~/.config/noctalia/config.toml` (and synced to `core/.config/noctalia/config.toml`) with `color = "secondary"`.

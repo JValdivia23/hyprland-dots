@@ -36,6 +36,12 @@ Base system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026;
 | cabextract | 1.11-3.1 | LZX CAB extraction for official MSI range-fetch forensics; installed 2026-09-17 |
 | wvkbd | 0.20-1 | Minimal on-screen touch virtual keyboard for Wayland/Hyprland; installed 2026-09-17 |
 | scdoc | 1.11.5-1.1 | Make dependency for wvkbd manual generation; installed 2026-09-17 |
+| qemu-system-x86 | 11.1.1-2 | Isolated WinPE environment for portable Windows USB preparation; installed 2026-09-17 |
+| edk2-ovmf | 202608-1 | UEFI firmware for the preparation VM; installed 2026-09-17 |
+| wimlib | 1.14.5-3.1 | Windows image inspection and WinPE customization; installed 2026-09-17 |
+| msitools | 0.106-3.1 | Extract official Surface driver MSI; installed 2026-09-17 |
+| libisoburn | 1.5.8.2-1.1 | Provides xorriso for UEFI preparation media; installed 2026-09-17 |
+| ntfsprogs | 2026.7.7-1.1 | NTFS tools, wimlib dependency; installed 2026-09-17 |
 
 ## Compositor Health
 - **Hyprland Errors**: None (clean)

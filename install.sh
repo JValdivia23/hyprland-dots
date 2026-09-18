@@ -185,10 +185,13 @@ check_and_backup_path() {
         local target_real
         target_real=$(realpath -q "$target" 2>/dev/null || true)
         if [[ -n "$target_real" && "$target_real" == "$DOTFILES_DIR"* ]] || [[ "$link_dest" =~ (^\.\./)?dotfiles/ ]]; then
-            if [ "$DRY_RUN" = false ]; then
-                rm -f "$target"
-            else
-                echo "    [dry-run] Remove obsolete dotfiles symlink ~/$rel_path"
+            # If symlink is broken (target was deleted from repo), clean up the dangling link
+            if [ ! -e "$target" ]; then
+                if [ "$DRY_RUN" = false ]; then
+                    rm -f "$target"
+                else
+                    echo "    [dry-run] Remove dangling dotfiles symlink ~/$rel_path"
+                fi
             fi
             return 0
         fi
@@ -382,6 +385,9 @@ if [ "$DO_STOW" = true ]; then
     done
     sanitize_directory_symlinks "$DOTFILES_DIR/agents"
 
+    # Ensure helper scripts have executable permissions
+    chmod +x "$DOTFILES_DIR"/core/.local/bin/* 2>/dev/null || true
+
     # Ensure required destination base directories exist
     if [ "$DRY_RUN" = false ]; then
         mkdir -p "$HOME/.config" \
@@ -392,6 +398,8 @@ if [ "$DO_STOW" = true ]; then
                  "$HOME/.local/share/applications" \
                  "$HOME/.local/share/icons" \
                  "$HOME/Pictures/Wallpapers" \
+                 "$HOME/Pictures/Screenshots" \
+                 "$HOME/Videos/Captures" \
                  "$HOME/.agents/skills/system-personalization/references/gotchas"
     fi
 

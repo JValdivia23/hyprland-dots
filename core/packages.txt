@@ -45,9 +45,12 @@ satty
 slurp
 stow
 swayimg
+tesseract
+tesseract-data-eng
 ttf-meslo-nerd
 ufw
 uwsm
+wf-recorder
 wget
 wl-clipboard
 xdg-desktop-portal-gtk
