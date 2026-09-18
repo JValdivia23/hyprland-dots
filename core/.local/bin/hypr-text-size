@@ -48,7 +48,7 @@ ui_scale_for() {
 set_ui_scale() {
     local scale="$1"
     [[ -f $NOCTALIA_CONFIG ]] || return 0
-    sed -i -E "s/^(ui_scale[[:space:]]*=[[:space:]]*).*/\1$scale/" "$NOCTALIA_CONFIG"
+    sed -i --follow-symlinks -E "s/^(ui_scale[[:space:]]*=[[:space:]]*).*/\1$scale/" "$NOCTALIA_CONFIG"
     noctalia msg config-reload >/dev/null 2>&1 || true
 }
 
@@ -85,12 +85,12 @@ set_terminal_size() {
     local pt="$1"
 
     if [[ -f ~/.config/alacritty/alacritty.toml ]]; then
-        sed -i -E "s/^size[[:space:]]*=.*/size = $pt/" ~/.config/alacritty/alacritty.toml
+        sed -i --follow-symlinks -E "s/^size[[:space:]]*=.*/size = $pt.0/" ~/.config/alacritty/alacritty.toml
     fi
 
     if [[ -f ~/.config/kitty/kitty.conf ]]; then
         if grep -q '^font_size' ~/.config/kitty/kitty.conf; then
-            sed -i -E "s/^font_size[[:space:]]+.*/font_size $pt.0/" ~/.config/kitty/kitty.conf
+            sed -i --follow-symlinks -E "s/^font_size[[:space:]]+.*/font_size                   $pt.0/" ~/.config/kitty/kitty.conf
         else
             printf 'font_size                   %s.0\n' "$pt" >>~/.config/kitty/kitty.conf
         fi
@@ -98,12 +98,12 @@ set_terminal_size() {
     fi
 
     if [[ -f ~/.config/ghostty/config ]]; then
-        sed -i -E "s/^font-size = .*/font-size = $pt/" ~/.config/ghostty/config
+        sed -i --follow-symlinks -E "s/^font-size = .*/font-size = $pt/" ~/.config/ghostty/config
         pkill -SIGUSR2 ghostty 2>/dev/null || true
     fi
 
     if [[ -f ~/.config/foot/foot.ini ]]; then
-        sed -i -E "s/(:size=)[0-9.]+/\1$pt/" ~/.config/foot/foot.ini
+        sed -i --follow-symlinks -E "s/(:size=)[0-9.]+/\1$pt/" ~/.config/foot/foot.ini
         # Foot has no config-reload signal: running instances keep their
         # startup size until relaunched; new windows pick up the change.
     fi
