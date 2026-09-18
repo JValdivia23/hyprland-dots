@@ -15,6 +15,11 @@ A dated log of all package changes, configurations, script modifications, and ha
   - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
   - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
 ### Added
+- **Noctalia Bar Caffeine Widget (`core`, 2026-09-17)**:
+  - Added native `caffeine` widget to the top bar center lane (`center = [ "caffeine", "workspaces", "spacer_1", "active_window" ]`) positioned immediately to the left of the workspace pills.
+  - Configured widget theme styling in `~/.config/noctalia/config.toml` (and synced to `core/.config/noctalia/config.toml`) with `color = "secondary"`.
+  - Enables one-click toggling of Wayland idle inhibitor directly from the bar (with active/inactive steaming cup icon states), complementing the existing `SUPER + CTRL + I` keyboard shortcut.
+  - Validated with `noctalia config validate` and cleanly restarted Noctalia daemon via Hyprland IPC.
 - **On-Screen Touch Virtual Keyboard (`wvkbd`) (`surface`, 2026-09-17)**:
   - Installed `wvkbd 0.20-1` (and `scdoc 1.11.5-1.1`) via AUR (`yay`) through interactive Kitty/Hyprland prompt per Rule 8.
   - Created executable toggle wrapper [`core/.local/bin/hypr-virtual-keyboard`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-virtual-keyboard) (symlinked to `~/.local/bin/hypr-virtual-keyboard`) using `pkill -RTMIN -x wvkbd-mobintl` for instantaneous zero-latency overlay toggling.
