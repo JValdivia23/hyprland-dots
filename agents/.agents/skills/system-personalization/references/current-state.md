@@ -36,12 +36,16 @@ Base system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026;
 | cabextract | 1.11-3.1 | LZX CAB extraction for official MSI range-fetch forensics; installed 2026-09-17 |
 | wvkbd | 0.20-1 | Minimal on-screen touch virtual keyboard for Wayland/Hyprland; installed 2026-09-17 |
 | scdoc | 1.11.5-1.1 | Make dependency for wvkbd manual generation; installed 2026-09-17 |
-| qemu-system-x86 | 11.1.1-2 | Isolated WinPE environment for portable Windows USB preparation; installed 2026-09-17 |
-| edk2-ovmf | 202608-1 | UEFI firmware for the preparation VM; installed 2026-09-17 |
-| wimlib | 1.14.5-3.1 | Windows image inspection and WinPE customization; installed 2026-09-17 |
+| qemu-system-x86 | 11.1.1-2 | Isolated Windows VM for portable USB preparation and boot verification; installed 2026-09-17 |
+| edk2-ovmf | 202608-1 | UEFI firmware (4m build, `OVMF_CODE.4m.fd`) for preparation/boot VMs; installed 2026-09-17 |
+| wimlib | 1.14.5-3.1 | Windows image inspection and split-WIM creation; installed 2026-09-17 |
 | msitools | 0.106-3.1 | Extract official Surface driver MSI; installed 2026-09-17 |
 | libisoburn | 1.5.8.2-1.1 | Provides xorriso for UEFI preparation media; installed 2026-09-17 |
-| ntfsprogs | 2026.7.7-1.1 | NTFS tools, wimlib dependency; installed 2026-09-17 |
+| ntfsprogs | 2026.7.7-1.1 | `ntfscat`/`ntfsls`/`mtype` read-only USB inspection and verification; installed 2026-09-17 |
+| hivex | 1.3.24-8.1 | Offline registry edits and SYSTEM/SOFTWARE verification; installed 2026-09-18 |
+| fuse2 | 2.9.9-6 | hivex/ntfs-3g dependency; installed 2026-09-18 |
+| ntfs-3g | 2026.7.7-1.1 | Lexar NTFS read/write when a mount is required; installed 2026-09-18 |
+| cdrtools | 3.02a09-6.1 | `mkisofs` for the small data-only repair ISO; installed 2026-09-18 |
 
 ## Compositor Health
 - **Hyprland Errors**: None (clean)
