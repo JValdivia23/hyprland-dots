@@ -4,6 +4,11 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **Surface Book dual-battery 201% calculation desync & automated watchdog (`surface`, 2026-09-20)**:
+  - **Issue**: Battery indicator displayed impossible 201% (`DisplayDevice percentage: 200.813%`) while discharging.
+  - **Root Cause**: At 13:00:33 MDT, base battery `BAT2` experienced a transient EC serial communication timeout (`power_supply BAT2: driver failed to report 'manufacturer' property: -110`). Upstream UPower bug #336 reset D-Bus `BAT2.EnergyFull` to 0 but retained internal cache comparison variables. When `BAT2` recovered, UPower skipped re-publishing `EnergyFull` because sysfs matched its stale cache. `DisplayDevice` summed total charge (29.64 Wh) and divided only by tablet battery `BAT1` full capacity (14.76 Wh). Earlier fix on 2026-09-17 was only a manual one-time service restart without an automated daemon.
+  - **Fix**: Created automated watchdog `/usr/local/bin/surface-battery-watchdog` (tracked in `profiles/surface/scripts/surface-battery-watchdog.sh`) to detect when sysfs has healthy `BAT2` energy but UPower reports 0 Wh or `DisplayDevice > 100%`, restarting `upower.service` with a 30s rate-limiting guard and refreshing Noctalia (`noctalia msg config-reload`). Deployed `surface-battery-watchdog.service`, `surface-battery-watchdog.timer` (2-minute interval), `/etc/udev/rules.d/99-surface-battery.rules` (`BAT2` change events), and `/etc/systemd/system-sleep/20-surface-battery-resume.sh` (sleep wake hook) via `profiles/surface/setup.sh`.
+  - **Verification**: Executed watchdog; `DisplayDevice` restored to healthy ~45% (28.75 Wh / 63.9 Wh), `BAT2` full capacity restored to 49.14 Wh, timer active and waiting, 0 `hyprctl configerrors`.
 - **GNOME Keyring greetd PAM auto-unlock & Seahorse setup (`surface`, 2026-09-20)**:
   - **Issue**: GNOME Keyring was locked (`Locked: 1`) on boot, causing token and credential access from CLI tools (`agy`, `gh`) and applications to block and pop up password prompts (`gcr-prompter`).
   - **Root Cause**: Greetd login manager configuration (`/etc/pam.d/greetd`) lacked `pam_gnome_keyring.so` integration. Keyring was named `Default_keyring` instead of standard `login`.

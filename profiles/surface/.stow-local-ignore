@@ -2,5 +2,6 @@
 ^pre-install\.sh$
 ^setup\.sh$
 ^systemd
+^scripts
 ^gotchas
 ^\.stow-local-ignore$

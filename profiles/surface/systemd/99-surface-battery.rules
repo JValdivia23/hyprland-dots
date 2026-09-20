@@ -1,0 +1,3 @@
+# Microsoft Surface Book dual-battery recovery rule
+# Trigger watchdog when base battery (BAT2) status changes or recovers from EC timeout
+ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="BAT2", TAG+="systemd", ENV{SYSTEMD_WANTS}+="surface-battery-watchdog.service"

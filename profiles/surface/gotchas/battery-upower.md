@@ -20,15 +20,26 @@ Detailed troubleshooting for dual-battery aggregation bugs, Surface EC communica
   - When `BAT2` recovers and reports its true full capacity (45.32 Wh), UPower compares incoming capacity against its stale cache (`45.32 == 45.32`), assumes no changes occurred, and skips republishing `energy-full` to D-Bus.
   - UPower's composite `DisplayDevice` then calculates:
     $$\text{Percentage} = 100 \times \frac{\text{BAT1.energy} + \text{BAT2.energy}}{\text{BAT1.energy\_full} + 0} = 100 \times \frac{43.27\text{ Wh}}{14.47\text{ Wh}} \approx 300\%$$
-- **Fix (Immediate Service Reset)**:
-  Restart `upower` to clear the daemon's in-memory stale cache and force a complete hardware re-poll:
-  ```bash
-  sudo systemctl restart upower
-  ```
-  If Noctalia bar does not immediately refresh its icon, reload the bar config:
-  ```bash
-  noctalia msg config-reload
-  ```
+- **Fix (Automated Watchdog & Service Recovery)**:
+  An automated, multi-tiered recovery system is deployed in `profiles/surface/` to eliminate manual intervention:
+  1. **Watchdog Script**: `/usr/local/bin/surface-battery-watchdog` (tracked in `profiles/surface/scripts/surface-battery-watchdog.sh`):
+     - Inspects `/sys/class/power_supply/BAT2/energy_full` and compares against UPower D-Bus properties (`battery_BAT2.EnergyFull` and `DisplayDevice.Percentage`).
+     - Detects when sysfs reports healthy full energy but UPower reports `0 Wh` or `DisplayDevice > 100%`.
+     - Rate-limits restarts to at most once per 30 seconds via `/run/surface-battery-watchdog.last-restart` to prevent restart loops.
+     - Restarts `upower.service` and refreshes active Noctalia Wayland bars via `noctalia msg config-reload`.
+  2. **Systemd Service & Timer**:
+     - Service: `/etc/systemd/system/surface-battery-watchdog.service` (`Type=oneshot`).
+     - Timer: `/etc/systemd/system/surface-battery-watchdog.timer` (`OnUnitActiveSec=2min`, `AccuracySec=30s`).
+  3. **Udev Event Trigger**:
+     - Rule: `/etc/udev/rules.d/99-surface-battery.rules` (`ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="BAT2", TAG+="systemd", ENV{SYSTEMD_WANTS}+="surface-battery-watchdog.service"`).
+     - Automatically invokes the watchdog when `BAT2` status changes or recovers from EC timeout.
+  4. **Sleep/Resume Hook**:
+     - Hook: `/etc/systemd/system-sleep/20-surface-battery-resume.sh` triggers the watchdog on wake (`post/*`).
+  - **Manual Recovery (if needed)**:
+    ```bash
+    sudo systemctl restart upower
+    noctalia msg config-reload
+    ```
 - **Upstream Reference**: Tracked in freedesktop UPower issue #336 (*DisplayDevice shows 204% battery on dual-battery laptops when one battery reports energy_full=0*).
 
 ## 2. USB-C Charging Failure After Connecting a Monitor (Investigation, 2026-09-16–17)

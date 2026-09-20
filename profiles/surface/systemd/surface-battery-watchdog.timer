@@ -1,0 +1,11 @@
+[Unit]
+Description=Periodic check for Surface dual-battery UPower desync
+ConditionPathExists=/sys/class/power_supply/BAT2/energy_full
+
+[Timer]
+OnBootSec=1min
+OnUnitActiveSec=2min
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target
