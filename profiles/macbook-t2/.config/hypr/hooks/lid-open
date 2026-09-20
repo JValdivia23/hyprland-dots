@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+# MacBook Pro 15,1 profile lid open hook
+
+# 1. Restore Touch Bar backlight level
+if brightnessctl -l 2>/dev/null | grep -q "appletb_backlight"; then
+    TB_STATE_FILE="/tmp/hypr_tb_backlight_saved_${UID}"
+    if [ -f "$TB_STATE_FILE" ]; then
+        saved_tb=$(cat "$TB_STATE_FILE" 2>/dev/null || true)
+        if [ -n "$saved_tb" ] && [ "$saved_tb" -gt 0 ]; then
+            brightnessctl -q -d "appletb_backlight" set "$saved_tb" 2>/dev/null || true
+        fi
+        rm -f "$TB_STATE_FILE"
+    else
+        brightnessctl -q -d "appletb_backlight" set 100% 2>/dev/null || true
+    fi
+fi
+
+# 2. Restore AMDGPU auto power profile
+if [ -x /usr/local/bin/amdgpu-power-switch.sh ]; then
+    /usr/local/bin/amdgpu-power-switch.sh auto 2>/dev/null || true
+fi

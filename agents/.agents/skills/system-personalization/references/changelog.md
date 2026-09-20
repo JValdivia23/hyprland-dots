@@ -16,6 +16,13 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Installed persistent automatic resume hook in `/etc/systemd/system-sleep/10-timesyncd-resume.sh` and NetworkManager dispatcher hook in `/etc/NetworkManager/dispatcher.d/no-wait.d/10-timesyncd.sh` to trigger timesyncd synchronization on sleep wake and interface connection.
   - Documented root cause, hooks, and verification in `references/gotchas/networking.md`.
 
+### Changed
+- **Modular Hardware Profile Separation & Core Hygiene (`multi-pc`, 2026-09-20)**:
+  - **MacBook T2 Profile Isolation**: Relocated `core/.config/easyeffects/` (`output/mbp.json` and DSP preset) to `profiles/macbook-t2/.config/easyeffects/`. Moved `easyeffects` package from `core/packages.txt` to `profiles/macbook-t2/packages.txt`. Removed hardcoded `apple::kbd_backlight` listener from universal `core/.config/hypr/hypridle.conf` (fixing repeating 2.5-minute errors on non-Apple hardware). Extracted Touch Bar and AMDGPU power-switching logic from `core/.local/bin/hypr-lid-handler` into dedicated profile hooks in `profiles/macbook-t2/.config/hypr/hooks/`.
+  - **Surface Profile Isolation**: Relocated on-screen virtual keyboard wrapper `core/.local/bin/hypr-virtual-keyboard` to `profiles/surface/.local/bin/hypr-virtual-keyboard`. Version-controlled Surface Modern Standby sleep drop-ins in `profiles/surface/systemd/` and added automated deployment to `profiles/surface/setup.sh`.
+  - **ASUS Zephyrus Legacy Quarantine**: Moved legacy ASUS ROG AniMe Matrix charging script and launcher (`anime-lid-charging`, `AniMatrix.desktop`) out of `core` into `profiles/asus-rog/`.
+  - **Installer & Stow Updates**: Updated `install.sh` and `profiles/surface/.stow-local-ignore` with `--ignore=^systemd` to prevent stow collisions with system drop-ins. Executed `install.sh --only-stow` on `surface` and verified clean symlinks with zero `hyprctl configerrors`.
+
 ### Investigated
 - **Portable Windows USB first boot failed; preparation defects identified (`surface`, 2026-09-18)**:
   - User reached recovery OOBE with built-in input unavailable. Corrected the earlier readiness claim: only file/EFI hashes had been checked, not a working Windows installation.

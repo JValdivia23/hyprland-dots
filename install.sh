@@ -387,6 +387,7 @@ if [ "$DO_STOW" = true ]; then
 
     # Ensure helper scripts have executable permissions
     chmod +x "$DOTFILES_DIR"/core/.local/bin/* 2>/dev/null || true
+    chmod +x "$DOTFILES_DIR"/profiles/*/.local/bin/* 2>/dev/null || true
 
     # Ensure required destination base directories exist
     if [ "$DRY_RUN" = false ]; then
@@ -421,6 +422,7 @@ if [ "$DO_STOW" = true ]; then
         "--ignore=^services\.txt$"
         "--ignore=^setup\.sh$"
         "--ignore=^scripts"
+        "--ignore=^systemd"
         "--ignore=^gotchas"
         "--ignore=^\.stow-local-ignore$"
         "--ignore=^SKILL\.md\.template$"

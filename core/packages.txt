@@ -10,7 +10,6 @@ cantarell-fonts
 cliamp-bin
 curl
 dolphin
-easyeffects
 fastfetch
 ffmpegthumbnailer
 fish

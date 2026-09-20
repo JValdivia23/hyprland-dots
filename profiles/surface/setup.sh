@@ -27,4 +27,22 @@ LIMINE_EOF'
     fi
 fi
 
+# 3. Deploy Surface tiered sleep & Modern Standby hibernate configurations
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+if [ -d "$SCRIPT_DIR/systemd" ]; then
+    echo "--> Deploying Surface sleep & hibernation drop-ins..."
+    if command -v sudo &>/dev/null; then
+        sudo mkdir -p /etc/systemd/sleep.conf.d /etc/systemd/logind.conf.d
+        if [ -f "$SCRIPT_DIR/systemd/10-suspend-then-hibernate.conf" ]; then
+            sudo cp -v "$SCRIPT_DIR/systemd/10-suspend-then-hibernate.conf" /etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf
+            sudo chmod 644 /etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf
+        fi
+        if [ -f "$SCRIPT_DIR/systemd/10-lid-sleep.conf" ]; then
+            sudo cp -v "$SCRIPT_DIR/systemd/10-lid-sleep.conf" /etc/systemd/logind.conf.d/10-lid-sleep.conf
+            sudo chmod 644 /etc/systemd/logind.conf.d/10-lid-sleep.conf
+        fi
+        sudo systemctl daemon-reload 2>/dev/null || true
+    fi
+fi
+
 echo "==> Microsoft Surface setup finished."

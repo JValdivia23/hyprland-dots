@@ -31,7 +31,7 @@ Two distinct issues caused this failure:
 - **Layer Integration**: Automatically maps to Wayland Layer 3 (`overlay`) directly over applications and the lockscreen without stealing window focus.
 
 ### B. Toggle Wrapper Script (`hypr-virtual-keyboard`)
-Located at [`dotfiles/core/.local/bin/hypr-virtual-keyboard`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-virtual-keyboard) (symlinked to `~/.local/bin/hypr-virtual-keyboard`):
+Located at [`dotfiles/profiles/surface/.local/bin/hypr-virtual-keyboard`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-virtual-keyboard) (symlinked to `~/.local/bin/hypr-virtual-keyboard`):
 ```bash
 #!/usr/bin/env bash
 if ! command -v wvkbd-mobintl &>/dev/null; then

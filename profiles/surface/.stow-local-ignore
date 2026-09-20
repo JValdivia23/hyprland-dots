@@ -1,5 +1,6 @@
 ^packages\.txt$
 ^pre-install\.sh$
 ^setup\.sh$
+^systemd
 ^gotchas
 ^\.stow-local-ignore$
