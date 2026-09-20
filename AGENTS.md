@@ -110,3 +110,7 @@ When modifying this repository or the live system, agents MUST adhere to these r
      ```
 6. **Self-Improving Protocol**:
    - After any configuration change, package installation, or bug fix, document the change in `agents/.agents/skills/system-personalization/references/changelog.md` and `references/gotchas/` if relevant.
+7. **Device-Specific vs. Universal Scope Identification**:
+   - Whenever installing a new feature, package, script, keybinding, or configuration setting, explicitly identify whether it is a **device-specific setting** (belongs in `profiles/<profile>/`) or a **universal user setting** (belongs in `core/`).
+   - Hardware-tied features (touchscreen/stylus, GPU power switching, battery/sleep hooks, machine-specific backlight keys, audio DSP) MUST be placed in their respective profile.
+   - If it is unclear whether a feature is hardware-dependent or universal, the agent MUST explicitly ask the user for clarification before applying or placing the configuration.
