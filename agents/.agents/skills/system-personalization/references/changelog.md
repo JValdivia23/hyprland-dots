@@ -3,6 +3,19 @@
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
 ## [Unreleased]
+### Fixed
+- **Surface Modern Standby hibernation failure & 19-hour sleep limbo (`surface`, 2026-09-20)**:
+  - **Issue**: After 90 minutes of sleep, `systemd-suspend-then-hibernate` failed to power off the laptop. The machine either aborted within 12 seconds due to Surface Aggregator Module (SAM) EC timeout (`surface_dtx: failed to get base state: -19`) or hung in a frozen 19-hour sleep limbo with the lid closed (`Sep 19 10:22 -> Sep 20 05:20`) without powering down, draining battery continuously.
+  - **Root Cause**: Modern Standby Surface Book 3 firmware does not support traditional ACPI S4 platform sleep. Default `HibernateMode=platform` caused ACPI S4 rejection and hang. Furthermore, default `SuspendEstimationSec=60min` caused an unnecessary intermediate RTC wake at 60 minutes.
+  - **Fix**: Updated [`/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf`](file:///etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf) with `HibernateMode=shutdown` (forcing clean ACPI S5 power-off after writing the RAM snapshot to NVMe swap `/dev/nvme0n1p3`) and `SuspendEstimationSec=90min`. Reloaded systemd daemon.
+  - **Documentation**: Documented issue, live journal traces, and fix in [`profiles/surface/gotchas/sleep-hibernate.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/sleep-hibernate.md) (symlinked into `references/gotchas/sleep-hibernate.md`).
+- **System clock desynchronization after S4 hibernation (`surface`, 2026-09-20)**:
+  - System clock was 7 hours behind (~05:25 AM MDT vs true ~12:25 PM MDT / 18:25 UTC) after waking from S4 hibernation (`suspend-then-hibernate`).
+  - Read-only diagnostics revealed the hardware RTC restored an out-of-sync timestamp upon S4 resume while `systemd-timesyncd` remained idle with a 34-minute poll interval without automatically triggering an NTP handshake upon wake or Wi-Fi reconnect.
+  - User approved fix via interactive elevated Kitty terminal: restarted `systemd-timesyncd.service` to immediately step the system clock forward (+6h 59min 55s offset corrected) and sync RTC.
+  - Installed persistent automatic resume hook in `/etc/systemd/system-sleep/10-timesyncd-resume.sh` and NetworkManager dispatcher hook in `/etc/NetworkManager/dispatcher.d/no-wait.d/10-timesyncd.sh` to trigger timesyncd synchronization on sleep wake and interface connection.
+  - Documented root cause, hooks, and verification in `references/gotchas/networking.md`.
+
 ### Investigated
 - **Portable Windows USB first boot failed; preparation defects identified (`surface`, 2026-09-18)**:
   - User reached recovery OOBE with built-in input unavailable. Corrected the earlier readiness claim: only file/EFI hashes had been checked, not a working Windows installation.
