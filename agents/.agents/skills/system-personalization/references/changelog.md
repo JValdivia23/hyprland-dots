@@ -4,6 +4,10 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **GNOME Keyring greetd PAM auto-unlock & Seahorse setup (`surface`, 2026-09-20)**:
+  - **Issue**: GNOME Keyring was locked (`Locked: 1`) on boot, causing token and credential access from CLI tools (`agy`, `gh`) and applications to block and pop up password prompts (`gcr-prompter`).
+  - **Root Cause**: Greetd login manager configuration (`/etc/pam.d/greetd`) lacked `pam_gnome_keyring.so` integration. Keyring was named `Default_keyring` instead of standard `login`.
+  - **Fix**: Backed up `/etc/pam.d/greetd` to `/etc/pam.d/greetd.bak` and added `pam_gnome_keyring.so` to `auth`, `session`, and `password` sections. Installed `seahorse` for graphical keyring management.
 - **Surface Modern Standby hibernation failure & 19-hour sleep limbo (`surface`, 2026-09-20)**:
   - **Issue**: After 90 minutes of sleep, `systemd-suspend-then-hibernate` failed to power off the laptop. The machine either aborted within 12 seconds due to Surface Aggregator Module (SAM) EC timeout (`surface_dtx: failed to get base state: -19`) or hung in a frozen 19-hour sleep limbo with the lid closed (`Sep 19 10:22 -> Sep 20 05:20`) without powering down, draining battery continuously.
   - **Root Cause**: Modern Standby Surface Book 3 firmware does not support traditional ACPI S4 platform sleep. Default `HibernateMode=platform` caused ACPI S4 rejection and hang. Furthermore, default `SuspendEstimationSec=60min` caused an unnecessary intermediate RTC wake at 60 minutes.
