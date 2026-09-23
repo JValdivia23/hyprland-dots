@@ -1,0 +1,14 @@
+{
+  "$schema": "https://opencode.ai/v2/cli.json",
+  "theme": {
+    "name": "system"
+  },
+  "keybinds": {
+    "messages_first": "ctrl+g,alt+home",
+    "messages_last": "ctrl+alt+g",
+    "input_line_home": "home,ctrl+a",
+    "input_line_end": "end,ctrl+e",
+    "input_select_line_home": "shift+home,ctrl+shift+a",
+    "input_select_line_end": "shift+end,ctrl+shift+e"
+  }
+}

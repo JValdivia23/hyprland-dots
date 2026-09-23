@@ -4,6 +4,11 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **OpenCode TUI line navigation (`SUPER + Left / Right` & `Home / End`) (`core`, 2026-09-22)**:
+  - **Issue**: Pressing `SUPER + Left` or `SUPER + Right` in OpenCode input prompts jumped to first/last message in session history instead of moving cursor to beginning/end of line.
+  - **Root Cause**: Hyprland translates `SUPER + Left` / `SUPER + Right` to simulated `Home` / `End` keys. OpenCode's default keymap assigns `Home` and `End` to `messages_first` and `messages_last`, while cursor navigation defaults strictly to Emacs keys (`Ctrl + A` and `Ctrl + E`).
+  - **Fix**: Created universal dotfiles configuration [`core/.config/opencode/cli.json`](file:///home/jmvp/dotfiles/core/.config/opencode/cli.json) symlinked to `~/.config/opencode/cli.json`, patching `keybinds` to map `home` and `end` to `input_line_home` and `input_line_end` (and `shift+home` / `shift+end` to `input_select_line_home` / `input_select_line_end`) while preserving `ctrl+g` / `ctrl+alt+g` for message history navigation.
+  - **Verification**: Executed `opencode reload` (returned `Configuration reloaded`); verified symlink integrity and config validation. Documented in `references/gotchas/opencode.md`.
 - **Surface Book dual-battery 201% calculation desync & automated watchdog (`surface`, 2026-09-20)**:
   - **Issue**: Battery indicator displayed impossible 201% (`DisplayDevice percentage: 200.813%`) while discharging.
   - **Root Cause**: At 13:00:33 MDT, base battery `BAT2` experienced a transient EC serial communication timeout (`power_supply BAT2: driver failed to report 'manufacturer' property: -110`). Upstream UPower bug #336 reset D-Bus `BAT2.EnergyFull` to 0 but retained internal cache comparison variables. When `BAT2` recovered, UPower skipped re-publishing `EnergyFull` because sysfs matched its stale cache. `DisplayDevice` summed total charge (29.64 Wh) and divided only by tablet battery `BAT1` full capacity (14.76 Wh). Earlier fix on 2026-09-17 was only a manual one-time service restart without an automated daemon.
