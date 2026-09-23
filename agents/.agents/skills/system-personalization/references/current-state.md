@@ -30,6 +30,8 @@ Base system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026;
 | dolphin | 26.08.1-1.1 | Core / Profile Utility |
 | easyeffects | 8.2.9-1.1 | Core / Profile Utility |
 | localsend | 1.17.0-4 | Core / Profile Utility |
+| chrony | 4.9-1.1 | Robust NTP daemon with immediate stepping (makestep 1 -1) and NM dispatcher; installed 2026-09-22 |
+| opencode | 2.0.14 | AI coding assistant CLI (upstream in ~/.opencode/bin); updated 2026-09-22 |
 | fwupd | 2.1.7-1.1 | Firmware inventory; installed 2026-09-17 |
 | fwupd-efi | 1.8-2 | fwupd UEFI capsule helper dependency; installed 2026-09-17 |
 | passim | 0.1.12-1.1 | fwupd local-cache dependency; installed 2026-09-17 |

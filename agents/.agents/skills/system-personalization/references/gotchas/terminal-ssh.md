@@ -30,3 +30,14 @@ Curated terminal emulator behaviors, SSH quirks, and administrative prompt pract
   hyprctl eval 'hl.exec_cmd("kitty --title Prompt -e bash -c \"sudo pacman -S --needed package_name; echo; echo Done! Press Enter to close...; read\"")'
   ```
 
+---
+
+## 3. Dynamic Background Opacity & Remote Control Sockets in Kitty
+
+- **Symptom**: Editing `kitty.conf` to add `dynamic_background_opacity yes` and `listen_on` does not enable remote control in currently running Kitty instances even after triggering config reload (`Ctrl+Shift+F5`).
+- **Root Cause**: Kitty explicitly disables initializing dynamic background buffers and remote control UNIX domain sockets on live config reload (`Changing this option by reloading the config is not supported`). Existing processes ignore the directive; only newly spawned Kitty instances create the socket.
+- **Socket Protocol Performance**: Spawning `kitten @ --to=... set-background-opacity` incurs Python startup and CLI wrapper overhead (~100 ms). For real-time window focus synchronization (< 1 ms latency), send the DCS Device Control String directly over the UNIX socket:
+  ```python
+  b"\x1bP@kitty-cmd" + json.dumps({"cmd": "set-background-opacity", "version": [0, 26, 0], "payload": {"opacity": 0.75, "all": True}}).encode() + b"\x1b\\"
+  ```
+

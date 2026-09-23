@@ -1,0 +1,154 @@
+#!/usr/bin/env python3
+"""
+kitty-focus-opacity: Dynamically adjust Kitty background opacity based on window focus.
+Sets background opacity to 0.75 when focused and 0.60 when unfocused.
+Pure event-driven via Hyprland UNIX domain sockets (0% idle CPU).
+"""
+
+import os
+import sys
+import glob
+import json
+import time
+import socket
+import signal
+
+FOCUSED_OPACITY = 0.75
+UNFOCUSED_OPACITY = 0.60
+
+def get_runtime_dir():
+    return os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+
+def get_hypr_signature():
+    sig = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    if sig:
+        return sig
+    hypr_dir = os.path.join(get_runtime_dir(), "hypr")
+    if os.path.isdir(hypr_dir):
+        entries = [d for d in os.listdir(hypr_dir) if not d.startswith(".")]
+        if entries:
+            return sorted(entries)[-1]
+    return ""
+
+def set_kitty_opacity(sock_path, opacity):
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(0.1)
+        s.connect(sock_path)
+        payload = json.dumps({
+            "cmd": "set-background-opacity",
+            "version": [0, 26, 0],
+            "payload": {"opacity": opacity, "all": True}
+        })
+        msg = b"\x1bP@kitty-cmd" + payload.encode() + bytes([0x1b, ord('\\')])
+        s.sendall(msg)
+        s.recv(512)
+        s.close()
+    except (ConnectionRefusedError, FileNotFoundError):
+        try:
+            os.unlink(sock_path)
+        except OSError:
+            pass
+    except Exception:
+        pass
+
+def get_active_window_info(sig):
+    cmd_sock = os.path.join(get_runtime_dir(), "hypr", sig, ".socket.sock")
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(0.2)
+        s.connect(cmd_sock)
+        s.sendall(b"j/activewindow")
+        data = b""
+        while True:
+            chunk = s.recv(4096)
+            if not chunk:
+                break
+            data += chunk
+        s.close()
+        return json.loads(data)
+    except Exception:
+        return {}
+
+def update_all_opacities(active_kitty_pid=None):
+    pattern = os.path.join(get_runtime_dir(), "kitty-socket-*")
+    for sock in glob.glob(pattern):
+        try:
+            pid = int(sock.rsplit("-", 1)[-1])
+        except ValueError:
+            pid = None
+
+        if active_kitty_pid is not None and pid == active_kitty_pid:
+            set_kitty_opacity(sock, FOCUSED_OPACITY)
+        else:
+            set_kitty_opacity(sock, UNFOCUSED_OPACITY)
+
+def handle_active_window(cls, sig):
+    if cls == "kitty":
+        info = get_active_window_info(sig)
+        pid = info.get("pid")
+        if pid:
+            sock_path = os.path.join(get_runtime_dir(), f"kitty-socket-{pid}")
+            for _ in range(5):
+                if os.path.exists(sock_path):
+                    break
+                time.sleep(0.03)
+        update_all_opacities(active_kitty_pid=pid)
+    else:
+        update_all_opacities(active_kitty_pid=None)
+
+def main():
+    def shutdown(signum, frame):
+        update_all_opacities(active_kitty_pid=None)
+        sys.exit(0)
+
+    signal.signal(signal.SIGINT, shutdown)
+    signal.signal(signal.SIGTERM, shutdown)
+
+    while True:
+        sig = get_hypr_signature()
+        if not sig:
+            time.sleep(1)
+            continue
+
+        event_sock = os.path.join(get_runtime_dir(), "hypr", sig, ".socket2.sock")
+        if not os.path.exists(event_sock):
+            time.sleep(1)
+            continue
+
+        try:
+            s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            s.connect(event_sock)
+        except OSError:
+            time.sleep(1)
+            continue
+
+        # Initial state sync
+        info = get_active_window_info(sig)
+        handle_active_window(info.get("class", ""), sig)
+
+        buf = ""
+        try:
+            while True:
+                chunk = s.recv(4096)
+                if not chunk:
+                    break
+                buf += chunk.decode("utf-8", errors="ignore")
+                while "\n" in buf:
+                    line, buf = buf.split("\n", 1)
+                    if line.startswith("activewindow>>"):
+                        rest = line[len("activewindow>>"):]
+                        parts = rest.split(",", 1)
+                        cls = parts[0] if parts else ""
+                        handle_active_window(cls, sig)
+        except (OSError, UnicodeDecodeError):
+            pass
+        finally:
+            try:
+                s.close()
+            except OSError:
+                pass
+            time.sleep(1)
+
+if __name__ == "__main__":
+    main()

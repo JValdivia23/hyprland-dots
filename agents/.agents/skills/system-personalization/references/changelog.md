@@ -26,12 +26,28 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Documented root cause, hooks, and verification in `references/gotchas/networking.md`.
 
 ### Added
+- **Dynamic Kitty focus-dependent background opacity (`surface` / `core`, 2026-09-22)**:
+  - **Feature**: Dynamic terminal background transparency that shifts from `0.60` (unfocused) to `0.75` (focused), preserving 100% solid text glyphs and font contrast without darkening or fading syntax highlighting.
+  - **Implementation**:
+    - Created lightweight event-driven daemon [`core/.local/bin/kitty-focus-opacity`](file:///home/jmvp/dotfiles/core/.local/bin/kitty-focus-opacity) symlinked to `~/.local/bin/kitty-focus-opacity`.
+    - Listens directly to Hyprland's UNIX event socket (`.socket2.sock`) for window focus events and modulates Kitty background opacity via DCS Device Control Strings (`\x1bP@kitty-cmd`) over Kitty's private UNIX domain socket (`/run/user/1000/kitty-socket-<pid>`).
+    - Configured [`core/.config/kitty/kitty.conf`](file:///home/jmvp/dotfiles/core/.config/kitty/kitty.conf) with `dynamic_background_opacity yes`, `allow_remote_control socket-only`, and `listen_on unix:${XDG_RUNTIME_DIR}/kitty-socket`.
+    - Registered autostart in [`core/.config/hypr/config/autostart.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/autostart.lua) via `hl.exec_cmd(homeDir .. "/.local/bin/kitty-focus-opacity")`.
+  - **Verification**: Verified zero CPU utilization while idle, systemd user service `kitty-focus-opacity` active and responsive, and clean Hyprland config validation (`hyprctl configerrors` returned 0).
 - **Core Rule 9: Device-Specific vs. Universal Scope Identification (`agents`, 2026-09-20)**:
   - Added Rule 9 to [`SKILL.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md), [`SKILL.md.template`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md.template), and [`AGENTS.md`](file:///home/jmvp/dotfiles/AGENTS.md).
   - Mandates that whenever a new package, daemon, script, keybinding, or setting is introduced, the agent must explicitly classify it as hardware profile-specific (`profiles/<profile>/`) or universal (`core/`).
   - Added an ambiguity guard: if it is unclear whether a feature is hardware-dependent or universal, the agent must ask the user for clarification before applying or placing the configuration.
 
 ### Changed
+- **Migrated NTP daemon from systemd-timesyncd to chrony (`surface`, 2026-09-22)**:
+  - **Issue**: Surface Book 3 hardware RTC desyncs after S4 hibernation/sleep. `systemd-timesyncd` has an exponential poll backoff up to 34 minutes, treats multi-hour offsets as spikes, and resume hooks failed due to Wi-Fi association timing races.
+  - **Solution**: Switched to `chrony 4.9-1.1` (tracked in `core/packages.txt`). Configured `/etc/chrony.conf` with `makestep 1 -1` (unconditional immediate stepping on any offset > 1s) and `rtcsync` (kernel 11-minute RTC synchronization). Disabled `systemd-timesyncd.service` and purged obsolete resume scripts (`/etc/systemd/system-sleep/10-timesyncd-resume.sh` and `/etc/NetworkManager/dispatcher.d/no-wait.d/`). Deployed official NetworkManager dispatcher script (`/etc/NetworkManager/dispatcher.d/20-chrony-onoffline.sh`) to instantly burst NTP queries when internet connects.
+  - **Verification**: `chronyd.service` active and enabled; `chronyc tracking` synchronized with sub-millisecond precision across 4 pool servers; `timedatectl status` confirms `System clock synchronized: yes` and `NTP service: active`.
+- **OpenCode CLI upgraded to v2.0.14 (`surface`, 2026-09-22)**:
+  - **Action**: Ran `opencode upgrade` to update OpenCode from `v2.0.8` to `v2.0.14`.
+  - **Gotcha Handled**: Initial upgrade check failed due to a 5.5-hour system clock drift after sleep/hibernate causing TLS certificate validation failure (`certificate is not yet valid`). Resolved by restarting `systemd-timesyncd.service` to step the system clock forward and resynchronize with NTP.
+  - **Service Verification**: Restarted background daemon via `opencode service restart`; verified `opencode --version` returns `v2.0.14` in both bash and fish shells, background service is active at `http://127.0.0.1:49374`, and subsequent `opencode upgrade` reports `2.0.14 is already installed`.
 - **Modular Hardware Profile Separation & Core Hygiene (`multi-pc`, 2026-09-20)**:
   - **MacBook T2 Profile Isolation**: Relocated `core/.config/easyeffects/` (`output/mbp.json` and DSP preset) to `profiles/macbook-t2/.config/easyeffects/`. Moved `easyeffects` package from `core/packages.txt` to `profiles/macbook-t2/packages.txt`. Removed hardcoded `apple::kbd_backlight` listener from universal `core/.config/hypr/hypridle.conf` (fixing repeating 2.5-minute errors on non-Apple hardware). Extracted Touch Bar and AMDGPU power-switching logic from `core/.local/bin/hypr-lid-handler` into dedicated profile hooks in `profiles/macbook-t2/.config/hypr/hooks/`.
   - **Surface Profile Isolation**: Relocated on-screen virtual keyboard wrapper `core/.local/bin/hypr-virtual-keyboard` to `profiles/surface/.local/bin/hypr-virtual-keyboard`. Version-controlled Surface Modern Standby sleep drop-ins in `profiles/surface/systemd/` and added automated deployment to `profiles/surface/setup.sh`.
