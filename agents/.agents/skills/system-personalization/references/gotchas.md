@@ -14,6 +14,7 @@ A curated index of modular troubleshooting topics, pitfalls, and verified fixes 
 | **Networking & Firewall** | [`gotchas/networking.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/networking.md) | LocalSend discovery on port 53317 (TCP/UDP) through UFW firewall. |
 | **Terminal & SSH** | [`gotchas/terminal-ssh.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/terminal-ssh.md) | Remote host `xterm-kitty` terminfo fixes, interactive `kitty -e` sudo prompts for background tasks. |
 | **OpenCode Install** | [`gotchas/opencode.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/opencode.md) | `installation method not found` on CachyOS/AUR builds, curl installer + fish PATH, `packages.txt` keep-out. |
+| **Surface Hardware** | [`gotchas/touchscreen-iptsd.md`](references/gotchas/touchscreen-iptsd.md) | Surface Book touchscreen & stylus wake race condition (`iptsd` EAGAIN -11), dual-battery desync, sleep/hibernate. |
 
 ---
 

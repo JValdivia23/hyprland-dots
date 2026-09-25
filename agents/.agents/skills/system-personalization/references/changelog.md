@@ -4,6 +4,11 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **Surface Book touchscreen & stylus wake race condition recovery (`surface`, 2026-09-24)**:
+  - **Issue**: Touchscreen and Surface Pen completely unresponsive after waking from sleep/suspend. `hyprctl devices` missing `iptsd-virtual-touchscreen` and `iptsd-virtual-stylus`; 0 active `iptsd` systemd units.
+  - **Root Cause**: During wake at 18:36:44 MDT, IPTS hardware re-enumerated from `hidraw0` to `hidraw6`. Kernel driver logged `ipts: FEEDBACK: recv failed: -11` (`-EAGAIN`) while thawing. Udev rule `/usr/lib/udev/rules.d/50-iptsd.rules` immediately executed `/usr/bin/iptsd-check-device --quiet /dev/hidraw6`, which failed due to transient device unavailability. Udev aborted rule evaluation, dropping `TAG+="systemd"` and never queuing `iptsd@dev-hidraw6.service`. Old daemon instance `iptsd@dev-hidraw0.service` exited upon `hidraw0` removal, leaving the daemon stopped and virtual touchscreen uninstantiated.
+  - **Fix**: Executed `sudo udevadm trigger --action=add /dev/hidraw6` via interactive Kitty terminal per Rule 8, prompting udev to re-validate `hidraw6`, tag with `systemd`, and start `iptsd@dev-hidraw6.service`.
+  - **Verification**: `systemctl status iptsd@dev-hidraw6.service` active and running; `hyprctl devices` confirmed `iptsd-virtual-touchscreen-045e:09b2` and `iptsd-virtual-stylus-045e:09b2` re-registered in Hyprland. Documented root cause, architecture, and recovery options in `profiles/surface/gotchas/touchscreen-iptsd.md` (symlinked to `references/gotchas/touchscreen-iptsd.md`).
 - **OpenCode TUI line navigation (`SUPER + Left / Right` & `Home / End`) (`core`, 2026-09-22)**:
   - **Issue**: Pressing `SUPER + Left` or `SUPER + Right` in OpenCode input prompts jumped to first/last message in session history instead of moving cursor to beginning/end of line.
   - **Root Cause**: Hyprland translates `SUPER + Left` / `SUPER + Right` to simulated `Home` / `End` keys. OpenCode's default keymap assigns `Home` and `End` to `messages_first` and `messages_last`, while cursor navigation defaults strictly to Emacs keys (`Ctrl + A` and `Ctrl + E`).
