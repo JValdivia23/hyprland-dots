@@ -75,4 +75,47 @@ if [ -f "$SCRIPT_DIR/scripts/surface-battery-watchdog.sh" ]; then
     fi
 fi
 
+# 5. Deploy IPTS touchscreen sleep resume hook & service timeout drop-in
+if [ -d "$SCRIPT_DIR/systemd" ]; then
+    if command -v sudo &>/dev/null; then
+        if [ -f "$SCRIPT_DIR/systemd/21-surface-ipts-resume.sh" ]; then
+            echo "--> Deploying Surface IPTS resume hook..."
+            sudo cp -v "$SCRIPT_DIR/systemd/21-surface-ipts-resume.sh" /etc/systemd/system-sleep/21-surface-ipts-resume.sh
+            sudo chmod 755 /etc/systemd/system-sleep/21-surface-ipts-resume.sh
+        fi
+
+        if [ -f "$SCRIPT_DIR/systemd/iptsd-timeout.conf" ]; then
+            echo "--> Deploying iptsd@.service timeout drop-in..."
+            sudo mkdir -p /etc/systemd/system/iptsd@.service.d
+            sudo cp -v "$SCRIPT_DIR/systemd/iptsd-timeout.conf" /etc/systemd/system/iptsd@.service.d/timeout.conf
+            sudo chmod 644 /etc/systemd/system/iptsd@.service.d/timeout.conf
+            sudo systemctl daemon-reload 2>/dev/null || true
+        fi
+    fi
+fi
+
+# 6. Configure ACPI lid wake quirk in Limine kernel command line
+if [ -f "/etc/default/limine" ]; then
+    if grep -q "button.lid_init_state=ignore" /etc/default/limine; then
+        echo "--> Updating button.lid_init_state=ignore to button.lid_init_state=open in Limine cmdline..."
+        sudo sed -i 's/button.lid_init_state=ignore/button.lid_init_state=open/' /etc/default/limine
+        if command -v limine-entry-tool &>/dev/null; then
+            echo "--> Updating Limine bootloader entries..."
+            sudo limine-entry-tool || true
+        fi
+    elif ! grep -q "button.lid_init_state=open" /etc/default/limine; then
+        echo "--> Appending button.lid_init_state=open to Limine cmdline..."
+        sudo sed -i 's/\(resume=UUID=[^" ]*\)/\1 button.lid_init_state=open/' /etc/default/limine
+        if command -v limine-entry-tool &>/dev/null; then
+            echo "--> Updating Limine bootloader entries..."
+            sudo limine-entry-tool || true
+        fi
+    fi
+fi
+
+# 7. Apply runtime kernel parameter for ACPI button lid_init_state if available
+if [ -f "/sys/module/button/parameters/lid_init_state" ]; then
+    echo "open" | sudo tee /sys/module/button/parameters/lid_init_state >/dev/null 2>&1 || true
+fi
+
 echo "==> Microsoft Surface setup finished."
