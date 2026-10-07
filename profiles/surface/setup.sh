@@ -41,6 +41,20 @@ if [ -d "$SCRIPT_DIR/systemd" ]; then
             sudo cp -v "$SCRIPT_DIR/systemd/10-lid-sleep.conf" /etc/systemd/logind.conf.d/10-lid-sleep.conf
             sudo chmod 644 /etc/systemd/logind.conf.d/10-lid-sleep.conf
         fi
+        if [ -f "$SCRIPT_DIR/scripts/surface-unplug-lid-handler.sh" ]; then
+            echo "--> Deploying Surface AC unplug clamshell sleep handler..."
+            sudo cp -v "$SCRIPT_DIR/scripts/surface-unplug-lid-handler.sh" /usr/local/bin/surface-unplug-lid-handler
+            sudo chmod 755 /usr/local/bin/surface-unplug-lid-handler
+        fi
+        if [ -f "$SCRIPT_DIR/systemd/surface-unplug-lid.service" ]; then
+            sudo cp -v "$SCRIPT_DIR/systemd/surface-unplug-lid.service" /etc/systemd/system/surface-unplug-lid.service
+            sudo chmod 644 /etc/systemd/system/surface-unplug-lid.service
+        fi
+        if [ -f "$SCRIPT_DIR/systemd/98-surface-unplug-lid.rules" ]; then
+            sudo cp -v "$SCRIPT_DIR/systemd/98-surface-unplug-lid.rules" /etc/udev/rules.d/98-surface-unplug-lid.rules
+            sudo chmod 644 /etc/udev/rules.d/98-surface-unplug-lid.rules
+            sudo udevadm control --reload-rules 2>/dev/null || true
+        fi
         sudo systemctl daemon-reload 2>/dev/null || true
     fi
 fi

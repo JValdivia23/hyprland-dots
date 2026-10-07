@@ -1,0 +1,8 @@
+[Unit]
+Description=Surface Book AC Disconnect Clamshell Sleep Handler
+DefaultDependencies=no
+After=systemd-udevd.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/surface-unplug-lid-handler

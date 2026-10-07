@@ -88,3 +88,28 @@ Detailed troubleshooting for hibernation failures, ACPI S4 platform power-down r
      - Deploy `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (tracked in `profiles/surface/systemd/`) to trigger `udevadm trigger -s hidraw` after a 1-second delay upon wake.
   3. **IPTS Service Timeout Guard**:
      - Create `/etc/systemd/system/iptsd@.service.d/timeout.conf` with `TimeoutStopSec=3s` so an unseated touch device cannot stall system transitions.
+
+---
+
+## 4. AC Disconnect Clamshell Battery Drain & 30-Minute Hibernation (`HandleLidSwitchExternalPower`)
+
+- **Symptom**:
+  - The laptop is closed while plugged into AC power (enters low-power suspend).
+  - Later, the charger is unplugged while the lid remains closed (e.g., packing it into a backpack).
+  - The laptop **never transitions into hibernation**, draining the battery completely in `s2idle` Modern Standby or running hot in a bag.
+- **Root Cause**:
+  1. Setting `HandleLidSwitchExternalPower=suspend` in `/etc/systemd/logind.conf.d/10-lid-sleep.conf` caused `systemd-logind` to invoke plain `systemd-suspend.service` upon lid closure on external power.
+  2. Plain suspend has no countdown timer or battery threshold monitoring.
+  3. Disconnecting the charger triggers an ACPI power supply interrupt (`ADP1 online=0`), briefly waking the SoC. However, `systemd-logind` **only** evaluates lid switch policies when the lid switch physically moves (`open` $\leftrightarrow$ `closed`), not on power supply events.
+  4. Because the session was initiated under `suspend.service`, the machine remained trapped in indefinite `s2idle`.
+  5. Furthermore, upon wake from the unplug event, `button.lid_init_state=open` in the kernel command line signaled `open` to userspace, leaving the laptop awake with the screen off for 15 minutes until `hypridle` timed out.
+- **Fix**:
+  1. **Align External Power Lid Action (`suspend-then-hibernate`)**:
+     - Set `HandleLidSwitchExternalPower=suspend-then-hibernate` in `/etc/systemd/logind.conf.d/10-lid-sleep.conf` (tracked in `profiles/surface/systemd/10-lid-sleep.conf`).
+     - Because `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` defines `HibernateOnACPower=no`, the machine **never hibernates while plugged into AC power** (stays in fast suspend at the desk).
+  2. **Tune Hibernate Delay to 30 Minutes**:
+     - Align `HibernateDelaySec=30min` and `SuspendEstimationSec=30min` in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` (tracked in `profiles/surface/systemd/10-suspend-then-hibernate.conf`).
+  3. **AC Disconnect Clamshell Guard (Udev + Oneshot Service)**:
+     - Deployed `/usr/local/bin/surface-unplug-lid-handler` (tracked in `profiles/surface/scripts/surface-unplug-lid-handler.sh`), triggered by `/etc/udev/rules.d/98-surface-unplug-lid.rules` via `/etc/systemd/system/surface-unplug-lid.service`.
+     - When `ADP1` switches to `online=0`, the handler verifies if the lid is physically closed (`/proc/acpi/button/lid/*/state`), debounces 1.5s, and triggers `systemctl suspend-then-hibernate` to initiate the 30-minute battery countdown immediately.
+
