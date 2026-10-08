@@ -4,6 +4,10 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [Unreleased]
 ### Fixed
+- **Surface Book dual-battery watchdog `start-limit-hit` recovery (`surface`, 2026-10-08)**:
+  - **Issue**: `systemctl --failed` reported `surface-battery-watchdog.service` failed after reboot with `start-limit-hit`.
+  - **Root Cause**: During boot and active AC charging, the kernel fires rapid `power_supply` udev `change` events for `BAT2`. Udev rule `99-surface-battery.rules` requested `surface-battery-watchdog.service` more than 5 times within 10 seconds, exceeding systemd's default unit start limit burst. While the script itself safely rate-limits restarts to 30s, systemd marked the unit as failed.
+  - **Fix**: Added `StartLimitIntervalSec=0` to `[Unit]` in [`profiles/surface/systemd/surface-battery-watchdog.service`](file:///home/jmvp/dotfiles/profiles/surface/systemd/surface-battery-watchdog.service) (keeping the profile-specific configuration isolated in `profiles/surface/`). Documented in [`profiles/surface/gotchas/battery-upower.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/battery-upower.md).
 - **Surface Book AC disconnect clamshell battery drain fix & 30-min hibernation (`surface`, 2026-10-06)**:
   - **Issue**: When the laptop was suspended with the lid closed while plugged in, unplugging the charger left the laptop trapped in indefinite `s2idle` Modern Standby or woke it to userspace without ever transitioning to zero-watt hibernation, draining the battery completely in backpacks or overnight.
   - **Root Cause**: `HandleLidSwitchExternalPower=suspend` in `/etc/systemd/logind.conf.d/10-lid-sleep.conf` invoked plain `systemd-suspend.service` on AC. When unplugged, `systemd-logind` never re-evaluates lid policies without physical lid motion. Disconnecting the charger woke the SoC (`ADP1` wakeup), and because `button.lid_init_state=open` signaled `open` upon wake, the laptop sat awake with screen off for 15 minutes before `hypridle` suspended it again.
@@ -70,6 +74,14 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Added an ambiguity guard: if it is unclear whether a feature is hardware-dependent or universal, the agent must ask the user for clarification before applying or placing the configuration.
 
 ### Changed
+- **Full system package upgrade via yay & reboot (`surface` / `core`, 2026-10-08)**:
+  - **Action**: Upgraded ~120 repository packages via interactive `yay -Syu` session per Rule 8, followed by a clean reboot.
+  - **Upgrades**:
+    - **Compositor & Wayland Shell**: `hyprland` (0.56.2-3.1 $\rightarrow$ 0.56.2-4.1), `noctalia` (5.2.0 $\rightarrow$ 5.2.1), `noctalia-greeter` (1.5.0 $\rightarrow$ 1.6.0), `xorg-xwayland` (24.1.13 $\rightarrow$ 24.1.14).
+    - **System & Power**: `upower` (1.91.4 $\rightarrow$ 1.91.5), `mkinitcpio` (42.1 $\rightarrow$ 42.2), `networkmanager` (1.58.1-1 $\rightarrow$ 1.58.1-2), `openssh` (10.5p1 $\rightarrow$ 10.6p1), `device-mapper` / `lvm2` (2.03.42 $\rightarrow$ 2.03.43).
+    - **Applications & Tools**: `zen-browser-bin` (1.22.3b $\rightarrow$ 1.23.1b), `firefox` (157.0 $\rightarrow$ 157.0.1), `dolphin` (26.08.1 $\rightarrow$ 26.08.2), `lazygit` (0.65.1 $\rightarrow$ 0.66.0), `qemu-system-x86` (11.1.1-4 $\rightarrow$ 11.1.2-1), `rust` (1.98.1 $\rightarrow$ 1.99.0).
+    - **Toolkits & Desktop Libraries**: `gtk3`, `gtk4`, `glib2`, and `qt6-*` (6.11.2 $\rightarrow$ 6.12.0).
+  - **Verification**: Clean reboot; 0 `hyprctl configerrors`, eDP-1 scale 2, clean system state, updated `references/current-state.md`.
 - **Documentation profile scope separation & hygiene (`multi-pc` / `surface`, 2026-10-08)**:
   - **Action**: Aligned [`references/config-paths.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/config-paths.md), [`references/gotchas.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas.md), and [`SKILL.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md) with Core Rule 9.
   - **Scope Isolation**: Removed legacy MacBook T2 entries from `config-paths.md`. Explicitly separated universal scripts (`core/.local/bin/`) from hardware-specific Surface configurations (`profiles/surface/`), ensuring Surface daemon scripts (`surface-battery-watchdog`, `surface-unplug-lid-handler`), systemd drop-ins, and on-screen keyboard wrapper remain strictly quarantined within `profiles/surface/` and out of `core/`.

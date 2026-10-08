@@ -28,7 +28,7 @@ Detailed troubleshooting for dual-battery aggregation bugs, Surface EC communica
      - Rate-limits restarts to at most once per 30 seconds via `/run/surface-battery-watchdog.last-restart` to prevent restart loops.
      - Restarts `upower.service` and refreshes active Noctalia Wayland bars via `noctalia msg config-reload`.
   2. **Systemd Service & Timer**:
-     - Service: `/etc/systemd/system/surface-battery-watchdog.service` (`Type=oneshot`).
+     - Service: `/etc/systemd/system/surface-battery-watchdog.service` (`Type=oneshot`, with `StartLimitIntervalSec=0` to prevent systemd `start-limit-hit` failures during bursty udev battery change events on boot).
      - Timer: `/etc/systemd/system/surface-battery-watchdog.timer` (`OnUnitActiveSec=2min`, `AccuracySec=30s`).
   3. **Udev Event Trigger**:
      - Rule: `/etc/udev/rules.d/99-surface-battery.rules` (`ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="BAT2", TAG+="systemd", ENV{SYSTEMD_WANTS}+="surface-battery-watchdog.service"`).
@@ -40,6 +40,8 @@ Detailed troubleshooting for dual-battery aggregation bugs, Surface EC communica
     sudo systemctl restart upower
     noctalia msg config-reload
     ```
+  > [!NOTE]
+  > Internal script rate-limiting (`/run/surface-battery-watchdog.last-restart`, 30s) manages execution pacing safely, avoiding unnecessary UPower service restarts while `StartLimitIntervalSec=0` ensures systemd does not falsely fail the service unit.
 - **Upstream Reference**: Tracked in freedesktop UPower issue #336 (*DisplayDevice shows 204% battery on dual-battery laptops when one battery reports energy_full=0*).
 
 ## 2. USB-C Charging Failure After Connecting a Monitor (Investigation, 2026-09-16–17)

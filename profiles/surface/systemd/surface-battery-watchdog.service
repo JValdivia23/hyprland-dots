@@ -2,6 +2,7 @@
 Description=Surface Dual-Battery UPower Desync Watchdog
 ConditionPathExists=/sys/class/power_supply/BAT2/energy_full
 Documentation=file:///home/jmvp/.agents/skills/system-personalization/references/gotchas/battery-upower.md
+StartLimitIntervalSec=0
 
 [Service]
 Type=oneshot
