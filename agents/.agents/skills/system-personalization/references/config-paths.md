@@ -94,53 +94,59 @@ The system uses `fish` as its default interactive shell.
 
 ---
 
-## User Binaries & Helper Scripts (`~/.local/bin/`)
+## Universal User Binaries & Helper Scripts (`core/.local/bin/` -> `~/.local/bin/`)
 
-Custom shell scripts executed by Hyprland keybindings or desktop workflows.
-
-| Path | Purpose | Description |
-|------|---------|-------------|
-| `mac-key-helper` | macOS Text Navigation Helper | Inspects active window class/floating state and dispatches context-aware shortcuts. |
-| `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window across workspaces. |
-| `hypr-toggle-altwin` | Alt/Super Layout Toggle | Triggered by `SUPER+ALT+K` to dynamically toggle `kb_options` between Mac (Swapped) and PC (Normal) layouts on the fly. |
-| `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating image/vector previews via `swayimg`. |
-| `hypr-kbd-brightness` | Keyboard Backlight Control | Triggered by `Fn + Up / Down` to step keyboard brightness (0-3) with visual notification. |
-| `hypr-lid-handler` | Laptop Clamshell & DPMS Handler | Triggered by `switch:on/off:Lid Switch` to manage DPMS power, keyboard light, and power profiles on lid close/open. |
-| `fastfetch-custom` | Terminal Greeting Fetch Script | Triggered by `fish_greeting` in Fish; renders clean two-column system specs, hardware details, and mini CachyOS logo. |
-
----
-
-## Audio & DSP Configs (`~/.config/`)
-
-| Path | Purpose | Edit Rule |
-|------|---------|-----------|
-| `easyeffects/output/mbp.json` | MacBook Pro 15" DSP equalizer & speaker tuning profile | JSON format. Presets loaded via EasyEffects. |
-| `easyeffects/autoloading/output.json` | Autoloading rules mapping `Apple Audio Device Speakers` -> `mbp` | JSON autoload configuration. |
-| `pipewire/pipewire.conf.d/99-echo-cancel.conf` | WebRTC noise & echo cancellation module for microphone (`AppleT2_CleanMic`) | PipeWire SPA/module format. Restart PipeWire after editing. |
-
----
-
-## System Helper Scripts & Daemons (`/usr/local/bin/`)
+Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 
 | Path | Purpose | Description |
 |------|---------|-------------|
-| `/usr/local/bin/amdgpu-power-switch.sh` | GPU & CPU Power Profile Switcher | Toggles AMD PowerPlay (`mode 2` vs `mode 0`), PCIe ASPM (`powersupersave`), and Intel Turbo Boost (`no_turbo`). |
-| `/usr/local/bin/t2-sleep-helper` | T2 Sleep & Wakeup Helper | Manages pre-suspend and post-resume Touch Bar USB configuration cycling (`0 -> 2`) and DRM display re-attachment. |
+| `hypr-screenshot` | Smart Screenshot Capture | Piped window snap, region drag, and active window capture to Satty. |
+| `hypr-ocr` | OCR Text Extraction | Extracts text from selected screen regions to clipboard via Tesseract. |
+| `hypr-record` | Screen Recording | Toggle screen recording on/off to `~/Videos/Captures/` via `wf-recorder`. |
+| `hypr-capture-menu` | Capture Menu Launcher | Interactive floating capture menu (`SUPER+CONTROL+C`). |
+| `kitty-focus-opacity` | Terminal Focus Opacity Daemon | Modulates Kitty opacity between `0.60` (unfocused) and `0.75` (focused) via Hyprland IPC. |
+| `mac-key-helper` | macOS Text Navigation Helper | Dispatches context-aware line and word cursor navigation shortcuts. |
+| `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window. |
+| `hypr-toggle-altwin` | Alt/Super Layout Toggle | Triggered by `SUPER+ALT+K` to toggle `kb_options` between Mac and PC layouts. |
+| `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating previews via `swayimg`. |
+| `hypr-screen-brightness` | Screen Brightness Control | Adjusts display backlight with Noctalia OSD. |
+| `hypr-kbd-brightness` | Keyboard Backlight Control | Steps keyboard brightness (0-3) with visual OSD notification. |
+| `hypr-lid-handler` | Universal Clamshell DPMS Handler | Clamshell lid close/open handler managing DPMS power and power profiles. |
+| `fastfetch-custom` | Terminal Greeting Fetch Script | Renders two-column system specs and mini CachyOS logo in Fish. |
 
 ---
 
-## System Configs (Require Sudo Approval)
+## Hardware Profile: Surface Book 3 (`profiles/surface/`)
 
-These commands will prompt the user for confirmation and password access.
+Per Rule 9, all hardware-specific configurations, daemons, and system hooks are isolated within `profiles/surface/` and kept out of universal `core/`.
+
+| File / Component | Purpose | Description / Placement |
+|------------------|---------|-------------------------|
+| `.config/hypr/config/profile/binds.lua` | Surface Keybindings | Tablet detach (`SUPER+ALT+D`) and on-screen keyboard toggle (`SUPER+ALT+V`). |
+| `.local/bin/hypr-virtual-keyboard` | On-Screen Keyboard Wrapper | Launches `wvkbd-mobintl` touch keyboard bypassing systemd PATH lookups. |
+| `scripts/surface-battery-watchdog.sh` | Dual-Battery Watchdog Daemon | Deployed to `/usr/local/bin/surface-battery-watchdog`; recovers UPower ~200% desync. |
+| `scripts/surface-unplug-lid-handler.sh` | AC Disconnect Clamshell Handler | Deployed to `/usr/local/bin/surface-unplug-lid-handler`; triggers hibernate upon AC pull. |
+| `systemd/10-suspend-then-hibernate.conf` | Sleep Configuration Drop-in | Deployed to `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` (`HibernateMode=shutdown`, 30m delay, `HibernateOnACPower=yes`). |
+| `systemd/10-lid-sleep.conf` | Logind Lid Action Drop-in | Deployed to `/etc/systemd/logind.conf.d/10-lid-sleep.conf` (`HandleLidSwitchExternalPower=suspend-then-hibernate`). |
+| `systemd/surface-battery-watchdog.service` & `.timer` | Battery Watchdog Systemd Timer | Deployed to `/etc/systemd/system/`; runs watchdog every 2 minutes. |
+| `systemd/surface-unplug-lid.service` | Clamshell Udev Trigger Service | Deployed to `/etc/systemd/system/`; triggered by AC disconnect udev rule. |
+| `systemd/98-surface-unplug-lid.rules` | AC Disconnect Udev Rule | Deployed to `/etc/udev/rules.d/98-surface-unplug-lid.rules`; detects `ADP1` state switch. |
+| `systemd/99-surface-battery.rules` | Battery Udev Rule | Deployed to `/etc/udev/rules.d/99-surface-battery.rules`; monitors `BAT2` change events. |
+| `systemd/20-surface-battery-resume.sh` | Sleep Resume Battery Hook | Deployed to `/etc/systemd/system-sleep/20-surface-battery-resume.sh`. |
+| `systemd/21-surface-ipts-resume.sh` | Sleep Resume IPTS Hook | Deployed to `/etc/systemd/system-sleep/21-surface-ipts-resume.sh`. |
+| `systemd/iptsd-timeout.conf` | IPTS Daemon Timeout Drop-in | Deployed to `/etc/systemd/system/iptsd@.service.d/timeout.conf` (`TimeoutStopSec=3s`). |
+
+---
+
+## Universal System Configs (Require Sudo Approval)
+
+These system-level configuration files require elevated permissions to edit:
 
 | Path | Purpose | Edit Rule |
 |------|---------|-----------|
-| `/etc/t2fand.conf` | Fan curve thresholds (`low_temp`, `high_temp`, `speed_curve`) for `t2fanrd` | INI sections (`[Fan1]`, `[Fan2]`). Restart `t2fanrd.service` after editing. |
-| `/etc/tiny-dfr/config.toml` | Touch Bar daemon settings (`EnablePixelShift`, `MediaLayerDefault`, `FontTemplate`) | TOML format. Restart `tiny-dfr.service` after editing. |
-| `/etc/modprobe.d/blacklist-touchbar.conf` | Blacklists `hid_appletb_kbd` to prevent USB endpoint drops on T2 | Patch lines only. |
-| `/etc/udev/rules.d/99-touchbar-tiny-dfr.rules` | Udev rules for Touch Bar USB Configuration 2 and device symlinks | Patch lines; run `udevadm control --reload-rules`. |
-| `/etc/systemd/system/t2-touchbar-setup.service` | Boot service to initialize Touch Bar DRM device node | Systemd unit file. |
-| `/etc/systemd/logind.conf.d/omarchy-lid.conf` | Configures systemd-logind to suspend on lid switch (battery/AC) and ignore only when docked | INI format. |
 | `/etc/pacman.conf` | Pacman configuration and repository listings | Patch lines only. |
 | `/etc/fstab` | File systems and mount configurations | Append or patch only; always verify partition UUIDs. |
+| `/etc/chrony.conf` | Chrony NTP daemon configuration (`makestep 1 -1`, `rtcsync`) | Patch lines only. Restart `chronyd.service` after editing. |
+| `/etc/default/limine` | Limine bootloader kernel parameters (`button.lid_init_state=open`) | Run `limine-snapper-sync` or initramfs sync after editing. |
+
 

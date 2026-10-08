@@ -1,6 +1,6 @@
 # Keyboard Shortcuts (Keybindings)
 
-A reference sheet of keyboard bindings on `cachyos-cu`. All bindings are defined in `~/.config/hypr/config/binds.lua`.
+A reference sheet of keyboard bindings on `surface`. All bindings are defined in `~/.config/hypr/config/binds.lua` and `~/.config/hypr/config/profile/binds.lua`.
 
 The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 

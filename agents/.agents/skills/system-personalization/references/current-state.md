@@ -21,32 +21,32 @@ Base system snapshot automatically generated on Wed Sep 16 12:16:18 AM MDT 2026;
 | Package | Version | Purpose |
 |---------|---------|---------|
 | hyprland | 0.56.2-3.1 | Core / Profile Utility |
-| noctalia | 5.1.0-1.1 | Core / Profile Utility |
-| kitty | 0.48.2-1.1 | Core / Profile Utility |
+| noctalia | 5.2.0-1.1 | Core / Profile Utility (Wayland shell) |
+| kitty | 0.49.2-1.1 | Core / Profile Utility (primary terminal) |
 | alacritty | 0.17.0-1.2 | Core / Profile Utility |
 | fish | 4.9.3-1 | Core / Profile Utility |
 | btop | 1.4.7-1.1 | Core / Profile Utility |
-| swayimg | 5.6-1.1 | Core / Profile Utility |
+| swayimg | 5.6-2.1 | Core / Profile Utility |
 | dolphin | 26.08.1-1.1 | Core / Profile Utility |
-| easyeffects | 8.2.9-1.1 | Core / Profile Utility |
+| easyeffects | 8.3.0-1.1 | Core / Profile Utility |
 | localsend | 1.17.0-4 | Core / Profile Utility |
 | chrony | 4.9-1.1 | Robust NTP daemon with immediate stepping (makestep 1 -1) and NM dispatcher; installed 2026-09-22 |
 | opencode | 2.0.14 | AI coding assistant CLI (upstream in ~/.opencode/bin); updated 2026-09-22 |
-| fwupd | 2.1.7-1.1 | Firmware inventory; installed 2026-09-17 |
+| fwupd | 2.1.8-1.1 | Firmware inventory; updated 2026-10-01 |
 | fwupd-efi | 1.8-2 | fwupd UEFI capsule helper dependency; installed 2026-09-17 |
 | passim | 0.1.12-1.1 | fwupd local-cache dependency; installed 2026-09-17 |
 | cabextract | 1.11-3.1 | LZX CAB extraction for official MSI range-fetch forensics; installed 2026-09-17 |
 | wvkbd | 0.20-1 | Minimal on-screen touch virtual keyboard for Wayland/Hyprland; installed 2026-09-17 |
 | scdoc | 1.11.5-1.1 | Make dependency for wvkbd manual generation; installed 2026-09-17 |
-| qemu-system-x86 | 11.1.1-2 | Isolated Windows VM for portable USB preparation and boot verification; installed 2026-09-17 |
+| qemu-system-x86 | 11.1.1-4 | Isolated Windows VM for portable USB preparation and boot verification; updated 2026-10-01 |
 | edk2-ovmf | 202608-1 | UEFI firmware (4m build, `OVMF_CODE.4m.fd`) for preparation/boot VMs; installed 2026-09-17 |
-| wimlib | 1.14.5-3.1 | Windows image inspection and split-WIM creation; installed 2026-09-17 |
+| wimlib | 1.14.5-4.1 | Windows image inspection and split-WIM creation; updated 2026-10-01 |
 | msitools | 0.106-3.1 | Extract official Surface driver MSI; installed 2026-09-17 |
 | libisoburn | 1.5.8.2-1.1 | Provides xorriso for UEFI preparation media; installed 2026-09-17 |
-| ntfsprogs | 2026.7.7-1.1 | `ntfscat`/`ntfsls`/`mtype` read-only USB inspection and verification; installed 2026-09-17 |
+| ntfsprogs | 2026.9.28-1.1 | `ntfscat`/`ntfsls`/`mtype` read-only USB inspection and verification; updated 2026-10-01 |
 | hivex | 1.3.24-8.1 | Offline registry edits and SYSTEM/SOFTWARE verification; installed 2026-09-18 |
 | fuse2 | 2.9.9-6 | hivex/ntfs-3g dependency; installed 2026-09-18 |
-| ntfs-3g | 2026.7.7-1.1 | Lexar NTFS read/write when a mount is required; installed 2026-09-18 |
+| ntfs-3g | 2026.9.28-1.1 | Lexar NTFS read/write when a mount is required; updated 2026-10-01 |
 | cdrtools | 3.02a09-6.1 | `mkisofs` for the small data-only repair ISO; installed 2026-09-18 |
 
 ## Compositor Health

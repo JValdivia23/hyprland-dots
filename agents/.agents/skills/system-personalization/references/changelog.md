@@ -1,6 +1,6 @@
 # System Personalization Changelog
 
-A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
+A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
 ## [Unreleased]
 ### Fixed
@@ -70,6 +70,10 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Added an ambiguity guard: if it is unclear whether a feature is hardware-dependent or universal, the agent must ask the user for clarification before applying or placing the configuration.
 
 ### Changed
+- **Documentation profile scope separation & hygiene (`multi-pc` / `surface`, 2026-10-08)**:
+  - **Action**: Aligned [`references/config-paths.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/config-paths.md), [`references/gotchas.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas.md), and [`SKILL.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md) with Core Rule 9.
+  - **Scope Isolation**: Removed legacy MacBook T2 entries from `config-paths.md`. Explicitly separated universal scripts (`core/.local/bin/`) from hardware-specific Surface configurations (`profiles/surface/`), ensuring Surface daemon scripts (`surface-battery-watchdog`, `surface-unplug-lid-handler`), systemd drop-ins, and on-screen keyboard wrapper remain strictly quarantined within `profiles/surface/` and out of `core/`.
+  - **Gotchas Index**: Cleaned up obsolete `/home/java1127/` paths in `gotchas.md`, indexed all Surface profile gotchas, and added missing entries (`opencode.md`, `virtual-keyboard.md`) to `SKILL.md`.
 - **Full system package upgrade via yay (`surface` / `core`, 2026-10-01)**:
   - **Action**: Performed complete system upgrade via interactive `yay -Syu` terminal session on active Wayland workspace per Rule 8.
   - **Upgrades**: Upgraded 259 repository packages, including:
