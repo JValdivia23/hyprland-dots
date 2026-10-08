@@ -106,7 +106,7 @@ Detailed troubleshooting for hibernation failures, ACPI S4 platform power-down r
 - **Fix**:
   1. **Align External Power Lid Action (`suspend-then-hibernate`)**:
      - Set `HandleLidSwitchExternalPower=suspend-then-hibernate` in `/etc/systemd/logind.conf.d/10-lid-sleep.conf` (tracked in `profiles/surface/systemd/10-lid-sleep.conf`).
-     - Because `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` defines `HibernateOnACPower=no`, the machine **never hibernates while plugged into AC power** (stays in fast suspend at the desk).
+     - Configured `HibernateOnACPower=yes` in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` so the machine consistently hibernates after 30 minutes whether on AC power or on battery.
   2. **Tune Hibernate Delay to 30 Minutes**:
      - Align `HibernateDelaySec=30min` and `SuspendEstimationSec=30min` in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` (tracked in `profiles/surface/systemd/10-suspend-then-hibernate.conf`).
   3. **AC Disconnect Clamshell Guard (Udev + Oneshot Service)**:
