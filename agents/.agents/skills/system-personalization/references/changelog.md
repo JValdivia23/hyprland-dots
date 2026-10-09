@@ -2,6 +2,26 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.37.0] - 2026-10-09
+### Added
+- **Next-Gen Touch Bar Daemon (`kait2en-touchbar`)**:
+  - Replaced legacy static SVG daemon [`tiny-dfr`](file:///usr/bin/tiny-dfr) with [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar) compiled from source.
+  - Patched `renderer.rs` with Arch Linux Adwaita and Cantarell font paths (`/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf`).
+  - Configured Arch-native udev seat permissions in [`/etc/udev/rules.d/99-zz-kait2en-touchbar.rules`](file:///etc/udev/rules.d/99-zz-kait2en-touchbar.rules) granting desktop `video` group access to `/dev/dri/card0`, digitizer, backlight, and uinput.
+  - Features enabled: dark-first OLED display, 2-finger volume swipe on dark bar, 3-finger brightness swipe on dark bar, 2-finger carousel swipe across 3 layers (Media keys, F1–F12, and extended Mac navigation keys Home/End/PgUp/PgDn/Ins/Del).
+  - Integrated with [`t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper) for clean pre-suspend shutdown and post-resume reload.
+- **T2 CPU Control Utility & Service (`t2-cpu-control`)**:
+  - Installed `msr-tools` (`1.3-4`) from Arch repositories for CPU MSR read/write support (`rdmsr`/`wrmsr`).
+  - Deployed KAIT2EN's GTK4 / Libadwaita utility [`t2-cpu-control`](file:///usr/local/bin/t2-cpu-control) with polkit integration and background systemd service [`t2-cpu-control.service`](file:///etc/systemd/system/t2-cpu-control.service).
+  - Provides visual and persistent tuning for Intel Core i9 PL1 sustained power limits, PL2 short burst limits, and thermal ceilings to eliminate PROCHOT throttling.
+
+### Changed
+- **AMDGPU Dynamic DPM Power Optimization (`POWER_SAVING` Mode 2)**:
+  - Discovered that on AC power, AMD Radeon Pro 560X defaulted to `3D_FULL_SCREEN` mode 1, locking core/memory clocks at 1000 MHz and consuming 15.26 W idle at 67°C.
+  - Updated [`profiles/macbook-t2/scripts/amdgpu-power-switch.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-switch.sh) and `/usr/local/bin/amdgpu-power-switch.sh` to enforce `manual` DPM with profile 2 (`POWER_SAVING`) during AC mode while keeping CPU Turbo Boost enabled.
+  - Immediate verification: Idle wattage dropped ~38% (from 15.26 W to 9.5–12 W), `sclk` dropped to 241–309 MHz, `mclk` dropped to 300 MHz, and GPU temperatures steadily cooled.
+  - Updated [`profiles/macbook-t2/scripts/t2-sleep-helper`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/t2-sleep-helper) and `/usr/local/bin/t2-sleep-helper` to automatically reapply GPU and CPU power policies on post-resume.
+
 ## [2.36.0] - 2026-10-09
 ### Changed
 - **Full System Upgrade & Linux 7.2.9 T2 BCE Kernel Verification (`7.2.9-1-cachyos`)**:

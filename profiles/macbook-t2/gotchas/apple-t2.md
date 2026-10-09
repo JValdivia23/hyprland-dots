@@ -4,25 +4,27 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ---
 
-## 1. Touch Bar Display & Operating Modes (`hid-appletb-kbd` & `tiny-dfr`)
+## 1. Touch Bar Display & Operating Modes (`kait2en-touchbar` & `tiny-dfr`)
 
 - **Architecture & Operational Mode**:
-  - **Userspace DRM Mode (`appletbdrm` + `tiny-dfr`, Configuration 2 - Default & Canonical)**: The standard and reliable Touch Bar architecture for Intel T2 MacBooks (`MacBookPro15,1`).
+  - **Userspace DRM Mode (`appletbdrm` + `kait2en-touchbar`, Configuration 2 - Default & Canonical)**: The standard and reliable Touch Bar architecture for Intel T2 MacBooks (`MacBookPro15,1`).
     - The Touch Bar USB device (`05ac:8302`) exposes two interfaces:
       - `7-6:2.0`: Multitouch digitizer managed by `hid-multitouch`.
-      - `7-6:2.1`: DRM display framebuffer managed by `appletbdrm` -> `/dev/tiny_dfr_display`.
-    - **Daemon (`tiny-dfr.service`)**: Renders custom vector SVG keys (`/etc/tiny-dfr/*.svg`), handles `Fn` layer switching (F-keys ⬌ Media controls), smooth touch input emission via `uinput`, and OLED burn-in pixel shift (`EnablePixelShift = true`).
+      - `7-6:2.1`: DRM display framebuffer managed by `appletbdrm` -> `/dev/dri/card0`.
+    - **Daemon (`kait2en-touchbar.service`)**: Modern Rust Touch Bar daemon replacing `tiny-dfr`.
+      - **Features**: Dark-first OLED power saving (bar stays off until touched or `Fn` pressed), 2-finger volume swipe on dark bar, 3-finger brightness swipe on dark bar, 2-finger carousel swipe across 3 layers (Media keys, F1–F12, and extended Mac navigation keys like Home/End/PgUp/PgDn/Ins/Del).
+      - **Arch Linux Font Path Gotcha**: Source hardcodes Fedora font paths (`/usr/share/fonts/adwaita-sans-fonts/`). On Arch Linux, Adwaita fonts reside in `/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf`. `renderer.rs` MUST be patched with Arch paths before compiling.
+      - **Device Group & Permissions (`99-zz-kait2en-touchbar.rules`)**: Fedora upstream assigns dedicated group `kait2en-touchbar`. To avoid requiring session re-logins or broken group states in systemd user sessions, map udev rules to `GROUP="video"` and `MODE="0660"` (`java1127` is a member of `video`).
+    - **Legacy Fallback Daemon (`tiny-dfr.service`)**: Static SVG key renderer (`/etc/tiny-dfr/*.svg`), disabled by default in favor of `kait2en-touchbar`.
   - **Hardware Keyboard Mode (`hid-appletb-kbd`, Configuration 1 - Unsupported on 15,1)**: On the MacBookPro15,1 (Intel Core i9 + discrete AMD Radeon 560X), attempting to run Configuration 1 results in BridgeOS transfer queue failures (`URB failed: 3`) and continuous endpoint drops (`bce_vhci_drop_endpoint 6:11`). `hid_appletb_kbd` MUST be blacklisted in `/etc/modprobe.d/blacklist-touchbar.conf` (`blacklist hid_appletb_kbd`) to prevent the kernel from auto-claiming `05ac:8302` during sleep/resume cycles.
-- **Sleep, Boot & Resume Lifecycle (`t2-sleep-helper`, `t2-touchbar-setup.service` & `99-touchbar-tiny-dfr.rules`)**:
+- **Sleep, Boot & Resume Lifecycle (`t2-sleep-helper`, `t2-touchbar-setup.service` & `99-zz-kait2en-touchbar.rules`)**:
   - **T2 Readiness Window Gotcha**: When the Touch Bar re-enumerates after boot or sleep, setting `bConfigurationValue` directly to 2 causes `appletbdrm` probe timeout (`-110` / `ETIMEDOUT: Failed to send message`). The USB device MUST cycle from `bConfigurationValue = 0` (unconfigured) to `bConfigurationValue = 2` (DRM mode) to open BridgeOS's hardware readiness window.
-  - **Pre-suspend**: Saves brightness to `/run/tb_brightness` and gracefully stops `tiny-dfr.service` to avoid sudden DRM disconnect panics.
-  - **Post-resume / Boot Setup**: `t2-sleep-helper post` cycles `05ac:8302` `0 -> 2`, loads `appletbdrm` to register `/dev/dri/card0`, restores saved brightness, and restarts `tiny-dfr.service`. Enabled on boot via `t2-touchbar-setup.service`.
-- **Systemd Binding**: `/etc/systemd/system/tiny-dfr.service` uses `BindsTo=dev-tiny_dfr_display.device` so `tiny-dfr` never attempts to open the primary AMD GPU DRM card `/dev/dri/card1` if the Touch Bar DRM node is temporarily absent.
-- **Service Cleanup**: Disabled and masked obsolete `supergfxd.service` (an ASUS ROG GPU daemon left over from dual-GPU configs) which was triggering spurious PCIe bus rescans and resetting T2 VHCI endpoints.
+  - **Pre-suspend**: Saves brightness to `/run/tb_brightness` and gracefully stops `kait2en-touchbar` / `tiny-dfr` via `pkill -TERM kait2en-touchbar` to avoid sudden DRM disconnect panics.
+  - **Post-resume / Boot Setup**: `t2-sleep-helper post` cycles `05ac:8302` `0 -> 2`, loads `appletbdrm` to register `/dev/dri/card0`, restores saved brightness, and restarts `systemctl --user restart kait2en-touchbar.service`. Also refreshes GPU/CPU power policy via `amdgpu-power-switch.sh auto`.
 - **Diagnostic / Status**:
   ```bash
-  systemctl status tiny-dfr.service
-  ls -la /dev/dri/
+  systemctl --user status kait2en-touchbar.service
+  ls -la /dev/dri/card0
   cat /sys/class/backlight/appletb_backlight/brightness
   ```
 
@@ -74,6 +76,24 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   always_full_speed=false
   ```
 - **Service**: `sudo systemctl restart t2fanrd.service`
+
+---
+
+## 4.1 AMDGPU Power-Saving DPM Profile (`POWER_SAVING` Mode 2)
+
+- **Quirk**: On MacBookPro15,1 (AMD Radeon Pro 560X), the kernel `amdgpu` driver defaults to profile mode 1 (`3D_FULL_SCREEN`), pegging `sclk` and `mclk` at 1000 MHz and drawing ~15.26 W idle at 67°C even on minimal desktop loads.
+- **Fix**: Apply `power_dpm_force_performance_level = manual` and `pp_power_profile_mode = 2` (`POWER_SAVING`).
+  - Core clock drops to ~240–300 MHz, memory clock drops to 300 MHz, idle draw drops to ~9.5–12 W (~38% reduction).
+  - Managed dynamically via [`profiles/macbook-t2/scripts/amdgpu-power-switch.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-switch.sh) and [`/usr/local/bin/amdgpu-power-switch.sh`](file:///usr/local/bin/amdgpu-power-switch.sh).
+  - Reapplied on resume via [`t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper).
+
+---
+
+## 4.2 Intel Core i9 Thermal Throttling & RAPL Limits (`t2-cpu-control`)
+
+- **Architecture**: Intel Core i9-9880H rapidly thermal-throttles (PROCHOT at 100°C) under sustained uncapped power spikes.
+- **Utility**: Installed [`t2-cpu-control`](file:///usr/local/bin/t2-cpu-control) (GTK4 / libadwaita UI) backed by `msr-tools` and `/usr/local/libexec/t2-cpu-control-helper`.
+- **Capabilities**: Visual and persistent control of Intel RAPL package constraints (sustained PL1 and burst PL2 wattage), MSR TCC offset, and governor/turbo profiles across boots via `t2-cpu-control.service`.
 
 ---
 

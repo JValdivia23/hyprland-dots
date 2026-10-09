@@ -48,12 +48,12 @@ if [ "$STATE" = "battery" ]; then
         echo "1" > /sys/devices/system/cpu/intel_pstate/no_turbo 2>/dev/null || true
     fi
 else
-    # AC Mode: Restore auto dynamic scaling and standard profile (mode 0)
+    # AC Mode: Keep GPU in POWER_SAVING profile for thermal efficiency, with Intel Turbo Boost active
     if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/power_dpm_force_performance_level" ]; then
-        echo "auto" > "$CARD_DIR/power_dpm_force_performance_level" 2>/dev/null || true
+        echo "manual" > "$CARD_DIR/power_dpm_force_performance_level" 2>/dev/null || true
     fi
     if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/pp_power_profile_mode" ]; then
-        echo "0" > "$CARD_DIR/pp_power_profile_mode" 2>/dev/null || true
+        echo "2" > "$CARD_DIR/pp_power_profile_mode" 2>/dev/null || true
     fi
     # PCIe ASPM restore default
     if [ -w "/sys/module/pcie_aspm/parameters/policy" ]; then

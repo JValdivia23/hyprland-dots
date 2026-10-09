@@ -14,8 +14,9 @@ case "$1" in
             cat /sys/class/backlight/appletb_backlight/brightness > /run/tb_brightness 2>/dev/null
         fi
         
-        # Gracefully stop tiny-dfr so it does not panic on sudden DRM device disconnection
+        # Gracefully stop touchbar daemons so they do not panic on sudden DRM device disconnection
         systemctl stop tiny-dfr.service 2>/dev/null || true
+        pkill -TERM kait2en-touchbar 2>/dev/null || true
         
         echo "t2-sleep-helper: Pre-suspend complete."
         ;;
@@ -56,8 +57,16 @@ case "$1" in
                 rm -f /run/tb_brightness
             fi
 
-            # Start tiny-dfr
-            systemctl restart tiny-dfr.service 2>/dev/null || true
+            # Start Touch Bar daemon
+            if systemctl is-enabled tiny-dfr.service &>/dev/null; then
+                systemctl restart tiny-dfr.service 2>/dev/null || true
+            fi
+            if [ -S "/run/user/1000/bus" ]; then
+                sudo -u java1127 XDG_RUNTIME_DIR=/run/user/1000 DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus systemctl --user restart kait2en-touchbar.service 2>/dev/null || true
+            fi
+
+            # Restore GPU and CPU power policies
+            /usr/local/bin/amdgpu-power-switch.sh auto 2>/dev/null || true
         ) &
         
         echo "t2-sleep-helper: Post-resume complete."

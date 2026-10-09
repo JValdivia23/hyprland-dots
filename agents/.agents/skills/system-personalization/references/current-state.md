@@ -33,14 +33,18 @@ Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
 | easyeffects | 8.2.9-1.1 | Audio Processing Backend |
 | localsend | 1.17.0-4 | Local Network File Transfer |
-| tiny-dfr | 0.3.2-2 | Apple T2 Touch Bar Daemon |
+| msr-tools | 1.3-4 | Intel MSR / RAPL Hardware Access |
+| kait2en-touchbar | 0.1.0 | Advanced Apple T2 Touch Bar Daemon |
+| t2-cpu-control | 0.02 | Intel Core i9 PL1/PL2 RAPL Limiter |
 | apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
 
 ## Hardware Drivers & Subsystems
 - **T2 Driver**: `t2bce_core` actively bound to PCI `02:00.1`
 - **Virtual Input**: `t2bce_vhci` active (internal keyboard & trackpad)
 - **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
-- **Touch Bar**: `tiny-dfr.service` active + `appletbdrm`
+- **Touch Bar**: `kait2en-touchbar.service` active + `appletbdrm` (dark-first OLED, multi-layer & gestures)
+- **GPU Power**: AMD Radeon Pro 560X in `POWER_SAVING` DPM profile (mode 2) via `amdgpu-power-switch.sh`
+- **CPU Limits**: `t2-cpu-control.service` active for PL1/PL2 constraint persistence
 - **Thermals / Fans**: `t2fanrd.service` active + `applesmc_t2`
 
 ## Compositor Health
