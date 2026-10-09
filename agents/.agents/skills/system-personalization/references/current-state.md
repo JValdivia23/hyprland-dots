@@ -1,39 +1,40 @@
 # Current System State
 
-Live system snapshot automatically generated on Mon Sep 14 12:16:27 AM MDT 2026.
+Live system snapshot automatically generated on Fri Oct 09 05:26:27 PM MDT 2026.
 
 ## Operating System & Kernel
 - **OS**: CachyOS
-- **Kernel**: `7.2.3-1-cachyos`
-- **Shell**: `/bin/fish`
-- **Compositor**: HYPRLAND_INSTANCE_SIGNATURE not set! (is hyprland running?)
-Hyprland
+- **Kernel**: `7.2.9-1-cachyos` (installed, `7.2.3-1-cachyos` active until next reboot; unpinned in `/etc/pacman.conf`)
+- **Shell**: `/bin/fish` (fish, version 4.9.3)
+- **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
 - **Active Profiles**: macbook-t2
 
 ## System Specs & Display
 - **Product**: MacBookPro15,1 (`cachyos-cu`)
 - **CPU**: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
-- **GPU**: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor
+- **GPU**: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / Apple Inc. T2 Bridge Controller
 - **RAM**: 15Gi RAM, 15Gi swap
-- **Primary Display**: eDP-1 (Default Display)
+- **Primary Display**: eDP-1 (2880x1800@60Hz, scale 1.3333334)
 
 ## Key Installed Packages & Utilities
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.56.2-2.1 | Core / Profile Utility |
-| noctalia | 5.0.1-1.1 | Core / Profile Utility |
-| kitty | 0.48.2-1.1 | Core / Profile Utility |
-| alacritty | 0.17.0-1.2 | Core / Profile Utility |
-| fish | 4.9.2-1 | Core / Profile Utility |
-| btop | 1.4.7-1.1 | Core / Profile Utility |
-| satty | 0.19.0-1 | Screenshot Annotation Editor |
-| swayimg | 5.6-1.1 | Core / Profile Utility |
-| dolphin | 26.08.0-5.1 | Core / Profile Utility |
-| easyeffects | 8.2.9-1.1 | Core / Profile Utility |
-| localsend | 1.17.0-4 | Core / Profile Utility |
-| tiny-dfr | 0.3.2-2 | Core / Profile Utility |
-| apple-t2-audio-config | 0.3-2 | Core / Profile Utility |
+| hyprland | 0.56.2-4.1 | Core / Profile Utility |
+| noctalia | 5.2.1-1.1 | Wayland Shell & Panels |
+| kitty | 0.49.2-1.1 | Primary Terminal Emulator |
+| alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
+| fish | 4.9.3-1 | System Interactive Shell |
+| btop | 1.4.7-1.1 | Process & System Monitor |
+| satty | 0.22.0-1.1 | Screenshot Annotation Editor |
+| swayimg | 5.6-2.1 | Image & Quick Look Viewer |
+| dolphin | 26.08.2-1.1 | File Manager |
+| zen-browser-bin | 1.23.1b-1 | Primary Web Browser |
+| firefox | 157.0.1-1.1 | Secondary Web Browser |
+| easyeffects | 8.2.9-1.1 | Audio Processing Backend |
+| localsend | 1.17.0-4 | Local Network File Transfer |
+| tiny-dfr | 0.3.2-2 | Apple T2 Touch Bar Daemon |
+| apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
 
 ## Compositor Health
-- **Hyprland Errors**: Active errors detected (run 'hyprctl configerrors')
+- **Hyprland Errors**: None (Clean)

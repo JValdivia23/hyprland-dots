@@ -2,6 +2,19 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.36.0] - 2026-10-09
+### Changed
+- **Full System Upgrade & Linux 7.2.9 T2 BCE Kernel Verification (`7.2.9-1-cachyos`)**:
+  - **Upstream Regression Resolution**: Verified that CachyOS restored the Apple T2 staging drivers (`t2bce_vhci`, `t2bce_core`, `t2bce_dma`, `t2bce_audio`) and Apple SMC / Touch Bar modules (`appletbdrm`, `hid-appletb-bl`, `hid-appletb-kbd`, `applesmc-t2`) in kernel `7.2.9-1`.
+  - **Pacman Unpinning**: Safely commented out `IgnorePkg = linux-cachyos linux-cachyos-headers` in `/etc/pacman.conf`.
+  - **Full Package Upgrade (359 packages)**:
+    - Upgraded core kernel stack: `linux-cachyos` `7.2.9-1`, `linux-cachyos-headers` `7.2.9-1`, `linux-cachyos-lts` `6.18.55-1`.
+    - Upgraded desktop compositor & shell: `hyprland` `0.56.2-4.1`, `noctalia` `5.2.1-1.1`, `noctalia-greeter` `1.6.0-1`, `hyprtoolkit` `0.6.0-1.1`.
+    - Upgraded system core & init: `systemd` `262-1`, `mkinitcpio` `42.2-1`, `glibc` `2.44+r50`.
+    - Upgraded audio & graphics: `pipewire` `1.6.9-1`, `wireplumber` `0.5.18-1.1`, `mesa` `3:26.2.4-1`.
+    - Upgraded applications: `zen-browser-bin` `1.23.1b-1`, `firefox` `157.0.1-1.1`, `kitty` `0.49.2-1.1`, `dolphin` `26.08.2-1.1`, `lazygit` `0.66.0-1.1`, `swayimg` `5.6-2.1`.
+  - **Diagnostics & Health**: Zero Hyprland config errors reported (`hyprctl configerrors`). `t2bce` modules verified installed in `/usr/lib/modules/7.2.9-1-cachyos/kernel/drivers/staging/t2bce/`.
+
 ## [2.35.0] - 2026-09-15
 ### Added
 - **Custom CachyOS Live & Install ISO for Microsoft Surface Book 3 (`~/surface-iso-build/`)**:

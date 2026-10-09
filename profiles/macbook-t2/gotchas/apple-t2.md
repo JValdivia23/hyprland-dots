@@ -147,6 +147,8 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
        ```
 - **Turnkey Automation Script**:
   Staged in [`profiles/macbook-t2/scripts/cachy-downgrade-kernel-723.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/cachy-downgrade-kernel-723.sh) and installed to [`~/.local/bin/cachy-downgrade-kernel-723`](file:///home/java1127/.local/bin/cachy-downgrade-kernel-723). Handles removal of obsolete nvidia modules, cached package reinstallation, pacman pinning, initramfs rebuild, and safe reboot.
+- **Upstream Resolution (`linux-cachyos 7.2.9-1`)**:
+  As of October 2026, upstream CachyOS re-integrated the staging `t2bce` patch tree (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`) and Apple SMC / Touch Bar drivers into `linux-cachyos 7.2.9-1`. Unpinning `linux-cachyos` in `/etc/pacman.conf` and upgrading to `7.2.9-1` restores normal operation with full hardware support across internal keyboard, trackpad, Touch Bar, and audio.
 
 
 

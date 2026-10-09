@@ -1,7 +1,7 @@
 ---
 name: system-personalization
 description: "Comprehensive system personalization tracker for cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.35.0
+version: 2.36.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
@@ -42,7 +42,7 @@ Complete documentation of this machine's configuration and personalization. This
 | **Machine** | MacBookPro15,1 |
 | **Hostname** | `cachyos-cu` |
 | **OS** | CachyOS |
-| **Kernel** | `7.2.3-1-cachyos` |
+| **Kernel** | `7.2.9-1-cachyos` (reboot pending) / `7.2.3-1-cachyos` (active) |
 | **WM** | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia |
 | **Primary Display** | eDP-1 (Default Display) |
