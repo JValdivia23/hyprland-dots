@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# hypr-record: Screen recording toggle script for Hyprland
+
+RECORD_DIR="$HOME/Videos/Captures"
+PID_FILE="/tmp/hypr-record.pid"
+
+# Check if already recording
+if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE" 2>/dev/null)" 2>/dev/null; then
+    PID=$(cat "$PID_FILE")
+    kill -INT "$PID"
+    rm -f "$PID_FILE"
+    notify-send -a "Screen Recorder" -i media-playback-stop "Recording Saved" "Saved to ~/Videos/Captures/"
+    exit 0
+fi
+
+PID=$(pgrep -x wf-recorder | head -n1)
+if [ -n "$PID" ]; then
+    kill -INT "$PID"
+    rm -f "$PID_FILE"
+    notify-send -a "Screen Recorder" -i media-playback-stop "Recording Saved" "Saved to ~/Videos/Captures/"
+    exit 0
+fi
+
+mkdir -p "$RECORD_DIR"
+OUT_FILE="$RECORD_DIR/recording_$(date +'%Y-%m-%d_%H-%M-%S').mp4"
+
+SELECTION=$(python3 -c '
+import json, subprocess
+monitors = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"]))
+clients = json.loads(subprocess.check_output(["hyprctl", "clients", "-j"]))
+active_ws = {m["activeWorkspace"]["id"] for m in monitors}
+boxes = []
+for c in clients:
+    if c.get("mapped") and not c.get("hidden") and c.get("workspace", {}).get("id") in active_ws:
+        x, y = c["at"]
+        w, h = c["size"]
+        boxes.append(f"{x},{y} {w}x{h}")
+for m in monitors:
+    x, y = m["x"], m["y"]
+    w, h = int(m["width"] / m["scale"]), int(m["height"] / m["scale"])
+    boxes.append(f"{x},{y} {w}x{h}")
+print("\n".join(boxes))
+' | slurp -d -b 00000060 -c f38ba8ff -s f38ba822 -B 00000040)
+
+if [ -z "$SELECTION" ]; then
+    exit 0
+fi
+
+notify-send -a "Screen Recorder" -i media-record "Recording Started" "Press shortcut again to stop."
+
+wf-recorder -r 30 -g "$SELECTION" -f "$OUT_FILE" >/dev/null 2>&1 &
+REC_PID=$!
+echo "$REC_PID" > "$PID_FILE"

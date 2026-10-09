@@ -1,47 +1,45 @@
-# Hardware Specifications (`cachyos-cu` - MacBookPro15,1)
+# Hardware Specifications (`surface` - Surface Book 3)
 
 Live physical system specifications probed automatically.
 
 ## System & Architecture
-- **Product / Model**: MacBookPro15,1
-- **Hostname**: `cachyos-cu`
+- **Product / Model**: Surface Book 3
+- **Hostname**: `surface`
 - **Architecture**: x86_64
-- **Active Profiles**: macbook-t2
+- **Active Profiles**: surface
 
 ## CPU & Processing
-- **Processor**: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
-- **Physical Cores / Threads**: 16
-- **CPU max MHz**: 2300.0000
-- **CPU min MHz**: 800.0000
-- **L3 cache**: 16 MiB (1 instance)
+- **Processor**: Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz
+- **Physical Cores / Threads**: 8
+- **CPU max MHz**: 3700.0000
+- **CPU min MHz**: 400.0000
+- **L3 cache**: 6 MiB (1 instance)
 
 ## Graphics Processing Units (GPUs)
-- **Detected GPU(s)**: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor
-  01:00.0 VGA compatible controller: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] (rev c2)
-  	Subsystem: Apple Inc. Radeon Pro 560X
-  	Kernel driver in use: amdgpu
-  --
-  02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller (rev 01)
-  	Subsystem: Apple Inc. T2 Bridge Controller
-  	Kernel driver in use: t2bce_core
-  --
-  02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor (rev 01)
-  	Subsystem: Apple Inc. T2 Secure Enclave Processor
-  02:00.3 Multimedia audio controller: Apple Inc. Apple Audio Device (rev 01)
+- **Detected GPU(s)**: Intel Corporation Iris Plus Graphics G7
+  00:02.0 VGA compatible controller: Intel Corporation Iris Plus Graphics G7 (rev 07)
+  	Subsystem: Microsoft Corporation Device 0043
+  	Kernel driver in use: i915
 
 ## Memory & Swap
-- **Total System RAM**: 15Gi
-- **Swap Space**: 15Gi
+- **Total System RAM**: 7.4Gi
+- **Swap Space**: 16Gi
 
 ## Storage & Filesystems
 ```
 Filesystem      Size  Used Avail Use% Mounted on
-/dev/nvme0n1p4  229G   31G  198G  14% /
-/dev/nvme0n1p4  229G   31G  198G  14% /home
+/dev/nvme0n1p2  226G  9.8G  215G   5% /
+/dev/nvme0n1p2  226G  9.8G  215G   5% /home
 ```
 
 ## Displays & Monitors
-- **Primary Display**: eDP-1 (Default Display)
+- **Primary Display**: eDP-1 (3000x2000@60Hz, scale 2)
 ```
-Monitor details unavailable
+Monitor eDP-1 (ID 0):
+	3000x2000@59.98500 at 0x0
+	make: Panasonic Industry Company
+	model: TDM13O56    
+	scale: 2
+	transform: 0
+	availableModes: 3000x2000@59.98Hz 
 ```

@@ -1,8 +1,8 @@
 [accessibility]
-ui_scale = 1.20
+ui_scale = 1.0
 
 [bar.default]
-center = [ "workspaces", "spacer_1", "active_window" ]
+center = [ "caffeine", "workspaces", "spacer_1", "active_window" ]
 concave_edge_corners = true
 end = [ "media", "spacer_1", "tray", "notifications", "network", "volume", "battery", "session" ]
 margin_edge = 0
@@ -11,7 +11,7 @@ radius_bottom_left = 12
 radius_bottom_right = 12
 radius_top_left = 0
 radius_top_right = 0
-scale = 1.10
+scale = 1.0
 start = [ "launcher", "clock", "spacer_1", "group:g1" ]
 thickness = 35
 
@@ -151,3 +151,7 @@ show_labels = false
 color = "secondary"
 display_mode = "graphic"
 show_label = true
+
+[widget.caffeine]
+color = "secondary"
+

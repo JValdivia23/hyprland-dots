@@ -49,6 +49,217 @@ A dated log of all package changes, configurations, script modifications, and ha
 - **Surface Dotfiles Profile Pre-Install Repository Fix (`profiles/surface/pre-install.sh`)**:
   - Corrected official Surface Linux repository server URL from outdated `pkg.surfacelinux.org` to active `pkg.surfacelinux.com`.
 
+## [Unreleased]
+### Fixed
+- **OpenCode TUI line navigation (`SUPER + Left / Right` & `Home / End`) (`core`, 2026-09-22)**:
+  - **Issue**: Pressing `SUPER + Left` or `SUPER + Right` in OpenCode input prompts jumped to first/last message in session history instead of moving cursor to beginning/end of line.
+  - **Root Cause**: Hyprland translates `SUPER + Left` / `SUPER + Right` to simulated `Home` / `End` keys. OpenCode's default keymap assigns `Home` and `End` to `messages_first` and `messages_last`, while cursor navigation defaults strictly to Emacs keys (`Ctrl + A` and `Ctrl + E`).
+  - **Fix**: Created universal dotfiles configuration [`core/.config/opencode/cli.json`](file:///home/jmvp/dotfiles/core/.config/opencode/cli.json) symlinked to `~/.config/opencode/cli.json`, patching `keybinds` to map `home` and `end` to `input_line_home` and `input_line_end` (and `shift+home` / `shift+end` to `input_select_line_home` / `input_select_line_end`) while preserving `ctrl+g` / `ctrl+alt+g` for message history navigation.
+  - **Verification**: Executed `opencode reload` (returned `Configuration reloaded`); verified symlink integrity and config validation. Documented in `references/gotchas/opencode.md`.
+- **Surface Book dual-battery 201% calculation desync & automated watchdog (`surface`, 2026-09-20)**:
+  - **Issue**: Battery indicator displayed impossible 201% (`DisplayDevice percentage: 200.813%`) while discharging.
+  - **Root Cause**: At 13:00:33 MDT, base battery `BAT2` experienced a transient EC serial communication timeout (`power_supply BAT2: driver failed to report 'manufacturer' property: -110`). Upstream UPower bug #336 reset D-Bus `BAT2.EnergyFull` to 0 but retained internal cache comparison variables. When `BAT2` recovered, UPower skipped re-publishing `EnergyFull` because sysfs matched its stale cache. `DisplayDevice` summed total charge (29.64 Wh) and divided only by tablet battery `BAT1` full capacity (14.76 Wh). Earlier fix on 2026-09-17 was only a manual one-time service restart without an automated daemon.
+  - **Fix**: Created automated watchdog `/usr/local/bin/surface-battery-watchdog` (tracked in `profiles/surface/scripts/surface-battery-watchdog.sh`) to detect when sysfs has healthy `BAT2` energy but UPower reports 0 Wh or `DisplayDevice > 100%`, restarting `upower.service` with a 30s rate-limiting guard and refreshing Noctalia (`noctalia msg config-reload`). Deployed `surface-battery-watchdog.service`, `surface-battery-watchdog.timer` (2-minute interval), `/etc/udev/rules.d/99-surface-battery.rules` (`BAT2` change events), and `/etc/systemd/system-sleep/20-surface-battery-resume.sh` (sleep wake hook) via `profiles/surface/setup.sh`.
+  - **Verification**: Executed watchdog; `DisplayDevice` restored to healthy ~45% (28.75 Wh / 63.9 Wh), `BAT2` full capacity restored to 49.14 Wh, timer active and waiting, 0 `hyprctl configerrors`.
+- **GNOME Keyring greetd PAM auto-unlock & Seahorse setup (`surface`, 2026-09-20)**:
+  - **Issue**: GNOME Keyring was locked (`Locked: 1`) on boot, causing token and credential access from CLI tools (`agy`, `gh`) and applications to block and pop up password prompts (`gcr-prompter`).
+  - **Root Cause**: Greetd login manager configuration (`/etc/pam.d/greetd`) lacked `pam_gnome_keyring.so` integration. Keyring was named `Default_keyring` instead of standard `login`.
+  - **Fix**: Backed up `/etc/pam.d/greetd` to `/etc/pam.d/greetd.bak` and added `pam_gnome_keyring.so` to `auth`, `session`, and `password` sections. Installed `seahorse` for graphical keyring management.
+- **Surface Modern Standby hibernation failure & 19-hour sleep limbo (`surface`, 2026-09-20)**:
+  - **Issue**: After 90 minutes of sleep, `systemd-suspend-then-hibernate` failed to power off the laptop. The machine either aborted within 12 seconds due to Surface Aggregator Module (SAM) EC timeout (`surface_dtx: failed to get base state: -19`) or hung in a frozen 19-hour sleep limbo with the lid closed (`Sep 19 10:22 -> Sep 20 05:20`) without powering down, draining battery continuously.
+  - **Root Cause**: Modern Standby Surface Book 3 firmware does not support traditional ACPI S4 platform sleep. Default `HibernateMode=platform` caused ACPI S4 rejection and hang. Furthermore, default `SuspendEstimationSec=60min` caused an unnecessary intermediate RTC wake at 60 minutes.
+  - **Fix**: Updated [`/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf`](file:///etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf) with `HibernateMode=shutdown` (forcing clean ACPI S5 power-off after writing the RAM snapshot to NVMe swap `/dev/nvme0n1p3`) and `SuspendEstimationSec=90min`. Reloaded systemd daemon.
+  - **Documentation**: Documented issue, live journal traces, and fix in [`profiles/surface/gotchas/sleep-hibernate.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/sleep-hibernate.md) (symlinked into `references/gotchas/sleep-hibernate.md`).
+- **System clock desynchronization after S4 hibernation (`surface`, 2026-09-20)**:
+  - System clock was 7 hours behind (~05:25 AM MDT vs true ~12:25 PM MDT / 18:25 UTC) after waking from S4 hibernation (`suspend-then-hibernate`).
+  - Read-only diagnostics revealed the hardware RTC restored an out-of-sync timestamp upon S4 resume while `systemd-timesyncd` remained idle with a 34-minute poll interval without automatically triggering an NTP handshake upon wake or Wi-Fi reconnect.
+  - User approved fix via interactive elevated Kitty terminal: restarted `systemd-timesyncd.service` to immediately step the system clock forward (+6h 59min 55s offset corrected) and sync RTC.
+  - Installed persistent automatic resume hook in `/etc/systemd/system-sleep/10-timesyncd-resume.sh` and NetworkManager dispatcher hook in `/etc/NetworkManager/dispatcher.d/no-wait.d/10-timesyncd.sh` to trigger timesyncd synchronization on sleep wake and interface connection.
+  - Documented root cause, hooks, and verification in `references/gotchas/networking.md`.
+
+### Added
+- **Dynamic Kitty focus-dependent background opacity (`surface` / `core`, 2026-09-22)**:
+  - **Feature**: Dynamic terminal background transparency that shifts from `0.60` (unfocused) to `0.75` (focused), preserving 100% solid text glyphs and font contrast without darkening or fading syntax highlighting.
+  - **Implementation**:
+    - Created lightweight event-driven daemon [`core/.local/bin/kitty-focus-opacity`](file:///home/jmvp/dotfiles/core/.local/bin/kitty-focus-opacity) symlinked to `~/.local/bin/kitty-focus-opacity`.
+    - Listens directly to Hyprland's UNIX event socket (`.socket2.sock`) for window focus events and modulates Kitty background opacity via DCS Device Control Strings (`\x1bP@kitty-cmd`) over Kitty's private UNIX domain socket (`/run/user/1000/kitty-socket-<pid>`).
+    - Configured [`core/.config/kitty/kitty.conf`](file:///home/jmvp/dotfiles/core/.config/kitty/kitty.conf) with `dynamic_background_opacity yes`, `allow_remote_control socket-only`, and `listen_on unix:${XDG_RUNTIME_DIR}/kitty-socket`.
+    - Registered autostart in [`core/.config/hypr/config/autostart.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/autostart.lua) via `hl.exec_cmd(homeDir .. "/.local/bin/kitty-focus-opacity")`.
+  - **Verification**: Verified zero CPU utilization while idle, systemd user service `kitty-focus-opacity` active and responsive, and clean Hyprland config validation (`hyprctl configerrors` returned 0).
+- **Core Rule 9: Device-Specific vs. Universal Scope Identification (`agents`, 2026-09-20)**:
+  - Added Rule 9 to [`SKILL.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md), [`SKILL.md.template`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/SKILL.md.template), and [`AGENTS.md`](file:///home/jmvp/dotfiles/AGENTS.md).
+  - Mandates that whenever a new package, daemon, script, keybinding, or setting is introduced, the agent must explicitly classify it as hardware profile-specific (`profiles/<profile>/`) or universal (`core/`).
+  - Added an ambiguity guard: if it is unclear whether a feature is hardware-dependent or universal, the agent must ask the user for clarification before applying or placing the configuration.
+
+### Changed
+- **Migrated NTP daemon from systemd-timesyncd to chrony (`surface`, 2026-09-22)**:
+  - **Issue**: Surface Book 3 hardware RTC desyncs after S4 hibernation/sleep. `systemd-timesyncd` has an exponential poll backoff up to 34 minutes, treats multi-hour offsets as spikes, and resume hooks failed due to Wi-Fi association timing races.
+  - **Solution**: Switched to `chrony 4.9-1.1` (tracked in `core/packages.txt`). Configured `/etc/chrony.conf` with `makestep 1 -1` (unconditional immediate stepping on any offset > 1s) and `rtcsync` (kernel 11-minute RTC synchronization). Disabled `systemd-timesyncd.service` and purged obsolete resume scripts (`/etc/systemd/system-sleep/10-timesyncd-resume.sh` and `/etc/NetworkManager/dispatcher.d/no-wait.d/`). Deployed official NetworkManager dispatcher script (`/etc/NetworkManager/dispatcher.d/20-chrony-onoffline.sh`) to instantly burst NTP queries when internet connects.
+  - **Verification**: `chronyd.service` active and enabled; `chronyc tracking` synchronized with sub-millisecond precision across 4 pool servers; `timedatectl status` confirms `System clock synchronized: yes` and `NTP service: active`.
+- **OpenCode CLI upgraded to v2.0.14 (`surface`, 2026-09-22)**:
+  - **Action**: Ran `opencode upgrade` to update OpenCode from `v2.0.8` to `v2.0.14`.
+  - **Gotcha Handled**: Initial upgrade check failed due to a 5.5-hour system clock drift after sleep/hibernate causing TLS certificate validation failure (`certificate is not yet valid`). Resolved by restarting `systemd-timesyncd.service` to step the system clock forward and resynchronize with NTP.
+  - **Service Verification**: Restarted background daemon via `opencode service restart`; verified `opencode --version` returns `v2.0.14` in both bash and fish shells, background service is active at `http://127.0.0.1:49374`, and subsequent `opencode upgrade` reports `2.0.14 is already installed`.
+- **Modular Hardware Profile Separation & Core Hygiene (`multi-pc`, 2026-09-20)**:
+  - **MacBook T2 Profile Isolation**: Relocated `core/.config/easyeffects/` (`output/mbp.json` and DSP preset) to `profiles/macbook-t2/.config/easyeffects/`. Moved `easyeffects` package from `core/packages.txt` to `profiles/macbook-t2/packages.txt`. Removed hardcoded `apple::kbd_backlight` listener from universal `core/.config/hypr/hypridle.conf` (fixing repeating 2.5-minute errors on non-Apple hardware). Extracted Touch Bar and AMDGPU power-switching logic from `core/.local/bin/hypr-lid-handler` into dedicated profile hooks in `profiles/macbook-t2/.config/hypr/hooks/`.
+  - **Surface Profile Isolation**: Relocated on-screen virtual keyboard wrapper `core/.local/bin/hypr-virtual-keyboard` to `profiles/surface/.local/bin/hypr-virtual-keyboard`. Version-controlled Surface Modern Standby sleep drop-ins in `profiles/surface/systemd/` and added automated deployment to `profiles/surface/setup.sh`.
+  - **ASUS Zephyrus Legacy Quarantine**: Moved legacy ASUS ROG AniMe Matrix charging script and launcher (`anime-lid-charging`, `AniMatrix.desktop`) out of `core` into `profiles/asus-rog/`.
+  - **Installer & Stow Updates**: Updated `install.sh` and `profiles/surface/.stow-local-ignore` with `--ignore=^systemd` to prevent stow collisions with system drop-ins. Executed `install.sh --only-stow` on `surface` and verified clean symlinks with zero `hyprctl configerrors`.
+
+### Investigated
+- **Portable Windows USB first boot failed; preparation defects identified (`surface`, 2026-09-18)**:
+  - User reached recovery OOBE with built-in input unavailable. Corrected the earlier readiness claim: only file/EFI hashes had been checked, not a working Windows installation.
+  - Read-only collection found Plug and Play unavailable (`0xE0000223`), recovery OOBE active, and no installed Surface drivers. Image application through a Linux NTFS mountpoint discarded Windows ACLs, attributes, and extended attributes; copying driver files did not install them.
+  - User approved native-DISM rebuild and offline driver installation, followed by actual VM desktop/service/driver-policy verification. Details and persistent evidence paths are in `profiles/surface/gotchas/battery-upower.md`, section 3.
+  - **Repair completed and verified same day**: the rebuilt stick booted to the Windows desktop in an isolated VM; in-Windows report confirmed Plug and Play running, SAN policy 4, `PortableOperatingSystem=1`, all 41 driver packages installed with zero missing. The VM's `usb-storage` transport produced an OVMF-specific `0xc0000428`; the same disk boots via SATA, and the Surface's earlier USB boot manager run shows the real firmware accepts the stick. Native Surface charging retest pending.
+- **Direct base firmware interface discovered (`surface`, 2026-09-17)**:
+  - At user request to investigate reverse engineering, decoded cached Surface base HID descriptors and identified a CFU-compatible collection on `01:15:02:05:00` (`045E:09A6`, currently `hidraw2`). Stock fwupd's USB-backed CFU transport does not directly cover the Surface Aggregator `BUS_HOST` interface.
+  - An identity-checked, read-only `HIDIOCGFEATURE` query for report `0x20` successfully returned 61 bytes through an interactive sudo terminal. Header reports three records and protocol revision 4; the probe's exit code 2 was its deliberate rejection of unverified revision-4 interpretation, not failed communication.
+  - **Component mapping completed same day**: range-fetched five small files from Microsoft's official `SurfaceBook3_Win11_22621_25.013.34389.0.msi` (full 1.67 GB never downloaded; ~116 MB bounded range reads) and hash-verified them against the MSI `MsiFileHash` table. Live `0x12`/`3.6.1` matches `SurfaceBookBaseV3_PD.offer.bin`; live `0x10`/`10.602.139` matches both KIP offer blobs; live `0xFE`/`0.0.0` is the expected CFU offer-information sentinel. All base components are current, so stale base firmware does not explain the charging fault.
+  - Preserved raw response, descriptor hash, temporary probe/log paths, transport evidence, offer mapping, and file hashes in the Surface battery/USB-C gotcha. Charging remains unresolved; no firmware write was performed.
+- **USB-C charging failure after monitor connection (`surface`, 2026-09-16–17; unresolved)**:
+  - User reports failure across reboot/OS reinstall, three chargers, different known-good cables, the proposed recovery test, and charging the detached base. Surface Connect charging and USB-C external video work; only CachyOS is installed.
+  - Read-only samples: kernel `ADP1 online=0`, tablet battery not charging, base battery discharging; UPower agrees and reports plausible combined capacity. UEFI `23.101.140` and SAM `10.600.139` match the newest respective entries in Microsoft's published Book 3 history; base/PD controller firmware was not fully inventoried.
+  - With the confirmed 60 W portable charger connected, captured 30 raw `ADP1 online` transitions in 40 seconds; base battery stayed discharging and fell from 23.84 Wh to 23.68 Wh. This localizes the symptom below the desktop indicator but does not identify a particular failed controller or establish firmware corruption.
+  - September 17 `fwupd` inventory exposed six main UEFI capsule resources but no dedicated base/USB-C update target; CFU plugin ready, no matching base profile in installed quirks. LVFS metadata refresh succeeded with 0 supported detected devices; `get-updates --json` returned an empty list. A follow-up direct CFU read plus official-package offer mapping verified all base components current (PD `3.6.1`, KIP `10.602.139`); this does not establish a defective controller IC. Recorded raw capsule GUIDs/versions and interpretation limits in `profiles/surface/gotchas/battery-upower.md` (already symlinked into the skill). No firmware flash performed.
+### Added
+- **Portable Windows diagnostic USB initial preparation (`surface`, 2026-09-17–18; first boot subsequently failed)**:
+  - 128 GB Lexar USB (verified by serial/size/labels at destructive steps) received Windows 11 Enterprise Evaluation 25H2 (SHA-256-verified Microsoft image) and its own ESP + `bcdboot` UEFI boot files; hashes of `bootmgfw.efi`/`winload.efi` matched the verified image. This did not prove setup completion or driver installation; see the September 18 investigation above.
+  - Contents applied from Linux: split-WIM image via `wimlib`, 41 Surface runtime driver packages (battery/serial-hub/HID/UCSI/Wi-Fi/Chipset), answer file with local `SurfaceTest` account, internal-disks-offline SAN policy, portable-OS registry flags, hibernation/BitLocker/encryption guards, Windows-Update driver exclusion, and a 60-second dual-battery capture tool on the Public Desktop.
+  - The `bcdboot` step ran in an isolated VM (Lexar as the only physical disk, a scratch log image, original Microsoft ISO, no network) through typed diskpart/bcdboot commands with screenshot confirmation. Abandoned the custom-WinPE ISO after six smoke tests: ISO9660-only builds stalled, `-boot-info-table` corrupted `etfsboot.com`, and the UDF rebuild did not complete a successful smoke test. No firmware flashed; internal SSD excluded from the VM, with `SanPolicy=4` configured for native Windows.
+  - Extra tools installed via interactive terminal with user approval: `hivex 1.3.24-8.1`, `ntfs-3g 2026.7.7-1.1`, `fuse2 2.9.9-6`, `cdrtools 3.02a09-6.1` (Snapper snapshots 31–34).
+- **Automatic Display Scale & Text-Size Calibration (`core`, 2026-09-17)**:
+  - Created `core/.local/bin/hypr-autoscale` (symlinked to `~/.local/bin/hypr-autoscale`): Profile-aware and EDID-driven auto-calibrator that automatically detects display pixel density (PPI) and applies the ideal Omarchy-style text scaling.
+  - High-DPI / Retina screens (PPI >= 200, `surface`, `macbook-t2`): sets text size 12px (Terminal 9.0pt, UI scale 1.00x).
+  - Medium High-DPI screens (150 <= PPI < 200, 27" 4K): sets text size 13px (Terminal 10.0pt).
+  - Standard DPI screens (PPI < 150, 1080p/1440p, `desktop`, generic `laptop`): sets text size 14px (Terminal 11.0pt, UI scale 1.17x).
+  - Wired into `install.sh` Step 4/4 Post-Install Setup to guarantee "it just works" out of the box on clean installs across different hardware.
+  - Added `--follow-symlinks` to `hypr-text-size` sed commands to prevent breaking GNU Stow symlinks into detached local files.
+- **Omarchy-Aligned Capture & OCR Suite (`core`, 2026-09-17)**:
+  - Installed `tesseract 5.5.3-1.1`, `tesseract-data-eng 4.1.0-5`, and `wf-recorder 0.6.0-2.1` via pacman through interactive Kitty/Hyprland terminal.
+  - Created `core/.local/bin/hypr-screenshot` (symlinked to `~/.local/bin/hypr-screenshot`): Smart screenshot tool feeding active window and monitor geometry candidate boxes to `slurp`. Enables single-click snapping to any hovered window, single-click to capture desktop, or click-and-drag for freeform region; pipes directly into Satty annotation editor with default save path `~/Pictures/Screenshots/`. Also supports `active` window and `fullscreen` flags.
+  - Created `core/.local/bin/hypr-ocr` (symlinked to `~/.local/bin/hypr-ocr`): Region / window text extraction tool using `grim` + `slurp` + `tesseract -l eng` piped into `wl-copy` with instant notification.
+  - Created `core/.local/bin/hypr-record` (symlinked to `~/.local/bin/hypr-record`): Lightweight toggle screen recorder via `wf-recorder` (30fps, geometry selection, auto-saving to `~/Videos/Captures/`).
+  - Created `core/.local/bin/hypr-capture-menu` (symlinked to `~/.local/bin/hypr-capture-menu`): Interactive floating capture selector launched via `fzf` in dedicated `--class CaptureMenu` Kitty popup.
+  - Added floating window rule for `CaptureMenu` in `core/.config/hypr/config/windowrules.lua`.
+  - Registered full Omarchy-aligned keybindings in `core/.config/hypr/config/binds.lua`:
+    - `Print` / `SUPER + SHIFT + S` -> Smart Screenshot (Window click / Region drag)
+    - `SHIFT + Print` -> Active Window Screenshot (instant)
+    - `CONTROL + Print` -> Fullscreen Screenshot
+    - `SUPER + Print` / `SUPER + SHIFT + P` -> Color Picker (`hyprpicker -a`)
+    - `ALT + Print` / `SUPER + ALT + SHIFT + S` -> Screen Recording Toggle
+    - `SUPER + CONTROL + Print` / `SUPER + CONTROL + SHIFT + S` -> OCR Text Extraction
+    - `SUPER + CONTROL + C` -> Interactive Capture Menu
+  - Validated clean Hyprland IPC reload with 0 config errors (`hyprctl configerrors`). Updated `references/keybindings.md`.
+- **Portable Windows diagnostic USB preparation tooling (`surface`, 2026-09-17)**:
+  - User authorized preparing the 128 GB-class Lexar USB after moving it to USB-A. Installed `qemu-system-x86 11.1.1-2`, `wimlib 1.14.5-3.1`, `msitools 0.106-3.1`, and `libisoburn 1.5.8.2-1.1` (xorriso provider), plus dependencies including `edk2-ovmf 202608-1` and `ntfsprogs 2026.7.7-1.1`. Pacman completed successfully through an interactive Kitty terminal; Snapper snapshots 27/28.
+  - Downloaded Windows 11 Enterprise Evaluation 25H2 x64 from Microsoft's Evaluation Center; SHA-256 matches its official verification PDF (`a61adeab895ef5a4db436e0a7011c92a2ff17bb0357f58b13bbc4062e535e7b9`). Downloaded the full official Surface Book 3 MSI for driver staging, following the earlier range-only CFU investigation.
+  - Assembled 41 runtime driver INFs (92.56 MiB) including the Surface battery/serial-hub/HID/UCSI stack; selected files checked against MSI sizes and available hashes. Working artifacts are under `~/.cache/opencode/surface-windows-usb/`; `/tmp` is RAM-backed and unsuitable for the 6.60 GiB ISO.
+- **Right-Click / Menu Key Dual-Role Super Modifier (`core`, 2026-09-17)**:
+  - Enabled native XKB option `altwin:menu_win` in [`~/.config/hypr/config/inputs.lua`](file:///home/jmvp/.config/hypr/config/inputs.lua) (synced to `dotfiles/core/`), mapping the physical Context Menu (Right-Click) key to `Super_R`.
+  - Added clean-tap release binding in [`~/.config/hypr/config/binds.lua`](file:///home/jmvp/.config/hypr/config/binds.lua) (`SUPER + SUPER_R`, `release = true`) to dispatch native `Menu` event to the active window via `hl.dsp.send_shortcut`, opening the right-click context menu when tapped alone.
+  - When held or chorded (e.g., `Right-Click Key + Return`), engages `SUPER` modifier to open Kitty or trigger any Hyprland Super shortcuts; chord consumption prevents the context menu from opening upon key release.
+  - Updated [`~/.local/bin/hypr-toggle-altwin`](file:///home/jmvp/.local/bin/hypr-toggle-altwin) to preserve `altwin:menu_win` when toggling between PC layout (`altwin:menu_win`) and Mac layout (`altwin:swap_lalt_lwin,altwin:menu_win`).
+  - Completely native implementation: zero new packages, zero background daemons, zero sudo elevation required.
+- **Noctalia Bar Caffeine Widget (`core`, 2026-09-17)**:
+  - Added native `caffeine` widget to the top bar center lane (`center = [ "caffeine", "workspaces", "spacer_1", "active_window" ]`) positioned immediately to the left of the workspace pills.
+  - Configured widget theme styling in `~/.config/noctalia/config.toml` (and synced to `core/.config/noctalia/config.toml`) with `color = "secondary"`.
+  - Enables one-click toggling of Wayland idle inhibitor directly from the bar (with active/inactive steaming cup icon states), complementing the existing `SUPER + CTRL + I` keyboard shortcut.
+  - Validated with `noctalia config validate` and cleanly restarted Noctalia daemon via Hyprland IPC.
+- **On-Screen Touch Virtual Keyboard (`wvkbd`) (`surface`, 2026-09-17)**:
+  - Installed `wvkbd 0.20-1` (and `scdoc 1.11.5-1.1`) via AUR (`yay`) through interactive Kitty/Hyprland prompt per Rule 8.
+  - Created executable toggle wrapper [`core/.local/bin/hypr-virtual-keyboard`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-virtual-keyboard) (symlinked to `~/.local/bin/hypr-virtual-keyboard`) using `pkill -RTMIN -x wvkbd-mobintl` for instantaneous zero-latency overlay toggling.
+  - Calibrated height for Surface Book 3 3000x2000 @ 2x scaling (`-L 320 -H 320`) to dock neatly at the bottom 32% of the screen.
+  - Tracked `wvkbd` in [`profiles/surface/packages.txt`](file:///home/jmvp/dotfiles/profiles/surface/packages.txt).
+  - Documented complete architecture, IME vs OSK distinction, and troubleshooting in [`profiles/surface/gotchas/virtual-keyboard.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/virtual-keyboard.md) (symlinked to `references/gotchas/virtual-keyboard.md`).
+- **XH Multi-Page Media Hub WebApp (`core`, 2026-09-17)**:
+  - Ported `xh-launch` Python launcher, `XH.desktop`, and `XH.png` from `omarchy-dots` to `core/`.
+  - Installed launcher to `~/.local/bin/xh-launch`, desktop entry to `~/.local/share/applications/XH.desktop`, and icons to `~/.local/share/icons/`.
+  - Configured to launch Brave (`brave-origin`) in container mode (`~/.config/brave-webapps/containers/diagnostics`) with automatic Hyprland group/tab window merging.
+- **Smart Tiered Sleep (`suspend-then-hibernate`) (`surface`, 2026-09-17)**:
+  - Configured modular systemd drop-in `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf`: enabled `AllowSuspendThenHibernate=yes`, set `HibernateDelaySec=90min`, and set `HibernateOnACPower=no`.
+  - Configured modular systemd logind drop-in `/etc/systemd/logind.conf.d/10-lid-sleep.conf`: set `HandleLidSwitch=suspend-then-hibernate` on battery and `HandleLidSwitchExternalPower=suspend` on AC charger. Reloaded `systemd-logind` safely via SIGHUP.
+  - Updated `~/.config/hypr/hypridle.conf` 15-minute inactivity trigger to invoke `systemctl suspend-then-hibernate` and restarted `hypridle`.
+  - Result: The laptop retains instant <0.5s `s2idle` wake for daytime breaks under 90 minutes (~1.8% battery loss), but automatically enters zero-watt NVMe hibernation for overnight or extended storage, eliminating the ~20% overnight drain.
+- **Firmware diagnostic tooling (`surface`, 2026-09-17)**:
+  - Installed user-approved `fwupd 2.1.7-1.1`, plus dependencies `fwupd-efi 1.8-2` and `passim 0.1.12-1.1`, with `sudo pacman -S --needed fwupd` through interactive Kitty/Hyprland. Pacman completed successfully and created Snapper snapshots 19/20.
+  - Verified package versions, firmware/device enumeration, LVFS metadata refresh, and update query. `fwupd.service` D-Bus-activated successfully; `fwupd-refresh.timer` is disabled. `hyprctl configerrors` clean. Updated installed-package reference and Surface charging gotchas.
+- **Firmware reverse-engineering tooling (`surface`, 2026-09-17)**:
+  - Installed user-approved `cabextract 1.11-3.1` (`sudo pacman -S --needed cabextract`, 0.10 MiB installed, Snapper snapshots 21/22) after `bsdtar` proved unable to decompress Microsoft's LZX-21 CAB folders.
+  - Used bounded HTTP range reads against the official MSI to extract and MSI-hash-verify five small base files (PD `.cfu`/`.offer.bin`, two KIP `.offer.bin`, two `.cat`) without downloading the 1.67 GB bundle. No firmware flashed.
+- **Universal Zen Browser keybinding synchronization (`core`, 2026-09-17)**:
+  - Saved canonical keybindings template to `core/.local/share/zen/zen-keyboard-shortcuts.json` (stowed to `~/.local/share/zen/`).
+  - Created executable sync utility `core/.local/bin/zen-keybinds-sync` (stowed to `~/.local/bin/zen-keybinds-sync`): supports `--status`, `--apply` (with auto-detection across all active profiles, running-process safety check, and automatic pre-seeding of fresh profiles), and `--export`.
+  - Wired automated keybinding synchronization into universal post-install setup (Step 4/4) in `install.sh`. Tested and verified via `install.sh --dry-run`.
+### Changed
+- **Zen Browser Tab vs. Workspace Shortcut Collision (`surface`, 2026-09-17)**:
+  - **Issue**: Both browser tab selection (`key_selectTab1`..`8`, `key_selectLastTab`) and Zen workspace switching (`zen-workspace-switch-1`..`10`) defaulted to `accel: true` (<kbd>Ctrl</kbd> + <kbd>1..9</kbd>) on Linux, causing keyboard shortcut collision inside Zen Browser.
+  - **Fix**: Re-mapped tab switching to <kbd>Alt</kbd> + <kbd>1..9</kbd> (`modifiers.alt = true`, `modifiers.accel = false`) in `~/.config/zen/1q66wgda.Default (release)/zen-keyboard-shortcuts.json` while Zen was closed. Zen workspace switching retained on <kbd>Ctrl</kbd> + <kbd>1..9</kbd>, <kbd>0</kbd>. Backed up original to `zen-keyboard-shortcuts.json.bak`.
+  - **Documentation**: Documented modifier mappings, CLI manipulation via `jq`/Python, and in-memory reload gotchas in `references/gotchas/zen-browser.md`.
+- **OpenCode pacman -> curl installer (`surface`)**:
+  - Removed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -Rns opencode` (interactive Kitty `hl.exec_cmd` prompt per Rule 8).
+  - Installed upstream `v2.0.5` via `curl -fsSL https://opencode.ai/v2/install | bash` to `~/.opencode/bin/opencode`; installer appended `fish_add_path /home/jmvp/.opencode/bin` to `core/.config/fish/config.fish` (stowed, no overwrite).
+  - Verified: `which opencode` -> `~/.opencode/bin/opencode`, `opencode --version` -> `v2.0.5`, `opencode upgrade` -> `Using method: curl`, `already installed` (fixes `installation method not found`).
+  - Note: `cachyos-extra`/`AUR` builds are unsupported for self-update; keep `packages.txt` free of `opencode` to avoid shadowing `/usr/bin/opencode` over `~/.opencode/bin`.
+  - Symlinked `~/.local/bin/opencode` -> `~/.opencode/bin/opencode` for bash/non-fish `PATH` fluency (fish uses `fish_add_path`, bash uses `~/.local/bin`); verified `opencode upgrade` in both shells.
+### Fixed
+- **Brave / WebApps GNOME Keyring Prompt (`core`, 2026-09-19)**:
+  - **Issue**: Launching `xh-launch` or webapps (`YouTube.desktop`, `AllAnime.desktop`, `Hanime.desktop`, `PH.desktop`) caused `gnome-keyring` to spawn `gcr-prompter` ("Unlock Keyring" for Default keyring) because `greetd` does not unlock gnome-keyring on login.
+  - **Fix**: Created [`core/.config/brave-origin-flags.conf`](file:///home/jmvp/dotfiles/core/.config/brave-origin-flags.conf) with `--password-store=basic` (symlinked to `~/.config/brave-origin-flags.conf` and `~/.config/brave-flags.conf`) so all Brave launches automatically inherit basic storage. Also updated all webapp desktop files in [`core/.local/share/applications/`](file:///home/jmvp/dotfiles/core/.local/share/applications/) and [`core/.local/bin/xh-launch`](file:///home/jmvp/dotfiles/core/.local/bin/xh-launch). Stopped active `gcr-prompter` service.
+- **Fcitx5 vs. On-Screen Virtual Keyboard Architectural Misconception & Binding (`surface`, 2026-09-17)**:
+  - **Issue**: User reported "Fcitx5 for virtual keyboard is not working" when attempting on-screen typing on Surface Book 3 in tablet mode or via `SUPER + ALT + V`.
+  - **Root Cause**: Twofold: (1) `fcitx5` was not installed on the system (`which: no fcitx5`), causing Hyprland's execution of `fcitx5-remote -t` to fail with command not found; (2) Fcitx5 is an Input Method Editor (IME) for CJK multi-byte keystroke composition, not a graphical on-screen touch keyboard (OSK). `fcitx5-remote -t` only toggles IME conversion state, never rendering a touch keyboard UI on Wayland.
+  - **Fix**: Replaced broken `fcitx5-remote -t` shortcut in `profiles/surface/.config/hypr/config/profile/binds.lua` with dedicated `hypr-virtual-keyboard` wrapper targeting `wvkbd-mobintl` via native compositor dispatcher `hl.dsp.exec_cmd(...)`. Passing native dispatcher bypasses `helpers.lua`'s default `uwsm-app -- ` string-wrapping prefix, avoiding `uwsm_app-daemon` PATH lookup failures caused by systemd user sessions omitting `~/.local/bin`. Deployed `core/.config/environment.d/10-path.conf` to guarantee `~/.local/bin` in systemd user PATH.
+  - **Verification**: Flushed stale Lua bind callbacks via `hl.unbind`; re-evaluated bind table (`arg: 14`); `hyprctl configerrors` 0 errors; tested live process spawning with `nohup` and signal-based toggling (`pkill -RTMIN`) directly over Wayland Layer 3 overlay.
+- **Surface Book 300% battery percentage calculation desync (`surface`, UPower)**:
+  - **Issue**: Noctalia status bar and `upower DisplayDevice` reported impossible `299.032%` (~300%) battery level while discharging normally.
+  - **Root Cause**: Surface Book base battery (`BAT2`, 45.3 Wh) suffered transient EC communication timeout (`power_supply BAT2: driver failed to report 'present' property: -110`). UPower's `up_device_battery_update_info()` cleared D-Bus property `energy-full` to 0 but failed to clear internal comparison cache `priv->energy_full_reported`. Upon battery recovery, UPower skipped updating D-Bus `energy-full`. Composite `DisplayDevice` summed total energy from both batteries (43.27 Wh) but divided only by tablet battery `BAT1` capacity (14.47 Wh), yielding ~300% (upstream UPower issue #336).
+  - **Fix**: Restarted UPower service via interactive Kitty prompt per Rule 8 (`sudo systemctl restart upower`), restoring correct `DisplayDevice` capacity (59.79 Wh) and percentage (~70.2%).
+  - **Documentation**: Documented full architecture and recovery procedures in `profiles/surface/gotchas/battery-upower.md` (symlinked into skill `references/gotchas/battery-upower.md`).
+- **Fastfetch terminal greeting cleanup and alignment (`core/.local/bin/fastfetch-custom`, `surface`)**:
+  - **Mini Logo Alignment**: Stripped raw DMI/SKU string from `Host`, restoring clean `Surface Book 3` and preventing line width blowout that shoved the mini CachyOS logo to column 89+.
+  - **Window Manager**: Added support for fastfetch's `Window Manager:` key alongside `WM:`, fixing blank `WM: ` to properly display `Hyprland 0.56.2`.
+  - **GPU Tagging**: Differentiated integrated (`iGPU`) from discrete (`dGPU`) graphics; Intel Iris Plus Graphics G7 is now accurately tagged as `(iGPU)` instead of forcing `(dGPU)`.
+  - **Audio Detection**: Replaced hardcoded `"Apple Audio (aaudio)"` with dynamic fastfetch `Sound` detection (`Built-in Audio Analog Stereo`), retaining Apple Audio fallback only on Apple hardware DMI.
+  - **Icons Fallback**: Added GSettings fallback for `Icons` (`Adwaita`) when fastfetch detects no icon theme from GTK configs.
+  - **Dual Battery Support**: Added combined dual battery calculation for Surface devices (`80% (79% Tab / 82% Base) [Discharging]`).
+  - **Aligned Columns**: Made bottom spec table divider (`│`) calculate column width dynamically to prevent misalignment across varying metric lengths.
+- **Fish duplicate `.local/bin` PATH (`core/.config/fish/config.fish`, `surface`)**: removed `set -gx PATH "/home/jmvp/.local/bin" $PATH` added by Antigravity CLI installer; kept canonical `fish_add_path "$HOME/.local/bin"` (avoids duplicate entries in `fish_user_paths`).
+- **Omarchy-style display scaling (`surface`)**: terminal/shell felt oversized from stacked scaling (compositor `x2` × Noctalia `ui_scale 1.2` × `bar scale 1.1` × large terminal fonts), while Omarchy keeps compositor at 2x and scales text with one knob.
+  - `profiles/surface/.../profile/monitors.lua`: `eDP-1` mode pinned `3000x2000@60` -> `preferred` (kept `scale 2`, `GDK_SCALE 2` — correct for 267 PPI); added commented Omarchy-style `1.6/1.75` (4K) and `1/1` (1080p/1440p) alternatives.
+  - New `core/.local/bin/hypr-monitor-scale up|down`: cycles focused monitor through `1, 1.25, 1.6, 2, 3, 4` at runtime (Omarchy `Super+/` equivalent; reboot restores profile default).
+  - `core/.config/hypr/config/binds.lua`: `Super+slash` / `Super+Alt+slash` wired to the stepper.
+  - Unified text sizes: kitty `font_size 11.0`, `window_padding_width 25->14`; alacritty `size 12.0->11.0`; Noctalia `ui_scale 1.20->1.0`, `bar scale 1.10->1.0`.
+  - New `core/.local/bin/hypr-text-size [size|reset]` — same-as-Omarchy one knob (`12px -> 9pt terminal`, `pt = round(px*9/12)`): writes kitty (`USR1` live-reload) + alacritty + ghostty/foot if present, Noctalia `ui_scale = px/12` + `config-reload`, GTK `text-scaling-factor` (quantized). Baseline applied: `hypr-text-size 12` (kitty/alacritty now 9pt, `ui_scale 1.00`, GTK `1.0`).
+  - Verified: `hyprctl reload` + `hyprctl configerrors` clean, `eDP-1 scale 2` steady, `noctalia msg config-reload` OK (note: skill's `msg reload` is stale — correct cmd on 5.1.0 is `config-reload`). New terminals pick up font sizes on open; kitty live-reloads via `USR1`.
+
+## [2.37.0] - 2026-09-16
+### Changed
+- **OpenCode v1.18.31 -> v2.0.3 (`surface`, `pacman`)**:
+  - Installed `opencode 2.0.3-1.1` from `cachyos-extra-v4` via `sudo pacman -S opencode` (explicit install, ~197M). Deps satisfied: `curl glibc icu ripgrep tar`, `wl-clipboard` already present.
+  - Removed shadowing v1 curl-install binary `~/.opencode/bin/opencode` (backed up to `~/opencode-v1-backup-20260916.tar.gz` + `~/.config/opencode/opencode.jsonc.v1.bak`); removed empty `~/.opencode/bin/` and the `# Opencode path` `fish_add_path` block from `~/.config/fish/config.fish`; cleared stale `~/.opencode/bin` from universal `fish_user_paths`.
+  - Verified: `which opencode` -> `/usr/bin/opencode`, `opencode --version` -> `v2.0.3`, `opencode --help` OK.
+  - Note: V1/V2 share the `opencode` command (no side-by-side); `opencode.jsonc` kept as-is (minimal `$schema`-only, V2 reads V1 shape in-memory); first TUI start will auto-create `~/.config/opencode/cli.json` from old `tui.json` if present. Breaking changes to port later: plugin API, server API, permissions/tools schema (see v2 migrate guide).
+
+## [2.36.0] - 2026-09-16
+### Fixed
+- **Noctalia wallpaper panel slow every open — true root cause (`surface`, Noctalia 5.1.0)**:
+  - **Supersedes 2.35.0 (retracted)**: the `stat()` mtime theory was wrong. Re-verified against upstream `noctalia-shell` source (`src/render/core/thumbnail_service.cpp`): disk key = FNV-1a of `path + "\n" + file_size + "\n" + last_write_time.ticks + "\n" + targetPx + "\nthumbnail-service-v2"` — i.e. `fs::last_write_time` ticks, exactly what the ORIGINAL pre-cacher used. Proof: 163 `fileclock@428` hits vs 0 `stat@428` hits in live cache.
+  - **Real bug #1 — wrong width**: `WallpaperTile::thumbnailTargetPx()` requests the tile's PHYSICAL display size (`lround(max(cellW,cellH) * renderScale)`), so width is per-machine/per-layout, not fixed 361. Measured on `surface` (eDP-1 scale 2, ui_scale 1.2): grid tiles = **428px** (MacBook-T2 Retina = 361 — which is why the macbook-t2 solution worked there). All 1637 `stat@361` files from 2.35.0 were orphans Noctalia never requests here — deleted (freed ~19M).
+  - **Real bug #2 — one width is not enough**: secondary views request **451px** (87 files) and **541px** (24 files) variants of the same wallpapers.
+  - **Fix**: pre-cacher default width `361 -> 428`, `vipsthumbnail` geometry `--size Wx` -> box `--size WxW` (matches Noctalia long-edge downscale for portraits), `cachy-sync-wallpapers` now warms `428 451 541 361` (overridable via `NOCTALIA_THUMB_WIDTHS`, covers both machines).
+  - **Warmed `surface` cache**: 1452 + 1550 + 1613 jobs (~7 min total, 8 threads), cache now 4914 files / 73M. Live 12s panel-open test: **27 misses -> 1** (single 990px header preview, now cached). Grid renders instantly.
+  - Only 2–4 Noctalia decode workers serve misses, so any future miss (new wallpapers, layout change) still stutters briefly — re-run `cachy-sync-wallpapers` after pulls or panel/resolution changes.
+
+## [2.35.0] - 2026-09-16 (RETRACTED — see 2.36.0)
+### Fixed
+- **Noctalia pre-cacher mtime hash mismatch (`core/.local/bin/noctalia-precache-wallpapers.cpp`)**:
+  - **Issue**: Pre-cacher used `fs::last_write_time(p).time_since_epoch().count()` for the thumbnail hash key, but `file_clock` epoch is implementation-defined (observed negative counts on libstdc++), while Noctalia keys on Unix `mtime_nanos` (`stat st_mtim`). Generated thumbnails never hit — cache stayed cold (114 files / 2.1M for 1637 wallpapers on `surface`).
+  - **Fix**: Switched to `stat()` (`st_mtime * 1e9 + st_mtim.tv_nsec`), matching Noctalia's `path + "\n" + size + "\n" + mtime_nanos + "\n361\nthumbnail-service-v2"` FNV-1a key. Verified stat-hash exists post-run.
+  - **Warmed `surface` cache**: full run `noctalia-precache-wallpapers ~/Pictures/Wallpapers` — 1637 stills (989 jpg + 555 png + 72 jpeg + 21 webp), 1613 jobs in 135.3s on 8 threads, cache now 1751 files / 21M with 1637/1637 hits on re-run. Wallpaper panel (`ALT+Space`) grid now renders instantly.
+  - Deleted 24 wrong-hash thumbnails generated during validation before the fix.
+  - **RETRACTION**: self-consistency checks ("already cached") only proved the tool agreed with itself, not with Noctalia. The `stat()` files were orphans (deleted in 2.36.0). Lesson: always verify with a live Noctalia open (new-file count) and against upstream source.
+
 ## [2.34.0] - 2026-09-15
 ### Added
 - **Native Window Grouping / Stacking Keybindings (`core/.config/hypr/config/binds.lua`)**:
@@ -456,6 +667,3 @@ A dated log of all package changes, configurations, script modifications, and ha
 - Modularized configurations into Stow package groups (`hypr`, `noctalia`, `kitty`, `alacritty`, `fish`, `btop`, `waypaper`, `gtk`, `swayimg`, `bin`, `agents`, `webapps`, `zigoku`).
 - Built automated 1-command installer `install.sh` and modular provisioning scripts.
 - Published repository to GitHub as [`JValdivia23/hyprland-dots`](https://github.com/JValdivia23/hyprland-dots).
-
-
-

@@ -1,0 +1,244 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# zen-keybinds-sync: Synchronize Zen Browser keybindings with dotfiles
+# Works universally across all hardware profiles (desktop, laptop, surface, etc.)
+# ==============================================================================
+set -euo pipefail
+
+DOTFILES_DIR="${DOTFILES_DIR:-$HOME/dotfiles}"
+CANONICAL_JSON="$DOTFILES_DIR/core/.local/share/zen/zen-keyboard-shortcuts.json"
+FALLBACK_JSON="$HOME/.local/share/zen/zen-keyboard-shortcuts.json"
+ZEN_CONFIG_DIR="$HOME/.config/zen"
+PROFILES_INI="$ZEN_CONFIG_DIR/profiles.ini"
+
+show_help() {
+    cat << 'EOF'
+zen-keybinds-sync: Manage and sync Zen Browser keybindings
+
+Usage:
+  zen-keybinds-sync [COMMAND] [OPTIONS]
+
+Commands:
+  --apply          Apply canonical dotfiles keybindings to Zen profiles
+  --export         Export active Zen profile keybindings into dotfiles
+  --status         Compare active profile keybindings with dotfiles (default)
+  -h, --help       Show this help message
+
+Options:
+  --force          Proceed even if Zen Browser is running (auto-terminates zen)
+  --dry-run        Simulate operations without writing any files
+EOF
+}
+
+# Resolve canonical source path
+get_canonical_source() {
+    if [ -f "$CANONICAL_JSON" ]; then
+        echo "$CANONICAL_JSON"
+    elif [ -f "$FALLBACK_JSON" ]; then
+        echo "$FALLBACK_JSON"
+    else
+        echo ""
+    fi
+}
+
+# Find all profile directories
+get_zen_profiles() {
+    local profiles=()
+    if [ -f "$PROFILES_INI" ]; then
+        while IFS= read -r line; do
+            if [[ "$line" =~ ^Path=(.*)$ ]]; then
+                local raw_path="${BASH_REMATCH[1]}"
+                if [[ "$raw_path" = /* ]]; then
+                    profiles+=("$raw_path")
+                else
+                    profiles+=("$ZEN_CONFIG_DIR/$raw_path")
+                fi
+            fi
+        done < "$PROFILES_INI"
+    elif [ -d "$ZEN_CONFIG_DIR" ]; then
+        # Fallback: scan for directories with Default or default in name
+        for d in "$ZEN_CONFIG_DIR"/*/; do
+            [ -d "$d" ] || continue
+            local bname="$(basename "$d")"
+            if [[ "$bname" =~ [Dd]efault ]]; then
+                profiles+=("${d%/}")
+            fi
+        done
+    fi
+
+    # Deduplicate and return
+    printf '%s\n' "${profiles[@]:-}" | sort -u | grep -v '^$' || true
+}
+
+is_zen_running() {
+    pgrep -x "zen-bin" &>/dev/null || pgrep -f "zen-browser" &>/dev/null
+}
+
+MODE="status"
+FORCE=false
+DRY_RUN=false
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --apply)
+            MODE="apply"
+            shift
+            ;;
+        --export)
+            MODE="export"
+            shift
+            ;;
+        --status)
+            MODE="status"
+            shift
+            ;;
+        --force)
+            FORCE=true
+            shift
+            ;;
+        --dry-run)
+            DRY_RUN=true
+            shift
+            ;;
+        -h|--help)
+            show_help
+            exit 0
+            ;;
+        *)
+            echo "Error: Unknown option '$1'" >&2
+            show_help
+            exit 1
+            ;;
+    esac
+done
+
+SRC="$(get_canonical_source)"
+
+case "$MODE" in
+    status)
+        echo "=== Zen Browser Keybinding Status ==="
+        echo "Canonical Source: ${SRC:-NOT FOUND}"
+        if [ -z "$SRC" ]; then
+            echo "Error: Canonical zen-keyboard-shortcuts.json not found in dotfiles." >&2
+            exit 1
+        fi
+
+        mapfile -t PROFILES < <(get_zen_profiles)
+        if [ ${#PROFILES[@]} -eq 0 ]; then
+            echo "Zen Profiles: None found (Zen has not been launched yet)."
+            exit 0
+        fi
+
+        echo "Zen Profiles Found (${#PROFILES[@]}):"
+        for p in "${PROFILES[@]}"; do
+            local_target="$p/zen-keyboard-shortcuts.json"
+            if [ -f "$local_target" ]; then
+                if cmp -s "$SRC" "$local_target"; then
+                    echo "  ✓ $p: In sync with canonical dotfiles"
+                else
+                    echo "  ! $p: Differences detected (run --apply to update, or --export to save)"
+                fi
+            else
+                echo "  ? $p: No zen-keyboard-shortcuts.json present"
+            fi
+        done
+        ;;
+
+    apply)
+        echo "=== Applying Zen Browser Keybindings ==="
+        if [ -z "$SRC" ]; then
+            echo "Error: Canonical zen-keyboard-shortcuts.json not found." >&2
+            exit 1
+        fi
+
+        if is_zen_running; then
+            if [ "$FORCE" = true ]; then
+                echo "--> Zen Browser is running. Terminating (--force)..."
+                killall zen-bin 2>/dev/null || true
+                sleep 0.5
+            else
+                echo "Error: Zen Browser is currently running." >&2
+                echo "Please close Zen Browser before applying keybindings to prevent in-memory overwrite." >&2
+                echo "(Or run with --force to close Zen automatically)." >&2
+                exit 1
+            fi
+        fi
+
+        mapfile -t PROFILES < <(get_zen_profiles)
+
+        # If no profiles exist yet (e.g. fresh install before first launch), pre-seed a profile
+        if [ ${#PROFILES[@]} -eq 0 ]; then
+            DEFAULT_PROFILE="$ZEN_CONFIG_DIR/default.release"
+            echo "--> Pre-seeding default profile at $DEFAULT_PROFILE..."
+            if [ "$DRY_RUN" = true ]; then
+                echo "    [dry-run] mkdir -p \"$DEFAULT_PROFILE\""
+                echo "    [dry-run] cp \"$SRC\" \"$DEFAULT_PROFILE/zen-keyboard-shortcuts.json\""
+                echo "    [dry-run] generate \"$PROFILES_INI\""
+            else
+                mkdir -p "$DEFAULT_PROFILE"
+                cp "$SRC" "$DEFAULT_PROFILE/zen-keyboard-shortcuts.json"
+                cat > "$PROFILES_INI" << 'EOF_INI'
+[General]
+StartWithLastProfile=1
+Version=2
+
+[Profile0]
+Name=default
+IsRelative=1
+Path=default.release
+Default=1
+EOF_INI
+                echo "    Pre-seeded profile and initialized $PROFILES_INI"
+            fi
+            exit 0
+        fi
+
+        for p in "${PROFILES[@]}"; do
+            [ -d "$p" ] || continue
+            target="$p/zen-keyboard-shortcuts.json"
+            echo "--> Updating $target..."
+            if [ "$DRY_RUN" = true ]; then
+                echo "    [dry-run] cp \"$SRC\" \"$target\""
+            else
+                [ -f "$target" ] && cp "$target" "$target.bak"
+                cp "$SRC" "$target.tmp"
+                mv -f "$target.tmp" "$target"
+                echo "    Successfully updated (backup saved to $target.bak)"
+            fi
+        done
+        echo "✓ Keybindings successfully applied to all Zen profiles."
+        ;;
+
+    export)
+        echo "=== Exporting Zen Browser Keybindings to Dotfiles ==="
+        mapfile -t PROFILES < <(get_zen_profiles)
+        if [ ${#PROFILES[@]} -eq 0 ]; then
+            echo "Error: No Zen profiles found to export from." >&2
+            exit 1
+        fi
+
+        # Use the first profile that contains zen-keyboard-shortcuts.json
+        FOUND_SOURCE=""
+        for p in "${PROFILES[@]}"; do
+            if [ -f "$p/zen-keyboard-shortcuts.json" ]; then
+                FOUND_SOURCE="$p/zen-keyboard-shortcuts.json"
+                break
+            fi
+        done
+
+        if [ -z "$FOUND_SOURCE" ]; then
+            echo "Error: No zen-keyboard-shortcuts.json found in any profile." >&2
+            exit 1
+        fi
+
+        echo "Source profile: $FOUND_SOURCE"
+        echo "Target: $CANONICAL_JSON"
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] cp \"$FOUND_SOURCE\" \"$CANONICAL_JSON\""
+        else
+            mkdir -p "$(dirname "$CANONICAL_JSON")"
+            python3 -c "import json; data = json.load(open('$FOUND_SOURCE')); json.dump(data, open('$CANONICAL_JSON', 'w'), indent=2, ensure_ascii=False)"
+            echo "✓ Exported cleanly formatted keybindings to $CANONICAL_JSON"
+        fi
+        ;;
+esac

@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# ~/.local/bin/hypr-monitor-scale
+# Cycle the focused monitor through Omarchy-style scale steps (runtime only).
+# Steps: 1x, 1.25x, 1.6x, 2x, 3x, 4x — mirrors `Super + /` / `Super + Alt + /` in Omarchy.
+# Usage: hypr-monitor-scale up|down
+# Note: runtime-only; reboot restores the scale from
+#   ~/.config/hypr/config/profile/monitors.lua (eDP-1 = 2).
+
+set -u
+
+direction="${1:-up}"
+steps=(1 1.25 1.6 2 3 4)
+
+current_monitor() {
+    hyprctl monitors -j 2>/dev/null | python3 -c \
+        'import json,sys; ms=json.load(sys.stdin); f=[m for m in ms if m.get("focused")]; print(f[0]["name"] if f else "")'
+}
+
+current_scale() {
+    hyprctl monitors -j 2>/dev/null | python3 -c \
+        'import json,sys; ms=json.load(sys.stdin); f=[m for m in ms if m.get("focused")]; print(f[0].get("scale", 1) if f else 1)'
+}
+
+monitor="$(current_monitor)"
+[ -z "$monitor" ] && exit 1
+scale="$(current_scale)"
+
+# Find nearest step index at or below the current scale
+idx=0
+for i in "${!steps[@]}"; do
+    if python3 -c "import sys; sys.exit(0 if float('${steps[$i]}') <= float('$scale') + 0.001 else 1)"; then
+        idx=$i
+    fi
+done
+
+if [ "$direction" = "up" ] && [ "$idx" -lt $((${#steps[@]} - 1)) ]; then
+    idx=$((idx + 1))
+elif [ "$direction" = "down" ] && [ "$idx" -gt 0 ]; then
+    idx=$((idx - 1))
+fi
+
+new_scale="${steps[$idx]}"
+hyprctl keyword monitor "$monitor,preferred,auto,$new_scale" >/dev/null
+
+msg="Display scale: ${new_scale}x ($monitor)"
+if command -v notify-send >/dev/null 2>&1; then
+    notify-send "Monitor Scale" "$msg"
+else
+    echo "$msg"
+fi

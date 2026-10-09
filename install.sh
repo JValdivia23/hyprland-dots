@@ -185,10 +185,13 @@ check_and_backup_path() {
         local target_real
         target_real=$(realpath -q "$target" 2>/dev/null || true)
         if [[ -n "$target_real" && "$target_real" == "$DOTFILES_DIR"* ]] || [[ "$link_dest" =~ (^\.\./)?dotfiles/ ]]; then
-            if [ "$DRY_RUN" = false ]; then
-                rm -f "$target"
-            else
-                echo "    [dry-run] Remove obsolete dotfiles symlink ~/$rel_path"
+            # If symlink is broken (target was deleted from repo), clean up the dangling link
+            if [ ! -e "$target" ]; then
+                if [ "$DRY_RUN" = false ]; then
+                    rm -f "$target"
+                else
+                    echo "    [dry-run] Remove dangling dotfiles symlink ~/$rel_path"
+                fi
             fi
             return 0
         fi
@@ -382,6 +385,10 @@ if [ "$DO_STOW" = true ]; then
     done
     sanitize_directory_symlinks "$DOTFILES_DIR/agents"
 
+    # Ensure helper scripts have executable permissions
+    chmod +x "$DOTFILES_DIR"/core/.local/bin/* 2>/dev/null || true
+    chmod +x "$DOTFILES_DIR"/profiles/*/.local/bin/* 2>/dev/null || true
+
     # Ensure required destination base directories exist
     if [ "$DRY_RUN" = false ]; then
         mkdir -p "$HOME/.config" \
@@ -392,6 +399,8 @@ if [ "$DO_STOW" = true ]; then
                  "$HOME/.local/share/applications" \
                  "$HOME/.local/share/icons" \
                  "$HOME/Pictures/Wallpapers" \
+                 "$HOME/Pictures/Screenshots" \
+                 "$HOME/Videos/Captures" \
                  "$HOME/.agents/skills/system-personalization/references/gotchas"
     fi
 
@@ -413,6 +422,7 @@ if [ "$DO_STOW" = true ]; then
         "--ignore=^services\.txt$"
         "--ignore=^setup\.sh$"
         "--ignore=^scripts"
+        "--ignore=^systemd"
         "--ignore=^gotchas"
         "--ignore=^\.stow-local-ignore$"
         "--ignore=^SKILL\.md\.template$"
@@ -448,12 +458,40 @@ if [ "$DO_STOW" = true ]; then
 
     # Link custom webapp icons to standard XDG directories
     if [ -d "$DOTFILES_DIR/core/.local/share/applications/icons" ]; then
+        mkdir -p "$HOME/.local/share/icons" \
+                 "$HOME/.local/share/pixmaps" \
+                 "$HOME/.local/share/icons/hicolor/256x256/apps" \
+                 "$HOME/.local/share/icons/hicolor/512x512/apps" \
+                 "$HOME/.local/share/icons/hicolor/scalable/apps"
+
         for icon in "$DOTFILES_DIR"/core/.local/share/applications/icons/*; do
             if [ -f "$icon" ]; then
                 filename="$(basename "$icon")"
+                name="${filename%.*}"
+                ext="${filename##*.}"
+                lower="$(echo "$name" | tr '[:upper:]' '[:lower:]').$ext"
+
                 ln -sf "$icon" "$HOME/.local/share/icons/$filename" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/icons/$lower" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/pixmaps/$filename" 2>/dev/null || true
+                ln -sf "$icon" "$HOME/.local/share/pixmaps/$lower" 2>/dev/null || true
+
+                if [ "$ext" = "png" ]; then
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/256x256/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/256x256/apps/$lower" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/512x512/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/512x512/apps/$lower" 2>/dev/null || true
+                elif [ "$ext" = "svg" ]; then
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/scalable/apps/$filename" 2>/dev/null || true
+                    ln -sf "$icon" "$HOME/.local/share/icons/hicolor/scalable/apps/$lower" 2>/dev/null || true
+                fi
             fi
         done
+
+        if command -v gtk-update-icon-cache &>/dev/null; then
+            gtk-update-icon-cache -f -t "$HOME/.local/share/icons" 2>/dev/null || true
+            gtk-update-icon-cache -f -t "$HOME/.local/share/icons/hicolor" 2>/dev/null || true
+        fi
     fi
 
     # Update desktop application database
@@ -597,6 +635,26 @@ BASHRC_EOF
         echo "--> Reloading Noctalia shell..."
         if [ "$DRY_RUN" = false ]; then
             noctalia msg reload &>/dev/null || true
+        fi
+    fi
+
+    # 8. Synchronize Zen Browser custom keybindings
+    if command -v zen-browser &>/dev/null; then
+        echo "--> Synchronizing Zen Browser custom keybindings..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: bash $DOTFILES_DIR/core/.local/bin/zen-keybinds-sync --apply"
+        else
+            bash "$DOTFILES_DIR/core/.local/bin/zen-keybinds-sync" --apply || echo "    Notice: Could not sync Zen keybindings automatically."
+        fi
+    fi
+
+    # 9. Auto-calibrate display scaling and terminal text size (Omarchy-style)
+    if [ -f "$DOTFILES_DIR/core/.local/bin/hypr-autoscale" ]; then
+        echo "--> Auto-calibrating display scaling and terminal font size..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: python3 $DOTFILES_DIR/core/.local/bin/hypr-autoscale --apply --profile \"$ACTIVE_PROFILES\""
+        else
+            python3 "$DOTFILES_DIR/core/.local/bin/hypr-autoscale" --apply --profile "$ACTIVE_PROFILES" || echo "    Notice: Could not auto-calibrate text size."
         fi
     fi
 

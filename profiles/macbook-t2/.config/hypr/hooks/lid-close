@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# MacBook Pro 15,1 profile lid close hook
+
+# 1. Save Touch Bar backlight level and turn off
+if brightnessctl -l 2>/dev/null | grep -q "appletb_backlight"; then
+    current_tb=$(brightnessctl -d "appletb_backlight" get 2>/dev/null || true)
+    if [ -n "$current_tb" ] && [ "$current_tb" -gt 0 ]; then
+        echo "$current_tb" > "/tmp/hypr_tb_backlight_saved_${UID}"
+    fi
+    brightnessctl -q -d "appletb_backlight" set 0% 2>/dev/null || true
+fi
+
+# 2. Engage AMDGPU battery power-saving profile
+if [ -x /usr/local/bin/amdgpu-power-switch.sh ]; then
+    /usr/local/bin/amdgpu-power-switch.sh battery 2>/dev/null || true
+fi

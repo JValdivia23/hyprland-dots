@@ -4,9 +4,9 @@
 * stylelint-disable at-rule-no-unknown
 */
 
-@define-color accent_color #92cef5;
-@define-color accent_bg_color #92cef5;
-@define-color accent_fg_color #00344b;
+@define-color accent_color #8bd0f0;
+@define-color accent_bg_color #8bd0f0;
+@define-color accent_fg_color #003546;
 
 @define-color destructive_bg_color #ffb4ab;
 @define-color destructive_fg_color #690005;
@@ -24,19 +24,19 @@
 @define-color headerbar_fg_color #dfe3e7;
 @define-color headerbar_backdrop_color @window_bg_color;
 
-@define-color popover_bg_color #1c2024;
+@define-color popover_bg_color #1b2023;
 @define-color popover_fg_color #dfe3e7;
 
-@define-color card_bg_color #1c2024;
+@define-color card_bg_color #1b2023;
 @define-color card_fg_color #dfe3e7;
 
 @define-color dialog_bg_color #0f1417;
 @define-color dialog_fg_color #dfe3e7;
 
-@define-color overview_bg_color #1c2024;
+@define-color overview_bg_color #1b2023;
 @define-color overview_fg_color #dfe3e7;
 
-@define-color sidebar_bg_color #1c2024;
+@define-color sidebar_bg_color #1b2023;
 @define-color sidebar_fg_color #dfe3e7;
 @define-color sidebar_backdrop_color @window_bg_color;
 @define-color sidebar_border_color @window_bg_color;
@@ -57,9 +57,9 @@
 @define-color theme_unfocused_selected_fg_color @accent_fg_color;
 
 :root {
-    --accent-color: #92cef5;
-    --accent-bg-color: #92cef5; 
-    --accent-fg-color: #00344b;
+    --accent-color: #8bd0f0;
+    --accent-bg-color: #8bd0f0; 
+    --accent-fg-color: #003546;
 
     --destructive-bg-color: #ffb4ab;
     --destructive-fg-color: #690005;
@@ -78,30 +78,30 @@
     --headerbar-fg-color: #dfe3e7;
     --headerbar-backdrop-color: @window_bg_color;
 
-    --popover-bg-color: #1c2024;
+    --popover-bg-color: #1b2023;
     --popover-fg-color: #dfe3e7;
 
-    --card-bg-color: #1c2024;
+    --card-bg-color: #1b2023;
     --card-fg-color: #dfe3e7;
 
     --dialog-bg-color: #0f1417;
     --dialog-fg-color: #dfe3e7;
 
-    --overview-bg-color: #1c2024;
+    --overview-bg-color: #1b2023;
     --overview-fg-color: #dfe3e7;
 
-    --sidebar-bg-color: #1c2024;
+    --sidebar-bg-color: #1b2023;
     --sidebar-fg-color: #dfe3e7;
     --sidebar-backdrop-color: @window_bg_color;
     --sidebar-border-color: @window_bg_color;
 
-    --warning-bg-color: #4a4263;
-    --warning-fg-color: #e8ddff;
-    --warning-color: #ccc1e9;
+    --warning-bg-color: #454364;
+    --warning-fg-color: #e3dfff;
+    --warning-color: #c6c2ea;
 
-    --success-color: #b6c9d8;
-    --success-bg-color: #374955;
-    --success-fg-color: #d2e5f4;
+    --success-color: #b4cad6;
+    --success-bg-color: #354a54;
+    --success-fg-color: #d0e6f2;
     
     --shade-color: rgba(0, 0, 0, 0.36);
 }

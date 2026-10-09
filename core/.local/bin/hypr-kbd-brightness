@@ -1,10 +1,7 @@
 #!/bin/bash
 action=$1
-device="apple::kbd_backlight"
-if [ ! -d "/sys/class/leds/$device" ]; then
-  # fallback to asus or any kbd backlight
-  device=$(ls /sys/class/leds/ 2>/dev/null | grep -E 'kbd_backlight|kbd' | head -n 1)
-fi
+# Dynamically discover any system keyboard backlight device
+device=$(ls /sys/class/leds/ 2>/dev/null | grep -E 'kbd_backlight|kbd' | head -n 1)
 
 if [[ -z "$device" ]]; then
   exit 0

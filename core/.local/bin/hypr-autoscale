@@ -1,0 +1,97 @@
+#!/usr/bin/env python3
+"""
+hypr-autoscale: Automatic display scale & terminal text calibration for CachyOS / Arch.
+Mirrors Omarchy's automatic clean-install scaling:
+  - High-DPI / Retina (PPI >= 200, Surface, MacBook T2):
+      Compositor Scale 2.0x -> Baseline Text 12px (Terminal 9.0pt, UI 1.0)
+  - Medium High-DPI (150 <= PPI < 200, 27" 4K, 14" 2.8K):
+      Compositor Scale 1.5-1.6x -> Baseline Text 13px (Terminal 10.0pt)
+  - Standard DPI (PPI < 150, 1080p, 1440p, Desktop, standard Laptop):
+      Compositor Scale 1.0x -> Baseline Text 14px (Terminal 11.0pt)
+"""
+
+import sys
+import os
+import json
+import math
+import subprocess
+import argparse
+
+def detect_ppi_from_hyprctl():
+    try:
+        monitors = json.loads(subprocess.check_output(["hyprctl", "monitors", "-j"], stderr=subprocess.DEVNULL))
+        if not monitors:
+            return None
+        mon = monitors[0]
+        for m in monitors:
+            if m.get("focused"):
+                mon = m
+                break
+        w, h = mon.get("width", 0), mon.get("height", 0)
+        pw, ph = mon.get("physicalWidth", 0), mon.get("physicalHeight", 0)
+        if w > 0 and h > 0 and pw > 0 and ph > 0:
+            diag_px = math.hypot(w, h)
+            diag_in = math.hypot(pw, ph) / 25.4
+            if diag_in > 0:
+                return diag_px / diag_in
+    except Exception:
+        pass
+    return None
+
+def detect_target_size(profile=None):
+    if profile:
+        profiles = [p.strip().lower() for p in profile.split(",")]
+        if "surface" in profiles:
+            return 12, "surface (High-DPI 3:2, 267 PPI)", 267.0
+        if "macbook-t2" in profiles or "macbook" in profiles:
+            return 12, "macbook-t2 (Retina Display, ~227 PPI)", 227.0
+        if "desktop" in profiles:
+            return 14, "desktop (Standard Workstation, 1x Scale)", 100.0
+        if "laptop" in profiles:
+            return 14, "laptop (Standard 1080p Display, 1x Scale)", 141.0
+
+    ppi = detect_ppi_from_hyprctl()
+    if ppi:
+        if ppi >= 200:
+            return 12, f"High-DPI / Retina ({ppi:.0f} PPI)", ppi
+        elif ppi >= 150:
+            return 13, f"Medium High-DPI ({ppi:.0f} PPI)", ppi
+        else:
+            return 14, f"Standard DPI ({ppi:.0f} PPI)", ppi
+
+    return 12, "Default / Generic Fallback", 0.0
+
+def main():
+    parser = argparse.ArgumentParser(description="Auto-calibrate display scale and text size")
+    parser.add_argument("--profile", type=str, help="Hardware profile name (e.g. surface, desktop, macbook-t2)")
+    parser.add_argument("--apply", action="store_true", help="Apply calibrated text size")
+    parser.add_argument("--status", action="store_true", help="Print detected scaling recommendations")
+    parser.add_argument("--dry-run", action="store_true", help="Show what would be applied without modifying configs")
+    args = parser.parse_args()
+
+    target_px, reason, ppi = detect_target_size(args.profile)
+    term_pt = round(target_px * 9 / 12)
+
+    print("=======================================================")
+    print("  🖥️  Display & Text Auto-Calibration (Omarchy-Style)  ")
+    print("=======================================================")
+    print(f"  Detected Target : {reason}")
+    if ppi > 0:
+        print(f"  Calculated PPI  : {ppi:.1f} PPI")
+    print(f"  Optimal Text    : {target_px}px (Terminal Font: {term_pt}.0pt)")
+    print("=======================================================")
+
+    if args.dry_run:
+        print(f"  [dry-run] Would execute: hypr-text-size {target_px}")
+        return
+
+    if args.apply:
+        text_size_script = os.path.expanduser("~/.local/bin/hypr-text-size")
+        if os.path.exists(text_size_script):
+            subprocess.run([text_size_script, str(target_px)])
+            print(f"  --> Applied: hypr-text-size {target_px} (Terminal {term_pt}.0pt)")
+        else:
+            print(f"  Notice: {text_size_script} not found.")
+
+if __name__ == "__main__":
+    main()

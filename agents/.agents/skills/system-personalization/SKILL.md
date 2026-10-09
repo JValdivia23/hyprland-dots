@@ -1,7 +1,7 @@
 ---
 name: system-personalization
 description: "Comprehensive system personalization tracker for cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.36.0
+version: 2.37.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
@@ -21,6 +21,7 @@ Complete documentation of this machine's configuration and personalization. This
 6. **Explain -> Ask -> Act.** Always explain the situation and ask if the user agrees with the solution before making changes to the system or installing anything.
 7. **Hyprland Error Diagnostics.** When the user reports a desktop error, red banner, or system error after modifying Hyprland configs, `journalctl` does NOT log config validation errors. ALWAYS run `hyprctl configerrors` first to inspect the exact line number and error message.
 8. **Elevated Password & Interactive Prompts (`hyprctl` / `kitty -e`).** When a system command requires user password authentication (such as `sudo pacman` package installations), background agent subshells must export `HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1)` and launch an interactive terminal window via Hyprland's IPC executor: `hyprctl eval 'hl.exec_cmd("kitty --title <Title> -e bash -c \"sudo <command>; echo Done!; read\"")'`. This ensures the terminal maps directly onto the active Wayland workspace so the user can securely enter their password directly.
+9. **Device-Specific vs. Universal Scope Identification.** Whenever installing a new feature, package, script, keybinding, or configuration setting, explicitly identify whether it is a **device-specific setting** (hardware-dependent: touchscreen/stylus, GPU power switching, battery/sleep hooks, machine-specific backlight keys, audio DSP) or a **general user setting** (universal desktop apps, shell aliases, core keybindings, global themes). Place device-specific items into `profiles/<profile>/` and general user items into `core/`. **If it is unclear whether a feature is hardware-dependent or universal, the agent MUST explicitly ask the user for clarification before applying or placing the configuration.**
 
 ---
 
@@ -68,7 +69,10 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`hyprland.md`](references/gotchas/hyprland.md) | Hyprland Lua syntax, IPC window dispatchers, modifier repetition, copy shortcut |
 | ├── [`wayland-noctalia.md`](references/gotchas/wayland-noctalia.md) | Noctalia messaging reload/restart, Satty screenshot piping, Quick Look |
 | ├── [`networking.md`](references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
-| └── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
+| ├── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
+| ├── [`zen-browser.md`](references/gotchas/zen-browser.md) | Zen Browser keybindings, Linux modifier mappings & in-memory overwrite gotchas |
+| ├── [`battery-upower.md`](references/gotchas/battery-upower.md) | Surface dual-battery calculation desync (~300%) & UPower service recovery |
+| └── [`sleep-hibernate.md`](references/gotchas/sleep-hibernate.md) | Surface Modern Standby hibernation failure, ACPI S4 rejection & `HibernateMode=shutdown` |
 | [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
 | [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |
 | [`scripts/snapshot.sh`](scripts/snapshot.sh) | Bash script to capture current system state to stdout |

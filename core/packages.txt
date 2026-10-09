@@ -7,10 +7,10 @@ btop
 cachyos-fish-config
 cachyos-hypr-noctalia
 cantarell-fonts
+chrony
 cliamp-bin
 curl
 dolphin
-easyeffects
 fastfetch
 ffmpegthumbnailer
 fish
@@ -45,9 +45,12 @@ satty
 slurp
 stow
 swayimg
+tesseract
+tesseract-data-eng
 ttf-meslo-nerd
 ufw
 uwsm
+wf-recorder
 wget
 wl-clipboard
 xdg-desktop-portal-gtk
