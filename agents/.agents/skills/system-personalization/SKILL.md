@@ -42,7 +42,7 @@ Complete documentation of this machine's configuration and personalization. This
 | **Machine** | MacBookPro15,1 |
 | **Hostname** | `cachyos-cu` |
 | **OS** | CachyOS |
-| **Kernel** | `7.2.9-1-cachyos` (reboot pending) / `7.2.3-1-cachyos` (active) |
+| **Kernel** | `7.2.9-1-cachyos` |
 | **WM** | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia |
 | **Primary Display** | eDP-1 (Default Display) |

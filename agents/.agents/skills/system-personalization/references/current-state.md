@@ -1,10 +1,10 @@
 # Current System State
 
-Live system snapshot automatically generated on Fri Oct 09 05:26:27 PM MDT 2026.
+Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 
 ## Operating System & Kernel
 - **OS**: CachyOS
-- **Kernel**: `7.2.9-1-cachyos` (installed, `7.2.3-1-cachyos` active until next reboot; unpinned in `/etc/pacman.conf`)
+- **Kernel**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (fish, version 4.9.3)
 - **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
 - **Active Profiles**: macbook-t2
@@ -35,6 +35,13 @@ Live system snapshot automatically generated on Fri Oct 09 05:26:27 PM MDT 2026.
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | tiny-dfr | 0.3.2-2 | Apple T2 Touch Bar Daemon |
 | apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
+
+## Hardware Drivers & Subsystems
+- **T2 Driver**: `t2bce_core` actively bound to PCI `02:00.1`
+- **Virtual Input**: `t2bce_vhci` active (internal keyboard & trackpad)
+- **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
+- **Touch Bar**: `tiny-dfr.service` active + `appletbdrm`
+- **Thermals / Fans**: `t2fanrd.service` active + `applesmc_t2`
 
 ## Compositor Health
 - **Hyprland Errors**: None (Clean)
