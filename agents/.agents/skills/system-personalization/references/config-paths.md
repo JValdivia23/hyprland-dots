@@ -135,6 +135,7 @@ Per Rule 9, all hardware-specific configurations, daemons, and system hooks are 
 | `systemd/20-surface-battery-resume.sh` | Sleep Resume Battery Hook | Deployed to `/etc/systemd/system-sleep/20-surface-battery-resume.sh`. |
 | `systemd/21-surface-ipts-resume.sh` | Sleep Resume IPTS Hook | Deployed to `/etc/systemd/system-sleep/21-surface-ipts-resume.sh`. |
 | `systemd/iptsd-timeout.conf` | IPTS Daemon Timeout Drop-in | Deployed to `/etc/systemd/system/iptsd@.service.d/timeout.conf` (`TimeoutStopSec=3s`). |
+| `scripts/surface-hibernate-compressor.sh` & `systemd/surface-hibernate-compressor.service` | Surface LZ4 Hibernation Default | Installed / enabled (2026-10-08): helper `/usr/local/bin/surface-hibernate-compressor`, boot oneshot `/etc/systemd/system/surface-hibernate-compressor.service`; loads/self-tests provider and selects LZ4 on `*-surface` only. No boot-image or sleep-timing edit; rollback in sleep gotcha section 10. |
 
 ---
 
@@ -148,5 +149,3 @@ These system-level configuration files require elevated permissions to edit:
 | `/etc/fstab` | File systems and mount configurations | Append or patch only; always verify partition UUIDs. |
 | `/etc/chrony.conf` | Chrony NTP daemon configuration (`makestep 1 -1`, `rtcsync`) | Patch lines only. Restart `chronyd.service` after editing. |
 | `/etc/default/limine` | Limine bootloader kernel parameters (`button.lid_init_state=open`) | Run `limine-snapper-sync` or initramfs sync after editing. |
-
-

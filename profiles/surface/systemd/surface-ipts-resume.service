@@ -1,0 +1,11 @@
+[Unit]
+Description=Recover Surface IPTS touchscreen and stylus after resume
+After=systemd-udevd.service
+
+[Service]
+Type=oneshot
+Environment=PATH=/usr/bin
+ExecStart=/usr/local/bin/surface-ipts-resume-recover
+TimeoutStartSec=45s
+TimeoutStopSec=3s
+NoNewPrivileges=yes

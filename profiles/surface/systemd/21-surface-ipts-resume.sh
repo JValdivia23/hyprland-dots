@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Microsoft Surface post-resume hook for IPTS touchscreen re-enumeration
-case "$1/$2" in
+# Queue Surface-only IPTS recovery outside the blocking system-sleep hook.
+# Stop a previous attempt before another sleep/hibernate transition.
+case "${1:-}/${2:-}" in
+    pre/*)
+        systemctl --no-block stop surface-ipts-resume.service
+        ;;
     post/*)
-        # Give IPTS / MEI controller 1s to finish power-state handshake
-        sleep 1
-        udevadm trigger -s hidraw
+        systemctl --no-block restart surface-ipts-resume.service
         ;;
 esac

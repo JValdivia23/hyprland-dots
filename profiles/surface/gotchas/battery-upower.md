@@ -33,8 +33,9 @@ Detailed troubleshooting for dual-battery aggregation bugs, Surface EC communica
   3. **Udev Event Trigger**:
      - Rule: `/etc/udev/rules.d/99-surface-battery.rules` (`ACTION=="change", SUBSYSTEM=="power_supply", KERNEL=="BAT2", TAG+="systemd", ENV{SYSTEMD_WANTS}+="surface-battery-watchdog.service"`).
      - Automatically invokes the watchdog when `BAT2` status changes or recovers from EC timeout.
-  4. **Sleep/Resume Hook**:
-     - Hook: `/etc/systemd/system-sleep/20-surface-battery-resume.sh` triggers the watchdog on wake (`post/*`).
+   4. **Sleep/Resume Hook**:
+      - Stored hook: `/etc/systemd/system-sleep/20-surface-battery-resume.sh`, intended to trigger the watchdog on wake (`post/*`).
+      - **Registration gap discovered 2026-10-08**: The installed `systemd-sleep` binary/manual scan `/usr/lib/systemd/system-sleep/`, not `/etc/systemd/system-sleep/`. This battery hook is not registered there, so its immediate post-resume invocation must not be assumed. It was left untouched during the separately approved IPTS-only repair; battery-hook registration remains a deferred follow-up. The timer and udev trigger are separate from this hook.
   - **Manual Recovery (if needed)**:
     ```bash
     sudo systemctl restart upower

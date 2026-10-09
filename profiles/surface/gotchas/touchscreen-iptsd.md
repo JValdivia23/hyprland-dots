@@ -81,23 +81,38 @@ sudo iptsd-systemd -t any restart
 
 ---
 
-### Option 2: Automated Sleep/Resume Hook (Permanent Prevention)
+### Option 2: Asynchronous, Bounded Resume Recovery (Deployed and Dispatch Verified 2026-10-08)
 
-To prevent this timing race after every sleep cycle, automate the re-triggering of udev after a 1-second delay upon waking.
+The original one-second hook used `udevadm trigger -s hidraw`, whose default action is `change`. The packaged rule above requires `add`, so that hook did not reliably rerun the IPTS device check/start logic. A subsequent hibernation test also found an already-tagged, active device with a stopped daemon: re-adding `SYSTEMD_WANTS` alone does not start dependencies of a device that is already active.
 
-Create `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (tracked in `profiles/surface/systemd/`):
+The reviewed Surface-only replacement stores a short dispatcher at `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (tracked in `profiles/surface/systemd/`). **This location alone is not executed by systemd**: the installed `systemd-sleep` binary and manual specify `/usr/lib/systemd/system-sleep/`. Register the dispatcher there with a symlink, retaining the administrator-owned script under `/etc`:
+
+```text
+/usr/lib/systemd/system-sleep/21-surface-ipts-resume.sh
+  -> /etc/systemd/system-sleep/21-surface-ipts-resume.sh
+```
+
+Dispatcher contents:
 ```bash
 #!/usr/bin/env bash
-# Microsoft Surface post-resume hook for IPTS touchscreen re-enumeration
-case "$1/$2" in
+case "${1:-}/${2:-}" in
+    pre/*)
+        systemctl --no-block stop surface-ipts-resume.service
+        ;;
     post/*)
-        # Give IPTS / MEI controller 1s to finish power-state handshake
-        sleep 1
-        udevadm trigger -s hidraw
+        systemctl --no-block restart surface-ipts-resume.service
         ;;
 esac
 ```
-Ensure permissions are set to `755`:
-```bash
-sudo chmod 755 /etc/systemd/system-sleep/21-surface-ipts-resume.sh
-```
+
+- **Worker script**: `profiles/surface/scripts/surface-ipts-resume-recover.sh` → `/usr/local/bin/surface-ipts-resume-recover` (mode 755).
+- **Static oneshot unit**: `profiles/surface/systemd/surface-ipts-resume.service` → `/etc/systemd/system/surface-ipts-resume.service` (mode 644). It is invoked by the hook, not enabled at boot; `TimeoutStartSec=45s`, `TimeoutStopSec=3s`.
+- **Behavior**: Retain the initial 1-second hardware handshake delay in the asynchronous worker, rediscover the live IPTS node on each of up to four attempts, probe only touchscreen IPTS candidates with bounded `iptsd-check-device`, and trigger `--action=add` only on that device. Require its udev `SYSTEMD_WANTS` and active device unit, then explicitly start its matching daemon if inactive. Do not restart a healthy daemon. Confirm it remains active after a further second.
+- **Lifecycle / safety**: Cancel an unfinished recovery before another sleep transition. Do not reset MEI, reload drivers, trigger every hidraw device, or change hibernation/compression/boot settings. Only clear historical failed IPTS units whose old device nodes are gone, after a current daemon has recovered. The vendor `BindsTo` / `StopWhenUnneeded` behavior and existing 3-second iptsd stop guard are retained.
+- **Deployment**: `profiles/surface/setup.sh` deploys the helper and unit before the dispatcher, reloads systemd, and registers the `/usr/lib` hook symlink. Guarded interactive installation completed with source/target hash checks, installed-file read-back, clean `systemd-analyze verify`, and original-hook backup under `/var/backups/surface-ipts-resume-20261008-161227-34891/`. Initially only the three recovery files were deployed; the missing registration symlink was subsequently added. Compression, sleep policy, boot config, kernel drivers, and packages were unchanged.
+- **Manual recovery / code validation**: Bash syntax checks and seven mocked recovery/dispatcher scenarios passed, covering already-active devices with inactive daemons, healthy-daemon preservation, rejected probes, missing udev Wants, inactive devices, node-number changes/retries, and nonblocking dispatch. The live manual worker completed successfully, restored the stopped `iptsd@dev-hidraw6.service` (PID `35009`), and both virtual inputs appeared in the kernel and Hyprland. User confirmed touch works; pen was not tested.
+- **First direct hibernation validation**: Original boot/collector survived; the device changed from `hidraw6` to `hidraw0`, and normal packaged udev startup restored the daemon (PID `36795`) and both virtual inputs. User confirmed touch works and the boot menu is hidden; pen, wake method, and exact wake time were not reported. **No fallback-worker run was logged** because the scanned hook directory was empty. Thus this test validates touch/hidden-menu restoration, not the new automatic fallback. `chronyd` stepped the clock forward `230.951801` seconds, so raw hibernation journal timestamps are still not a physical duration benchmark.
+- **Registration corrected**: Created and read-back verified the `/usr/lib` symlink to the reviewed `/etc` dispatcher. Updated profile deployment to create it only if absent, accept the same existing symlink idempotently, and refuse unexpected files/links; five setup and five guarded-registrar mock scenarios passed. Original helper/unit/dispatcher, boot config, sleep config, and battery hook hashes were unchanged. The first registered-hook prompt was cancelled before any hibernation request; the subsequent confirmed test below completed. No other hook was registered or modified. Rollback of registration means removing only this symlink after verifying its target, not restoring old boot/sleep configs.
+- **Registered-hook direct restore passed**: The original boot and collector (PID `37771`) survived, IPTS changed `hidraw0` → `hidraw6`, and iptsd PID `37942` remained running in both post-resume snapshots and a later check. The journal records the worker starting and successfully finishing; it reported `IPTS instance already active: iptsd@dev-hidraw6.service`, preserving the daemon already started by normal udev. **User confirmed full power-off, lid-only restoration of the original desktop, and working touch; pen remains untested.** Both virtual inputs were present in Hyprland; no failed system units or compositor configuration errors were found.
+- **Asynchronous behavior / evidence limits**: The worker ran for about **2.14 seconds** and finished **2.13 seconds after `user.slice` had already thawed**: its settle/health-check sleeps did not hold up user-session thaw. This is not an exact lock-screen benchmark or a measured speedup. Its `inactive/dead` state afterward is expected for a completed oneshot; unloaded-unit timestamps may reset to zero, so use the journal invocation rather than default `Result=success` as proof. This single direct AC cycle verifies real dispatch and healthy-daemon preservation; the inactive-daemon branch was verified manually, not by deliberately inducing a new resume failure. Overnight reliability, physical pen, exact wake time, and standby drain remain unmeasured. `chronyd` later stepped the clock `+88.570899s`, again precluding naive physical-duration claims from raw hibernation journal timestamps.
+- **Evidence**: `~/.cache/opencode/surface-standby-tests/ipts-recovery-z4wvl2hs/` contains mock results and guarded deployment records; `direct-hibernate-x9pc08ys/` records the initial unregistered-hook cycle; `registered-hook-retest-gt6ybkeh/` records registration plus cancellation; `registered-hook-retry-pinr1140/` contains the completed registered-hook cycle, `analysis.json`, and `followup.json`. The preceding 30-minute automatic hibernation test is linked from `sleep-hibernate.md`, section 7.

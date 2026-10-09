@@ -89,13 +89,33 @@ if [ -f "$SCRIPT_DIR/scripts/surface-battery-watchdog.sh" ]; then
     fi
 fi
 
-# 5. Deploy IPTS touchscreen sleep resume hook & service timeout drop-in
+# 5. Deploy IPTS asynchronous resume recovery & service timeout drop-in
 if [ -d "$SCRIPT_DIR/systemd" ]; then
     if command -v sudo &>/dev/null; then
+        if [ -f "$SCRIPT_DIR/scripts/surface-ipts-resume-recover.sh" ] && [ -f "$SCRIPT_DIR/systemd/surface-ipts-resume.service" ]; then
+            echo "--> Deploying Surface IPTS asynchronous recovery worker..."
+            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-ipts-resume-recover.sh" /usr/local/bin/surface-ipts-resume-recover
+            sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-ipts-resume.service" /etc/systemd/system/surface-ipts-resume.service
+            sudo systemctl daemon-reload
+        fi
+
         if [ -f "$SCRIPT_DIR/systemd/21-surface-ipts-resume.sh" ]; then
             echo "--> Deploying Surface IPTS resume hook..."
             sudo cp -v "$SCRIPT_DIR/systemd/21-surface-ipts-resume.sh" /etc/systemd/system-sleep/21-surface-ipts-resume.sh
             sudo chmod 755 /etc/systemd/system-sleep/21-surface-ipts-resume.sh
+
+            # systemd-sleep scans /usr/lib only; keep the local dispatcher in /etc.
+            ipts_dispatcher=/etc/systemd/system-sleep/21-surface-ipts-resume.sh
+            ipts_hook=/usr/lib/systemd/system-sleep/21-surface-ipts-resume.sh
+            if [[ -e "$ipts_hook" || -L "$ipts_hook" ]]; then
+                if [[ ! -L "$ipts_hook" || "$(readlink -- "$ipts_hook")" != "$ipts_dispatcher" ]]; then
+                    echo "Refusing to replace an unexpected IPTS sleep hook: $ipts_hook" >&2
+                    exit 1
+                fi
+            else
+                sudo mkdir -p /usr/lib/systemd/system-sleep
+                sudo ln -s -- "$ipts_dispatcher" "$ipts_hook"
+            fi
         fi
 
         if [ -f "$SCRIPT_DIR/systemd/iptsd-timeout.conf" ]; then
@@ -130,6 +150,40 @@ fi
 # 7. Apply runtime kernel parameter for ACPI button lid_init_state if available
 if [ -f "/sys/module/button/parameters/lid_init_state" ]; then
     echo "open" | sudo tee /sys/module/button/parameters/lid_init_state >/dev/null 2>&1 || true
+fi
+
+# 8. Restore the approved Surface-only LZ4 RAM-image default at each cold boot.
+# This does not edit boot arguments, initramfs compression, or sleep timing.
+if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" ] && [ -f "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" ]; then
+    if command -v sudo &>/dev/null; then
+        echo "--> Deploying Surface LZ4 hibernation compressor selection..."
+        compressor_fragment="$(systemctl show surface-hibernate-compressor.service --value --property=FragmentPath)"
+        if [[ -n "$compressor_fragment" && "$compressor_fragment" != /etc/systemd/system/surface-hibernate-compressor.service ]]; then
+            echo "Refusing to shadow an unexpected compressor unit: $compressor_fragment" >&2
+            exit 1
+        fi
+        for target in /usr/local/bin/surface-hibernate-compressor /etc/systemd/system/surface-hibernate-compressor.service; do
+            if [[ -e "$target" || -L "$target" ]]; then
+                if [[ "$target" == /usr/local/bin/* ]]; then
+                    source="$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh"
+                else
+                    source="$SCRIPT_DIR/systemd/surface-hibernate-compressor.service"
+                fi
+                if [[ -L "$target" ]] || ! cmp -s -- "$source" "$target"; then
+                    echo "Refusing to replace an unexpected compressor file: $target" >&2
+                    exit 1
+                fi
+            fi
+        done
+        if [[ ! -e /usr/local/bin/surface-hibernate-compressor ]]; then
+            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" /usr/local/bin/surface-hibernate-compressor
+        fi
+        if [[ ! -e /etc/systemd/system/surface-hibernate-compressor.service ]]; then
+            sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" /etc/systemd/system/surface-hibernate-compressor.service
+        fi
+        sudo systemctl daemon-reload
+        sudo systemctl enable --now surface-hibernate-compressor.service
+    fi
 fi
 
 echo "==> Microsoft Surface setup finished."

@@ -1,0 +1,15 @@
+[Unit]
+Description=Select LZ4 hibernation image compression on linux-surface
+ConditionKernelVersion=*-surface
+ConditionPathExists=/sys/module/hibernate/parameters/compressor
+After=systemd-modules-load.service
+Before=systemd-user-sessions.service systemd-hibernate.service systemd-suspend-then-hibernate.service systemd-hybrid-sleep.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/surface-hibernate-compressor
+RemainAfterExit=yes
+TimeoutStartSec=15s
+
+[Install]
+WantedBy=multi-user.target
