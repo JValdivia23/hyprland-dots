@@ -200,6 +200,25 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 - **Diagnostics**:
   - [`t2-power-explorer`](file:///usr/local/bin/t2-power-explorer) audits PCIe power management capabilities (D0–D3hot, D3cold) and display lanes across all buses on pure Wayland.
 
+---
+
+## 12. Dual-GPU Management & Integrated GPU Boot (`apple-gmux` & KAIT2EN `t2-dgpu-control`)
+
+- **Architecture & Dual GPU Layout**:
+  - The MacBookPro15,1 features an Intel UHD Graphics 630 (IGD) and an AMD Radeon Pro 560X (DIS).
+  - Internal Retina display (`eDP-1`) is multiplexed by Apple's custom GMUX hardware chip.
+  - If GMUX boots to discrete GPU, Intel UHD 630 is electrically powered down and completely hidden from PCI.
+- **Triple Configuration for Reliable iGPU Boot**:
+  1. **Modprobe Option**: `/etc/modprobe.d/apple-gmux.conf` (`options apple-gmux force_igd=y`) tells the kernel driver to enforce the integrated GPU.
+  2. **Kernel Parameter**: `apple_gmux.force_igd=1` in `/etc/default/limine` (regenerated via `limine-update`).
+  3. **EFI NVRAM Variable**: `gpu-power-prefs` (`fa4ce28d-b62f-4c99-9cc3-6815686e30f9`) set to `01 00 00 00` and flagged immutable (`chattr +i`).
+- **dGPU Sleep Services**:
+  - [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service): Automatically turns off AMD dGPU power via `vgaswitcheroo` (`OFF`) on boot, dropping idle draw by ~12W.
+  - [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service): Temporarily restores power to dGPU during suspend and cuts it after resume to prevent AMD driver wake crashes.
+- **Fail-safe Recovery**:
+  - If display does not power on during reboot, reset NVRAM by holding <kbd>Option</kbd>+<kbd>Command</kbd>+<kbd>P</kbd>+<kbd>R</kbd> at power-on to restore factory discrete graphics routing.
+
+
 
 
 
