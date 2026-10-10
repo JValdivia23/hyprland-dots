@@ -1,11 +1,10 @@
 [Unit]
 Description=Power off the discrete GPU after boot
-ConditionPathExists=/sys/kernel/debug/vgaswitcheroo/switch
 After=systemd-modules-load.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/libexec/t2-dgpu-control-helper power-off
+ExecStart=/bin/sh -c 'for i in $(seq 1 15); do [ -e /sys/kernel/debug/vgaswitcheroo/switch ] && exec /usr/local/libexec/t2-dgpu-control-helper power-off; sleep 1; done; exit 1'
 
 [Install]
 WantedBy=multi-user.target
