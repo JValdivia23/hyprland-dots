@@ -2,6 +2,19 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.40.0] - 2026-10-09
+### Added
+- **KAIT2EN T2 GPU Control & Integrated GPU Boot (`t2-dgpu-control`)**:
+  - Compiled from source and deployed KAIT2EN's [`t2-dgpu-control`](file:///usr/local/bin/t2-dgpu-control) (GTK4 / Libadwaita), privileged helpers [`t2-dgpu-control-helper`](file:///usr/local/libexec/t2-dgpu-control-helper) and `t2-dgpu-control-status`, desktop entry, and Polkit policies.
+  - Installed and enabled [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service) to automatically shut down the discrete AMD GPU via `vgaswitcheroo` after boot, saving ~12W at idle.
+  - Installed and enabled [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service) which cycles dGPU power during system sleep/resume to eliminate black-screen wake crashes.
+  - Configured Apple GMUX NVRAM EFI variable (`gpu-power-prefs`) to `01 00 00 00` (Integrated boot).
+  - Updated [`environment.lua`](file:///home/java1127/dotfiles/profiles/macbook-t2/.config/hypr/config/profile/environment.lua) with dynamic PCI vendor detection so VA-API uses `iHD` when in iGPU mode and `radeonsi` when in dGPU mode.
+- **Battery Turbo Boost Toggle & Status Telemetry (`amdgpu-power-switch`)**:
+  - Enhanced [`amdgpu-power-switch.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-switch.sh) and symlinked to `~/.local/bin/amdgpu-power-switch`.
+  - Added commands: `status` (live telemetry), `turbo-toggle` (toggles Intel Turbo Boost on battery with desktop notification), `turbo-on`, `turbo-off`, and `game` (3D performance mode).
+  - Added persistent override `/etc/default/t2-battery-turbo` allowing user to maintain burst performance on battery.
+
 ## [2.39.0] - 2026-10-09
 ### Added
 - **Apple T2 Touch ID Integration (`t2-touchid`)**:
