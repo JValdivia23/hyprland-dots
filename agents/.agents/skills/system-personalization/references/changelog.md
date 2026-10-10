@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.41.0] - 2026-10-09
+### Fixed & Resolved
+- **Apple T2 Dual-GPU Unhide & Integrated Graphics Boot (Intel UHD 630)**:
+  - Discovered and resolved the root cause of the missing iGPU: Apple EFI firmware deliberately cuts power to and hides `00:02.0` unless `apple-set-os` is invoked.
+  - Configured native Apple OS spoofing via rEFInd (`spoof_osx_version 10.9`), which triggers `APPLE_SET_OS_PROTOCOL` (`Mac OS X 10.9` / `Apple Inc.`) during early boot to expose the Intel UHD 630.
+  - Eliminated the `gpu-power-prefs=01 00 00 00` NVRAM black-screen hazard by keeping NVRAM as `00 00 00 00` (discrete POST) and delegating display multiplexing cleanly to Linux `apple-gmux` (`force_igd=y`).
+  - Added `i915?` to initramfs (`/etc/mkinitcpio.conf.d/11-chwd.conf`) and `i915.enable_guc=3` to `/etc/default/limine`.
+  - Configured and verified [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service) with an asynchronous loop: powers off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), saving ~12W at idle and dropping thermals to ~52°C.
+  - Verified live: OpenGL rendering directly on `Mesa Intel(R) UHD Graphics 630 (CFL GT2)` with AMD card completely sleeping.
+
 ## [2.40.0] - 2026-10-09
 ### Added
 - **KAIT2EN T2 GPU Control & Integrated GPU Boot (`t2-dgpu-control`)**:
