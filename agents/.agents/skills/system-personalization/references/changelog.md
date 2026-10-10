@@ -23,6 +23,7 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Integrated with `fprintd` via virtual storage socket drop-in `/etc/systemd/system/fprintd.service.d/kait2en-t2-touchid.conf` and enabled [`kait2en-t2-touchid.service`](file:///etc/systemd/system/kait2en-t2-touchid.service).
   - Integrated D-Bus `org.kait2en.TouchId` with [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar) to render live touch-to-unlock prompts on the Touch Bar during authentication.
   - Wired into `/etc/pam.d/sudo` and `/etc/pam.d/hyprlock` via `auth sufficient pam_fprintd.so` with seamless password fallback and <kbd>Esc</kbd> instant cancel.
+  - Verified live: SEP unlocked via macOS, automatically detected macOS UID 502 with 3 fingers (`right-thumb`, `right-middle-finger`, `right-index-finger`), and successfully authenticated `sudo` via Touch ID.
 - **CPU Package C-State & PCIe Power Tuning (`t2-power-tune` & `t2-power-explorer`)**:
   - Deployed [`t2-power-tune`](file:///usr/local/bin/t2-power-tune) (GTK4 / Libadwaita) with real-time 1s interval Package C-state telemetry (C2 through C10) sampled from `/sys/kernel/debug/pmc_core/package_cstate_show`.
   - Configured granular PCIe ASPM controls (L0s, L1) and runtime power management auto-sleep for idle buses.

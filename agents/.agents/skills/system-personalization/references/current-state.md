@@ -47,11 +47,11 @@ Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 - **Virtual Input**: `t2bce_vhci` active (internal keyboard & trackpad)
 - **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
 - **Touch Bar**: `kait2en-touchbar.service` active + `appletbdrm` (dark-first OLED, multi-layer & gestures)
-- **Touch ID**: `kait2en-t2-touchid.service` active over CDC-NCM (`t2_ncm`) link-local IPv6 -> `fprintd` virtual device socket
+- **Touch ID**: Verified active & operational. 3 macOS fingers auto-bound to `java1127` via BridgeXPC over CDC-NCM (`t2_ncm`) -> `fprintd` -> PAM `sudo` / `hyprlock`
 - **GPU Power**: AMD Radeon Pro 560X in `POWER_SAVING` DPM profile (mode 2) via `amdgpu-power-switch.sh`
-- **CPU Limits**: `t2-cpu-control.service` active for PL1/PL2 constraint persistence
+- **CPU Limits**: PL1 = 45 W, PL2 = 60 W active via `t2-cpu-control.service` and `/etc/t2-cpu-control.conf`
 - **Power Optimization**: `t2-power-tune` & `t2-power-explorer` deployed with Polkit privilege escalation
-- **Thermals / Fans**: `t2fanrd.service` active + `applesmc_t2`
+- **Thermals / Fans**: `t2fanrd.service` active with linear curve (45°C–72°C) via `/etc/t2fand.conf`
 
 ## Compositor Health
 - **Hyprland Errors**: None (Clean)
