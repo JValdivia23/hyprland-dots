@@ -2,6 +2,14 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.45.0] - 2026-10-10
+### Added
+- **Touch ID Fingerprint Login Integration (`greetd` / Noctalia Greeter)**:
+  - Configured [`/etc/pam.d/greetd`](file:///etc/pam.d/greetd) with `auth sufficient pam_fprintd.so` placed immediately after `pam_nologin.so`.
+  - Enables biometric login using the MacBook Pro's Apple T2 Touch ID sensor at the Noctalia / greetd login screen, logging in user `java1127` upon resting an enrolled finger on the sensor.
+  - Automatically falls back to standard password entry if fingerprint verification times out or is bypassed.
+  - Automated deployment in [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) and updated hardware documentation in [`apple-t2.md`](file:///home/java1127/dotfiles/profiles/macbook-t2/gotchas/apple-t2.md).
+
 ## [2.44.0] - 2026-10-09
 ### Fixed
 - **rEFInd Duplicate Arch Entry Resolution**:

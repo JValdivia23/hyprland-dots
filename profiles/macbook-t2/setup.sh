@@ -167,6 +167,17 @@ if [ -f "$SCRIPT_DIR/scripts/t2-touchid.conf" ]; then
         $SUDO systemctl daemon-reload
         $SUDO systemctl enable kait2en-t2-touchid.service 2>/dev/null || true
     fi
+    # Configure greetd for Touch ID fingerprint login
+    if [ -f "/etc/pam.d/greetd" ]; then
+        if ! grep -q "pam_fprintd.so" /etc/pam.d/greetd; then
+            echo "    [Touch ID] Adding pam_fprintd.so to /etc/pam.d/greetd..."
+            if grep -q "pam_nologin.so" /etc/pam.d/greetd; then
+                $SUDO sed -i '/pam_nologin.so/a auth       sufficient   pam_fprintd.so' /etc/pam.d/greetd
+            else
+                $SUDO sed -i '1a auth       sufficient   pam_fprintd.so' /etc/pam.d/greetd
+            fi
+        fi
+    fi
 fi
 
 echo "==> Apple MacBook Pro setup finished."

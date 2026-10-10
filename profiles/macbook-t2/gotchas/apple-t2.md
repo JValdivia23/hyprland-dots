@@ -189,7 +189,7 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   - **Root Cause**: Linux cannot enroll new raw biometrics into Apple's SEP. The SEP biometric keybag remains locked until a macOS user account password unlocks it once after a cold boot / power cut (the exact same security gate used in iOS/macOS).
   - **Resolution**: Boot into macOS once and log in with your user password. bridgeOS only sleeps during Linux reboots, so once unlocked in macOS, the SEP keybag stays unlocked across all subsequent Linux reboots.
 - **PAM Integration**:
-  - Configured in `/etc/pam.d/sudo` and `/etc/pam.d/hyprlock` via `auth sufficient pam_fprintd.so` placed at the top of the auth stack. If no fingers are matched or the bridge is idle, PAM falls straight through to standard password authentication without freezing.
+  - Configured in `/etc/pam.d/sudo`, `/etc/pam.d/hyprlock`, and `/etc/pam.d/greetd` via `auth sufficient pam_fprintd.so` placed at the top of the auth stack. Enables Touch ID for sudo privilege escalation, lock screen unlocking, and greeter session login. If no fingers are matched or the bridge is idle, PAM falls straight through to standard password authentication without freezing.
 - **Verified Live Operation**:
   - On startup, `t2-touchid` detects the unlocked SEP on macOS UID 502 and automatically binds all enrolled fingers to Linux user `java1127` (`#0: right-thumb`, `#1: right-middle-finger`, `#2: right-index-finger`).
   - Tested live and confirmed working: `sudo -k && sudo whoami` prompts on the Touch Bar and authenticates immediately upon resting an enrolled finger on the sensor.
