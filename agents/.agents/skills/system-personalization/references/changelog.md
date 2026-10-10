@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.44.0] - 2026-10-09
+### Fixed
+- **rEFInd Duplicate Arch Entry Resolution**:
+  - Diagnosed duplicate Arch Linux boot icons in rEFInd boot menu from `refind.log`. Discovered that rEFInd was scanning both the factory Apple 300MB EFI partition (`nvme0n1p1`, labeled `EFI`) and CachyOS's 4GB boot partition (`nvme0n1p3`, mounted as `/boot`), finding `EFI/limine/limine_x64.efi` on both.
+  - Added `dont_scan_volumes "EFI"` to `/boot/EFI/refind/refind.conf` to ignore the factory ESP.
+  - Added `dont_scan_dirs "EFI/BOOT"` to suppress the generic fallback boot loader entry (`BOOTX64.EFI`).
+  - Deduplicated repeated `default_selection "limine,vmlinuz,cachyos"` lines in `refind.conf`.
+  - Updated [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) to automatically enforce `dont_scan_volumes "EFI"` and `dont_scan_dirs "EFI/BOOT"` on fresh installations.
+  - Result: Clean 2-entry boot menu with exactly 1 Arch Linux entry (Limine) and 1 macOS entry.
+
 ## [2.43.0] - 2026-10-09
 ### Added
 - **Turnkey Dual-GPU & Hardware Automation in Dotfiles (`profiles/macbook-t2/setup.sh`)**:

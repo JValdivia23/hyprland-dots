@@ -130,6 +130,11 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   - `default_selection "limine,vmlinuz,cachyos"`: Preselects CachyOS as the default boot target.
   - `scanfor internal,external,optical,manual`: Scans all internal partitions for macOS APFS and Linux kernels.
   - `include themes/rEFInd-minimal-black/theme.conf`: Ultra-minimalist dark theme with pitch black background (`#000000`) and monochrome gray logos (Arch Linux & Apple macOS).
+- **Duplicate Arch Entry Gotcha & Resolution**:
+  - T2 MacBooks partitioned for Linux retain Apple's factory 300MB EFI partition (`nvme0n1p1`, label `EFI`) in addition to CachyOS's 4GB `/boot` partition (`nvme0n1p3`). If early installers placed Limine on `nvme0n1p1`, rEFInd's internal scan discovers Limine on *both* partitions, displaying two identical Arch Linux icons.
+  - Adding `dont_scan_volumes "EFI"` instructs rEFInd to ignore the factory ESP.
+  - Adding `dont_scan_dirs "EFI/BOOT"` suppresses the redundant generic fallback loader (`BOOTX64.EFI`).
+  - Result: A clean dual-boot picker with exactly 1 Arch Linux icon (Limine) and 1 Apple icon (macOS).
 - **Manual Apple Boot Picker Fallback**: Holding the `Option` (`⌥`) key on startup bypasses all custom bootloaders and launches the Apple hardware Startup Manager.
 
 ---

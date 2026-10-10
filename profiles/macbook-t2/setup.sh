@@ -104,8 +104,9 @@ if [ -f "/etc/default/limine" ]; then
     fi
 fi
 
-# Bootloader: rEFInd spoof_osx_version 10.9 (apple-set-os protocol)
+# Bootloader: rEFInd spoof_osx_version 10.9 (apple-set-os protocol) & entry deduplication
 if [ -f "/boot/EFI/refind/refind.conf" ]; then
+    # Enable macOS version spoofing for Intel iGPU unhide
     if ! grep -Eq '^[[:space:]]*spoof_osx_version[[:space:]]+10\.9' /boot/EFI/refind/refind.conf; then
         echo "    [rEFInd] Configuring spoof_osx_version 10.9 in /boot/EFI/refind/refind.conf..."
         $SUDO sed -i 's/^[[:space:]]*spoof_osx_version.*/# &/' /boot/EFI/refind/refind.conf
@@ -113,6 +114,19 @@ if [ -f "/boot/EFI/refind/refind.conf" ]; then
     else
         echo "    [rEFInd] spoof_osx_version 10.9 already enabled."
     fi
+
+    # Ignore factory EFI partition (prevents duplicate Arch/Limine entries)
+    if ! grep -Eq '^[[:space:]]*dont_scan_volumes[[:space:]]+.*"EFI"' /boot/EFI/refind/refind.conf; then
+        echo "    [rEFInd] Configuring dont_scan_volumes \"EFI\" to eliminate duplicate entries..."
+        echo 'dont_scan_volumes "EFI"' | $SUDO tee -a /boot/EFI/refind/refind.conf >/dev/null
+    fi
+
+    # Ignore fallback bootloader in EFI/BOOT
+    if ! grep -Eq '^[[:space:]]*dont_scan_dirs[[:space:]]+.*"EFI/BOOT"' /boot/EFI/refind/refind.conf; then
+        echo "    [rEFInd] Configuring dont_scan_dirs \"EFI/BOOT\" to hide fallback loader..."
+        echo 'dont_scan_dirs "EFI/BOOT"' | $SUDO tee -a /boot/EFI/refind/refind.conf >/dev/null
+    fi
+
     # Safety guard: ensure invalid apple_set_os.efi is not in drivers_x64 (prevents boot hang)
     if [ -f "/boot/EFI/refind/drivers_x64/apple_set_os.efi" ]; then
         echo "    [rEFInd] Removing hazardous apple_set_os.efi from drivers_x64..."
