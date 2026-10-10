@@ -109,7 +109,12 @@ if [ -d "/etc/limine-entry-tool.d" ] && [ -f "$SCRIPT_DIR/scripts/t2-mac.conf" ]
     fi
 fi
 
-# Suspend & Resume Optimizations: plocate timer override & t2_ncm IPv6 DAD
+# Suspend & Resume Optimizations: systemd s2idle enforcement, plocate timer override & t2_ncm IPv6 DAD
+if [ -f "$SCRIPT_DIR/scripts/s2idle.conf" ]; then
+    echo "    [Suspend] Enforcing systemd MemorySleepMode=s2idle in /etc/systemd/sleep.conf.d/..."
+    $SUDO mkdir -p /etc/systemd/sleep.conf.d
+    $SUDO cp -v "$SCRIPT_DIR/scripts/s2idle.conf" /etc/systemd/sleep.conf.d/s2idle.conf
+fi
 if [ -f "$SCRIPT_DIR/scripts/plocate-timer-override.conf" ]; then
     echo "    [Suspend] Deploying plocate-updatedb.timer override (Persistent=false)..."
     $SUDO mkdir -p /etc/systemd/system/plocate-updatedb.timer.d

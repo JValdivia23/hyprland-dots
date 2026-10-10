@@ -11,7 +11,9 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cp -v "$SCRIPT_DIR/t2-sleep-helper" /usr/local/bin/t2-sleep-helper
 chmod 0755 /usr/local/bin/t2-sleep-helper
 
-echo "==> [3/6] Setting runtime mem_sleep to s2idle..."
+echo "==> [3/7] Enforcing systemd MemorySleepMode=s2idle..."
+mkdir -p /etc/systemd/sleep.conf.d
+cp -v "$SCRIPT_DIR/s2idle.conf" /etc/systemd/sleep.conf.d/s2idle.conf
 if [ -w /sys/power/mem_sleep ]; then
     echo s2idle > /sys/power/mem_sleep
 fi
