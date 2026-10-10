@@ -186,4 +186,15 @@ if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" ] && [ -f "$SCRIPT
     fi
 fi
 
+# 9. Deploy Surface IPTSD touchscreen session uaccess rule for gesture daemon (lisgd)
+if [ -f "$SCRIPT_DIR/systemd/71-iptsd-touchscreen-uaccess.rules" ]; then
+    echo "--> Deploying Surface IPTSD touchscreen uaccess rule..."
+    if command -v sudo &>/dev/null; then
+        sudo cp -v "$SCRIPT_DIR/systemd/71-iptsd-touchscreen-uaccess.rules" /etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules
+        sudo chmod 644 /etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules
+        sudo udevadm control --reload-rules 2>/dev/null || true
+        sudo udevadm trigger -s input 2>/dev/null || true
+    fi
+fi
+
 echo "==> Microsoft Surface setup finished."

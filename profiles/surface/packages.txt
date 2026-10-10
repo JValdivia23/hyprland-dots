@@ -5,5 +5,4 @@ iptsd
 surface-dtx-daemon
 surface-control
 wvkbd
-hyprpm
 lisgd
