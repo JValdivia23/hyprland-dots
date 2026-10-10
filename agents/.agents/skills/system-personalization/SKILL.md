@@ -75,6 +75,7 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`battery-upower.md`](references/gotchas/battery-upower.md) | Surface dual-battery calculation desync (~200%) & UPower service recovery |
 | ├── [`sleep-hibernate.md`](references/gotchas/sleep-hibernate.md) | Surface Modern Standby hibernation failure, ACPI S4 rejection & `HibernateMode=shutdown` |
 | ├── [`touchscreen-iptsd.md`](references/gotchas/touchscreen-iptsd.md) | Surface touchscreen & stylus wake race condition (`iptsd` EAGAIN -11) & udev recovery |
+| ├── [`touchscreen-hyprgrass.md`](references/gotchas/touchscreen-hyprgrass.md) | Hyprgrass touch plugin & spacebar keybind collision in Hyprland 0.56+ |
 | └── [`virtual-keyboard.md`](references/gotchas/virtual-keyboard.md) | Surface on-screen touch keyboard (`wvkbd`) and compositor execution path |
 | [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
 | [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |

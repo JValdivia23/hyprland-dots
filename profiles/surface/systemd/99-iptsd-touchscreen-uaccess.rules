@@ -1,0 +1,3 @@
+# Microsoft Surface IPTSD Virtual Touchscreen User Session Access
+# Grants uaccess ACL to active Wayland session for lisgd touch daemon without requiring input group
+KERNEL=="event*", ATTRS{name}=="IPTSD Virtual Touchscreen*", TAG+="uaccess"

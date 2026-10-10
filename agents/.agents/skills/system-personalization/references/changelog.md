@@ -3,6 +3,24 @@
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
 ## [Unreleased]
+### Added
+- **Libinput Synthetic Gesture Daemon (`lisgd`) deployed for Surface Book 3 touchscreen (`surface`, 2026-10-09)**:
+  - Installed `lisgd` from AUR (`aur/lisgd`) and tracked in [`profiles/surface/packages.txt`](file:///home/jmvp/dotfiles/profiles/surface/packages.txt).
+  - Deployed udev session access rule [`profiles/surface/systemd/99-iptsd-touchscreen-uaccess.rules`](file:///home/jmvp/dotfiles/profiles/surface/systemd/99-iptsd-touchscreen-uaccess.rules) to `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` with `TAG+="uaccess", RUN{builtin}+="uaccess"`. Verified user POSIX ACL (`user:jmvp:rw-`) on `/dev/input/event19` (`IPTSD Virtual Touchscreen`) without granting insecure access to physical keyboard nodes.
+  - Created dynamic launcher script [`profiles/surface/.local/bin/hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) (symlinked to `~/.local/bin/hypr-lisgd`):
+    - Dynamically detects the live IPTSD virtual touchscreen device node from `/proc/bus/input/devices`.
+    - Calibrated with `-s 3.5` (175px edge grab area to clear top Noctalia bar), `-r 20` (20-degree non-overlapping gesture cones), `-t 80` (lowered distance threshold), `-m 1500` (1.5s timeout window).
+    - Mapped edge gestures: bottom edge up for [`wvkbd`](file:///home/jmvp/.local/bin/hypr-virtual-keyboard), right edge left for Noctalia Control Center, left edge right for Noctalia Window Switcher, top edge down (and 2-finger swipe down) for fullscreen (`hl.dispatch(hl.dsp.window.fullscreen())`).
+    - Mapped 3-finger in-screen gestures: horizontal swipe for workspace switching (`hl.dispatch(hl.dsp.focus({ workspace = "e+1" }))` / `"e-1"`), swipe down to close active window (`hl.dispatch(hl.dsp.window.close())`), swipe up to toggle floating (`hl.dispatch(hl.dsp.window.float({ action = "toggle" }))`).
+    - Fixed Hyprland Lua IPC gotcha: `hyprctl eval 'hl.dsp.window.fullscreen()'` returns the closure object without dispatching; actions must be wrapped in `hl.dispatch(...)`.
+  - Added profile autostart hook [`profiles/surface/.config/hypr/config/profile/autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua) (symlinked to `~/.config/hypr/config/profile/autostart.lua`).
+  - Verified daemon running under PID 75047 with 0 errors, completely decoupled from Hyprland's internal key resolver.
+- **Hyprgrass touch plugin evaluation, Spacebar collision discovery & rollback (`surface`, 2026-10-09)**:
+  - Installed `hyprpm` (`0.56.2-4.1` from CachyOS) and built `hyprgrass` (v0.8.2) for touchscreen testing.
+  - **Identified Critical Gotcha**: `hyprgrass` injects dummy `SKeybind` structs into Hyprland's `KeybindManager`. In Hyprland 0.56+, the new `Resolver` key lookup table matches empty keysym entries against physical keypresses, completely swallowing the physical **Spacebar** (`XKB_KEY_space`).
+  - **Immediate Rollback**: Unloaded `hyprgrass` (`hyprctl plugin unload`), killed `wvkbd-mobintl`, restored clean `inputs.lua` and `autostart.lua`, and reloaded Hyprland (`hyprctl reload`). Space key functionality was immediately restored and verified.
+  - Documented root cause and architecture in [`profiles/surface/gotchas/touchscreen-hyprgrass.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/touchscreen-hyprgrass.md) and linked in `SKILL.md`.
+
 ### Fixed
 - **Surface IPTS recovery gaps corrected; touchscreen and automatic dispatch verified (`surface`, 2026-10-08)**:
   - Confirmed the original resume hook emitted `change`, while packaged iptsd rules require `add`; an already-active device also does not retrigger `SYSTEMD_WANTS` when its daemon is stopped.
