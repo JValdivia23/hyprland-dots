@@ -207,16 +207,19 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 - **Architecture & Dual GPU Layout**:
   - The MacBookPro15,1 features an Intel UHD Graphics 630 (IGD) and an AMD Radeon Pro 560X (DIS).
   - Internal Retina display (`eDP-1`) is multiplexed by Apple's custom GMUX hardware chip.
-  - If GMUX boots to discrete GPU, Intel UHD 630 is electrically powered down and completely hidden from PCI.
-- **Triple Configuration for Reliable iGPU Boot**:
-  1. **Modprobe Option**: `/etc/modprobe.d/apple-gmux.conf` (`options apple-gmux force_igd=y`) tells the kernel driver to enforce the integrated GPU.
-  2. **Kernel Parameter**: `apple_gmux.force_igd=1` in `/etc/default/limine` (regenerated via `limine-update`).
-  3. **EFI NVRAM Variable**: `gpu-power-prefs` (`fa4ce28d-b62f-4c99-9cc3-6815686e30f9`) set to `01 00 00 00` and flagged immutable (`chattr +i`).
-- **dGPU Sleep Services**:
-  - [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service): Automatically turns off AMD dGPU power via `vgaswitcheroo` (`OFF`) on boot, dropping idle draw by ~12W.
-  - [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service): Temporarily restores power to dGPU during suspend and cuts it after resume to prevent AMD driver wake crashes.
-- **Fail-safe Recovery**:
-  - If display does not power on during reboot, reset NVRAM by holding <kbd>Option</kbd>+<kbd>Command</kbd>+<kbd>P</kbd>+<kbd>R</kbd> at power-on to restore factory discrete graphics routing.
+  - If booted via standard third-party bootloaders (like Limine or GRUB without macOS spoofing), Apple EFI firmware cuts power to and hides the Intel UHD 630 (`00:02.0`) from the PCI bus completely.
+- **The apple-set-os Firmware Unhide (`rEFInd` + `spoof_osx_version 10.9`)**:
+  - In `/boot/EFI/refind/refind.conf`, `spoof_osx_version 10.9` invokes the `APPLE_SET_OS_PROTOCOL` (`Mac OS X 10.9` / `Apple Inc.`), signaling the firmware ROM to power up and expose `00:02.0` on PCI.
+  - **Gotcha: Never put `apple_set_os.efi` in `drivers_x64/`**: `apple_set_os.efi` is a PE32+ application (`subsystem 10`), not an EFI driver (`subsystem 11`). Placing it in `drivers_x64/` causes rEFInd's driver loader to hang at the Apple logo. Use rEFInd's native `spoof_osx_version 10.9`.
+- **The `gpu-power-prefs` NVRAM Hazard**:
+  - **NEVER write `01 00 00 00` to `gpu-power-prefs` in NVRAM**: On a MacBookPro15,1, setting this EFI variable instructs firmware POST to route GMUX to the iGPU before rEFInd or GOP drivers initialize, resulting in a cold POST black screen requiring an NVRAM reset (<kbd>Option</kbd>+<kbd>Command</kbd>+<kbd>P</kbd>+<kbd>R</kbd>).
+  - Leave NVRAM `gpu-power-prefs` as `00 00 00 00` (discrete POST). Dynamic switching to iGPU is handled cleanly in Linux via `apple-gmux`.
+- **Dynamic Linux Switching & dGPU Sleep**:
+  - **Modprobe Option**: `/etc/modprobe.d/apple-gmux.conf` (`options apple-gmux force_igd=y`) tells the kernel driver to switch the multiplexer to Intel once `00:02.0` is confirmed live.
+  - **Kernel Parameter**: `i915.enable_guc=3` in `/etc/default/limine` enables GuC/HuC firmware loading to prevent sleep/resume wake freezes.
+  - **Initramfs**: `MODULES+=(i915? ...)` in `/etc/mkinitcpio.conf.d/11-chwd.conf`.
+  - **dGPU Sleep Service (`kait2en-dgpu-off.service`)**: Powers off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), dropping idle draw from ~20W to ~8–9W and cooling thermals to ~52°C. Uses a 15-second loop on boot to wait for asynchronous `vgaswitcheroo` debugfs registration.
+  - **dGPU Sleep Cycle (`kait2en-dgpu-suspend.service`)**: Temporarily restores power to dGPU during suspend and cuts it after resume to prevent AMD driver wake crashes.
 
 
 
