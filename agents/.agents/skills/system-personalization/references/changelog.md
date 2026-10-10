@@ -2,6 +2,19 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.38.0] - 2026-10-09
+### Changed
+- **Display Scaling & Text Legibility Calibration (`macbook-t2` Profile)**:
+  - Updated [`profiles/macbook-t2/.config/hypr/config/profile/monitors.lua`](file:///home/java1127/dotfiles/profiles/macbook-t2/.config/hypr/config/profile/monitors.lua) internal display scale (`eDP-1`) from `1.33` to `1.6` ($1800 \times 1125$ logical resolution).
+  - Aligns the MacBook Pro 15,1 Retina screen with the upstream `9.0pt` baseline terminal font size without altering global `core/` configurations or affecting the Surface Book 3 (`2.0x` scale).
+  - Restored comfortable, crisp text rendering and balanced workspace real estate.
+- **Hyprland Lua Dynamic Monitor Scaling Fix (`hypr-monitor-scale`)**:
+  - Patched [`core/.local/bin/hypr-monitor-scale`](file:///home/java1127/dotfiles/core/.local/bin/hypr-monitor-scale) to evaluate monitor changes via `hyprctl eval "hl.monitor(...)"` with fallback to `hyprctl keyword`.
+  - Fixes runtime scale cycling (`SUPER + /` and `SUPER + ALT + /`) on modular Lua Hyprland where legacy `keyword` is rejected.
+  - Linked missing upstream scripts into `~/.local/bin/` (`hypr-autoscale`, `hypr-text-size`, `hypr-monitor-scale`, etc.).
+- **Documentation & Gotchas**:
+  - Documented Lua `hl.monitor` runtime API requirements in `references/gotchas/hyprland.md` (Section 12).
+
 ## [2.37.0] - 2026-10-09
 ### Added
 - **Next-Gen Touch Bar Daemon (`kait2en-touchbar`)**:
