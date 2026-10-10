@@ -34,8 +34,12 @@ Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 | easyeffects | 8.2.9-1.1 | Audio Processing Backend |
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | msr-tools | 1.3-4 | Intel MSR / RAPL Hardware Access |
+| fprintd | 1.94.5-2.1 | Fingerprint Authentication Daemon |
 | kait2en-touchbar | 0.1.0 | Advanced Apple T2 Touch Bar Daemon |
+| t2-touchid | 0.1.0 | BridgeXPC Apple T2 Touch ID Daemon |
 | t2-cpu-control | 0.02 | Intel Core i9 PL1/PL2 RAPL Limiter |
+| t2-power-tune | 0.02 | Package C-State & PCIe ASPM Power Tuner |
+| t2-power-explorer | 0.1.0 | PCIe Power Management & Lane Diagnostic |
 | apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
 
 ## Hardware Drivers & Subsystems
@@ -43,9 +47,12 @@ Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 - **Virtual Input**: `t2bce_vhci` active (internal keyboard & trackpad)
 - **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
 - **Touch Bar**: `kait2en-touchbar.service` active + `appletbdrm` (dark-first OLED, multi-layer & gestures)
+- **Touch ID**: `kait2en-t2-touchid.service` active over CDC-NCM (`t2_ncm`) link-local IPv6 -> `fprintd` virtual device socket
 - **GPU Power**: AMD Radeon Pro 560X in `POWER_SAVING` DPM profile (mode 2) via `amdgpu-power-switch.sh`
 - **CPU Limits**: `t2-cpu-control.service` active for PL1/PL2 constraint persistence
+- **Power Optimization**: `t2-power-tune` & `t2-power-explorer` deployed with Polkit privilege escalation
 - **Thermals / Fans**: `t2fanrd.service` active + `applesmc_t2`
 
 ## Compositor Health
 - **Hyprland Errors**: None (Clean)
+

@@ -2,6 +2,20 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.39.0] - 2026-10-09
+### Added
+- **Apple T2 Touch ID Integration (`t2-touchid`)**:
+  - Built and deployed [`t2-touchid`](file:///usr/local/bin/t2-touchid) daemon connecting to the Apple T2 Secure Enclave Processor (SEP) over the internal CDC-NCM virtual link (`t2_ncm`) using Apple's BridgeXPC protocol.
+  - Configured NetworkManager link-local IPv6 profile `/etc/NetworkManager/system-connections/t2-ncm.nmconnection`.
+  - Integrated with `fprintd` via virtual storage socket drop-in `/etc/systemd/system/fprintd.service.d/kait2en-t2-touchid.conf` and enabled [`kait2en-t2-touchid.service`](file:///etc/systemd/system/kait2en-t2-touchid.service).
+  - Integrated D-Bus `org.kait2en.TouchId` with [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar) to render live touch-to-unlock prompts on the Touch Bar during authentication.
+  - Wired into `/etc/pam.d/sudo` and `/etc/pam.d/hyprlock` via `auth sufficient pam_fprintd.so` with seamless password fallback and <kbd>Esc</kbd> instant cancel.
+- **CPU Package C-State & PCIe Power Tuning (`t2-power-tune` & `t2-power-explorer`)**:
+  - Deployed [`t2-power-tune`](file:///usr/local/bin/t2-power-tune) (GTK4 / Libadwaita) with real-time 1s interval Package C-state telemetry (C2 through C10) sampled from `/sys/kernel/debug/pmc_core/package_cstate_show`.
+  - Configured granular PCIe ASPM controls (L0s, L1) and runtime power management auto-sleep for idle buses.
+  - Installed compiled Rust release binary [`t2-power-explorer`](file:///usr/local/bin/t2-power-explorer) for live PCIe power state capability and display lane diagnostics on pure Wayland.
+  - Installed Polkit actions `/usr/share/polkit-1/actions/org.t2powertune.policy` and `/usr/share/polkit-1/actions/org.t2powerexplorer.policy`.
+
 ## [2.38.0] - 2026-10-09
 ### Changed
 - **Display Scaling & Text Legibility Calibration (`macbook-t2` Profile)**:

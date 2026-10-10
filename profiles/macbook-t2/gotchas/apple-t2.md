@@ -170,6 +170,34 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 - **Upstream Resolution (`linux-cachyos 7.2.9-1`)**:
   As of October 2026, upstream CachyOS re-integrated the staging `t2bce` patch tree (`t2bce_core`, `t2bce_vhci`, `t2bce_dma`, `t2bce_audio`) and Apple SMC / Touch Bar drivers into `linux-cachyos 7.2.9-1`. Unpinning `linux-cachyos` in `/etc/pacman.conf` and upgrading to `7.2.9-1` restores normal operation with full hardware support across internal keyboard, trackpad, Touch Bar, and audio.
 
+---
+
+## 10. Apple T2 Touch ID Integration (`t2-touchid`) & SEP Unlock Gate
+
+- **Architecture**:
+  - The T2 Touch ID sensor is managed by Apple's Secure Enclave Processor (SEP). Linux communicates with the SEP via Apple's BridgeXPC protocol routed over the internal virtual CDC-NCM Ethernet link (`t2_ncm`, MAC `ac:de:48:00:11:22`).
+  - NetworkManager manages the link-local IPv6 interface profile in `/etc/NetworkManager/system-connections/t2-ncm.nmconnection`.
+  - The [`t2-touchid`](file:///usr/local/bin/t2-touchid) daemon links with `fprintd` via a virtual socket at `/run/t2-touchid/fprint.sock` (drop-in at `/etc/systemd/system/fprintd.service.d/kait2en-t2-touchid.conf`).
+  - When an authentication prompt occurs, `t2-touchid` broadcasts a D-Bus event on `org.kait2en.TouchId`, triggering an animated fingerprint unlock prompt directly on [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar). Pressing <kbd>Esc</kbd> aborts the biometric wait and immediately falls through to password entry.
+- **The "Before-First-Unlock" SEP Gate Gotcha**:
+  - **Symptom**: `t2-touchid` logs `no macOS user on this Mac has a finger enrolled, or the SEP is still locked because no password has unlocked it since the T2 last powered on; log into macOS once to fix that`.
+  - **Root Cause**: Linux cannot enroll new raw biometrics into Apple's SEP. The SEP biometric keybag remains locked until a macOS user account password unlocks it once after a cold boot / power cut (the exact same security gate used in iOS/macOS).
+  - **Resolution**: Boot into macOS once and log in with your user password. bridgeOS only sleeps during Linux reboots, so once unlocked in macOS, the SEP keybag stays unlocked across all subsequent Linux reboots.
+- **PAM Integration**:
+  - Configured in `/etc/pam.d/sudo` and `/etc/pam.d/hyprlock` via `auth sufficient pam_fprintd.so` placed at the top of the auth stack. If no fingers are matched or the bridge is idle, PAM falls straight through to standard password authentication without freezing.
+
+---
+
+## 11. CPU & PCIe Power Tuning (`t2-power-tune` & `t2-power-explorer`)
+
+- **Telemetry & ASPM Control**:
+  - [`t2-power-tune`](file:///usr/local/bin/t2-power-tune) provides a GTK4 / Libadwaita interface displaying real-time 1-second interval Package C-state residencies (C2, C3, C6, C7, C8, C9, C10) sampled from `/sys/kernel/debug/pmc_core/package_cstate_show` via [`t2-power-tune-status`](file:///usr/local/libexec/t2-power-tune-status).
+  - Granularly toggles PCIe ASPM (L0s, L1) across internal buses and enables runtime power management (`power/control -> auto`) on idle devices.
+  - Safe application mode writes changes for the active session first; click "Create/Update systemd service" to generate `/etc/systemd/system/kait2en-power-tune.service` once verified.
+- **Diagnostics**:
+  - [`t2-power-explorer`](file:///usr/local/bin/t2-power-explorer) audits PCIe power management capabilities (D0–D3hot, D3cold) and display lanes across all buses on pure Wayland.
+
+
 
 
 
