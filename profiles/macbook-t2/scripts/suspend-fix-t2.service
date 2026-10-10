@@ -1,0 +1,15 @@
+[Unit]
+Description=T2 Macbook Sleep/Resume Helper
+Before=sleep.target
+StopWhenUnneeded=yes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/t2-sleep-helper pre
+ExecStop=/usr/local/bin/t2-sleep-helper post
+TimeoutStopSec=30
+KillMode=process
+
+[Install]
+WantedBy=sleep.target

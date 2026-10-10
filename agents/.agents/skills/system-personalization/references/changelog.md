@@ -2,6 +2,131 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.44.0] - 2026-10-09
+### Fixed
+- **rEFInd Duplicate Arch Entry Resolution**:
+  - Diagnosed duplicate Arch Linux boot icons in rEFInd boot menu from `refind.log`. Discovered that rEFInd was scanning both the factory Apple 300MB EFI partition (`nvme0n1p1`, labeled `EFI`) and CachyOS's 4GB boot partition (`nvme0n1p3`, mounted as `/boot`), finding `EFI/limine/limine_x64.efi` on both.
+  - Added `dont_scan_volumes "EFI"` to `/boot/EFI/refind/refind.conf` to ignore the factory ESP.
+  - Added `dont_scan_dirs "EFI/BOOT"` to suppress the generic fallback boot loader entry (`BOOTX64.EFI`).
+  - Deduplicated repeated `default_selection "limine,vmlinuz,cachyos"` lines in `refind.conf`.
+  - Updated [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) to automatically enforce `dont_scan_volumes "EFI"` and `dont_scan_dirs "EFI/BOOT"` on fresh installations.
+  - Result: Clean 2-entry boot menu with exactly 1 Arch Linux entry (Limine) and 1 macOS entry.
+
+## [2.43.0] - 2026-10-09
+### Added
+- **Turnkey Dual-GPU & Hardware Automation in Dotfiles (`profiles/macbook-t2/setup.sh`)**:
+  - Integrated complete automated deployment for Intel UHD 630 iGPU booting, Apple GMUX display routing, and AMD dGPU power-off into `profiles/macbook-t2/setup.sh`.
+  - Added privileged helpers [`t2-dgpu-control-helper`](file:///usr/local/libexec/t2-dgpu-control-helper) and `t2-dgpu-control-status` directly into the dotfiles repository under `profiles/macbook-t2/scripts/`.
+  - Tracked and automated systemd units: [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service), [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service), [`suspend-fix-t2.service`](file:///etc/systemd/system/suspend-fix-t2.service), and [`t2-cpu-control.service`](file:///etc/systemd/system/t2-cpu-control.service).
+  - Added dedicated initramfs drop-in configuration [`20-apple-igpu.conf`](file:///etc/mkinitcpio.conf.d/20-apple-igpu.conf) (`MODULES+=(i915?)`) ensuring the Intel graphics driver is reliably built into early boot images even if CachyOS hardware detection configs are regenerated.
+  - Automated bootloader configuration in `setup.sh`: adds `i915.enable_guc=3` to `/etc/default/limine` and configures `spoof_osx_version 10.9` in `/boot/EFI/refind/refind.conf` while removing any invalid EFI drivers that could freeze the boot process.
+  - Guarantees 100% turnkey restoration of all GPU power savings, display scaling, thermals (~52°C), and sleep/resume stability upon executing `./install.sh` on a fresh OS installation.
+
+## [2.42.0] - 2026-10-09
+### Added
+- **ani-cli & paru Universal Package Integration (`core`)**:
+  - Installed CachyOS native AUR helper [`paru`](file:///usr/bin/paru) (v2.1.0-3) to facilitate managing AUR packages cleanly.
+  - Installed anime streaming CLI [`ani-cli`](file:///usr/bin/ani-cli) (v5.1-1) from the AUR, which leverages native `mpv`, `ffmpeg`, and `fzf` playback pipelines.
+  - Added `ani-cli` and `paru` to universal core package specification [`core/packages.txt`](file:///home/java1127/dotfiles/core/packages.txt) in alphabetical order to preserve reproducibility across all systems.
+
+## [2.41.0] - 2026-10-09
+### Fixed & Resolved
+- **Apple T2 Dual-GPU Unhide & Integrated Graphics Boot (Intel UHD 630)**:
+  - Discovered and resolved the root cause of the missing iGPU: Apple EFI firmware deliberately cuts power to and hides `00:02.0` unless `apple-set-os` is invoked.
+  - Configured native Apple OS spoofing via rEFInd (`spoof_osx_version 10.9`), which triggers `APPLE_SET_OS_PROTOCOL` (`Mac OS X 10.9` / `Apple Inc.`) during early boot to expose the Intel UHD 630.
+  - Eliminated the `gpu-power-prefs=01 00 00 00` NVRAM black-screen hazard by keeping NVRAM as `00 00 00 00` (discrete POST) and delegating display multiplexing cleanly to Linux `apple-gmux` (`force_igd=y`).
+  - Added `i915?` to initramfs (`/etc/mkinitcpio.conf.d/11-chwd.conf`) and `i915.enable_guc=3` to `/etc/default/limine`.
+  - Configured and verified [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service) with an asynchronous loop: powers off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), saving ~12W at idle and dropping thermals to ~52°C.
+  - Verified live: OpenGL rendering directly on `Mesa Intel(R) UHD Graphics 630 (CFL GT2)` with AMD card completely sleeping.
+
+## [2.40.0] - 2026-10-09
+### Added
+- **KAIT2EN T2 GPU Control & Integrated GPU Boot (`t2-dgpu-control`)**:
+  - Compiled from source and deployed KAIT2EN's [`t2-dgpu-control`](file:///usr/local/bin/t2-dgpu-control) (GTK4 / Libadwaita), privileged helpers [`t2-dgpu-control-helper`](file:///usr/local/libexec/t2-dgpu-control-helper) and `t2-dgpu-control-status`, desktop entry, and Polkit policies.
+  - Installed and enabled [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service) to automatically shut down the discrete AMD GPU via `vgaswitcheroo` after boot, saving ~12W at idle.
+  - Installed and enabled [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service) which cycles dGPU power during system sleep/resume to eliminate black-screen wake crashes.
+  - Configured Apple GMUX NVRAM EFI variable (`gpu-power-prefs`) to `01 00 00 00` (Integrated boot).
+  - Updated [`environment.lua`](file:///home/java1127/dotfiles/profiles/macbook-t2/.config/hypr/config/profile/environment.lua) with dynamic PCI vendor detection so VA-API uses `iHD` when in iGPU mode and `radeonsi` when in dGPU mode.
+- **Battery Turbo Boost Toggle & Status Telemetry (`amdgpu-power-switch`)**:
+  - Enhanced [`amdgpu-power-switch.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-switch.sh) and symlinked to `~/.local/bin/amdgpu-power-switch`.
+  - Added commands: `status` (live telemetry), `turbo-toggle` (toggles Intel Turbo Boost on battery with desktop notification), `turbo-on`, `turbo-off`, and `game` (3D performance mode).
+  - Added persistent override `/etc/default/t2-battery-turbo` allowing user to maintain burst performance on battery.
+
+## [2.39.0] - 2026-10-09
+### Added
+- **Apple T2 Touch ID Integration (`t2-touchid`)**:
+  - Built and deployed [`t2-touchid`](file:///usr/local/bin/t2-touchid) daemon connecting to the Apple T2 Secure Enclave Processor (SEP) over the internal CDC-NCM virtual link (`t2_ncm`) using Apple's BridgeXPC protocol.
+  - Configured NetworkManager link-local IPv6 profile `/etc/NetworkManager/system-connections/t2-ncm.nmconnection`.
+  - Integrated with `fprintd` via virtual storage socket drop-in `/etc/systemd/system/fprintd.service.d/kait2en-t2-touchid.conf` and enabled [`kait2en-t2-touchid.service`](file:///etc/systemd/system/kait2en-t2-touchid.service).
+  - Integrated D-Bus `org.kait2en.TouchId` with [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar) to render live touch-to-unlock prompts on the Touch Bar during authentication.
+  - Wired into `/etc/pam.d/sudo` and `/etc/pam.d/hyprlock` via `auth sufficient pam_fprintd.so` with seamless password fallback and <kbd>Esc</kbd> instant cancel.
+  - Verified live: SEP unlocked via macOS, automatically detected macOS UID 502 with 3 fingers (`right-thumb`, `right-middle-finger`, `right-index-finger`), and successfully authenticated `sudo` via Touch ID.
+- **CPU Package C-State & PCIe Power Tuning (`t2-power-tune` & `t2-power-explorer`)**:
+  - Deployed [`t2-power-tune`](file:///usr/local/bin/t2-power-tune) (GTK4 / Libadwaita) with real-time 1s interval Package C-state telemetry (C2 through C10) sampled from `/sys/kernel/debug/pmc_core/package_cstate_show`.
+  - Configured granular PCIe ASPM controls (L0s, L1) and runtime power management auto-sleep for idle buses.
+  - Installed compiled Rust release binary [`t2-power-explorer`](file:///usr/local/bin/t2-power-explorer) for live PCIe power state capability and display lane diagnostics on pure Wayland.
+  - Installed Polkit actions `/usr/share/polkit-1/actions/org.t2powertune.policy` and `/usr/share/polkit-1/actions/org.t2powerexplorer.policy`.
+
+## [2.38.0] - 2026-10-09
+### Changed
+- **Display Scaling & Text Legibility Calibration (`macbook-t2` Profile)**:
+  - Updated [`profiles/macbook-t2/.config/hypr/config/profile/monitors.lua`](file:///home/java1127/dotfiles/profiles/macbook-t2/.config/hypr/config/profile/monitors.lua) internal display scale (`eDP-1`) from `1.33` to `1.6` ($1800 \times 1125$ logical resolution).
+  - Aligns the MacBook Pro 15,1 Retina screen with the upstream `9.0pt` baseline terminal font size without altering global `core/` configurations or affecting the Surface Book 3 (`2.0x` scale).
+  - Restored comfortable, crisp text rendering and balanced workspace real estate.
+- **Hyprland Lua Dynamic Monitor Scaling Fix (`hypr-monitor-scale`)**:
+  - Patched [`core/.local/bin/hypr-monitor-scale`](file:///home/java1127/dotfiles/core/.local/bin/hypr-monitor-scale) to evaluate monitor changes via `hyprctl eval "hl.monitor(...)"` with fallback to `hyprctl keyword`.
+  - Fixes runtime scale cycling (`SUPER + /` and `SUPER + ALT + /`) on modular Lua Hyprland where legacy `keyword` is rejected.
+  - Linked missing upstream scripts into `~/.local/bin/` (`hypr-autoscale`, `hypr-text-size`, `hypr-monitor-scale`, etc.).
+- **Documentation & Gotchas**:
+  - Documented Lua `hl.monitor` runtime API requirements in `references/gotchas/hyprland.md` (Section 12).
+
+## [2.37.0] - 2026-10-09
+### Added
+- **Next-Gen Touch Bar Daemon (`kait2en-touchbar`)**:
+  - Replaced legacy static SVG daemon [`tiny-dfr`](file:///usr/bin/tiny-dfr) with [`kait2en-touchbar`](file:///usr/local/bin/kait2en-touchbar) compiled from source.
+  - Patched `renderer.rs` with Arch Linux Adwaita and Cantarell font paths (`/usr/share/fonts/Adwaita/AdwaitaSans-Regular.ttf`).
+  - Configured Arch-native udev seat permissions in [`/etc/udev/rules.d/99-zz-kait2en-touchbar.rules`](file:///etc/udev/rules.d/99-zz-kait2en-touchbar.rules) granting desktop `video` group access to `/dev/dri/card0`, digitizer, backlight, and uinput.
+  - Features enabled: dark-first OLED display, 2-finger volume swipe on dark bar, 3-finger brightness swipe on dark bar, 2-finger carousel swipe across 3 layers (Media keys, F1–F12, and extended Mac navigation keys Home/End/PgUp/PgDn/Ins/Del).
+  - Integrated with [`t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper) for clean pre-suspend shutdown and post-resume reload.
+- **T2 CPU Control Utility & Service (`t2-cpu-control`)**:
+  - Installed `msr-tools` (`1.3-4`) from Arch repositories for CPU MSR read/write support (`rdmsr`/`wrmsr`).
+  - Deployed KAIT2EN's GTK4 / Libadwaita utility [`t2-cpu-control`](file:///usr/local/bin/t2-cpu-control) with polkit integration and background systemd service [`t2-cpu-control.service`](file:///etc/systemd/system/t2-cpu-control.service).
+  - Provides visual and persistent tuning for Intel Core i9 PL1 sustained power limits, PL2 short burst limits, and thermal ceilings to eliminate PROCHOT throttling.
+
+### Changed
+- **AMDGPU Dynamic DPM Power Optimization (`POWER_SAVING` Mode 2)**:
+  - Discovered that on AC power, AMD Radeon Pro 560X defaulted to `3D_FULL_SCREEN` mode 1, locking core/memory clocks at 1000 MHz and consuming 15.26 W idle at 67°C.
+  - Updated [`profiles/macbook-t2/scripts/amdgpu-power-switch.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/amdgpu-power-switch.sh) and `/usr/local/bin/amdgpu-power-switch.sh` to enforce `manual` DPM with profile 2 (`POWER_SAVING`) during AC mode while keeping CPU Turbo Boost enabled.
+  - Immediate verification: Idle wattage dropped ~38% (from 15.26 W to 9.5–12 W), `sclk` dropped to 241–309 MHz, `mclk` dropped to 300 MHz, and GPU temperatures steadily cooled.
+  - Updated [`profiles/macbook-t2/scripts/t2-sleep-helper`](file:///home/java1127/dotfiles/profiles/macbook-t2/scripts/t2-sleep-helper) and `/usr/local/bin/t2-sleep-helper` to automatically reapply GPU and CPU power policies on post-resume.
+
+## [2.36.0] - 2026-10-09
+### Changed
+- **Full System Upgrade & Linux 7.2.9 T2 BCE Kernel Verification (`7.2.9-1-cachyos`)**:
+  - **Upstream Regression Resolution**: Verified that CachyOS restored the Apple T2 staging drivers (`t2bce_vhci`, `t2bce_core`, `t2bce_dma`, `t2bce_audio`) and Apple SMC / Touch Bar modules (`appletbdrm`, `hid-appletb-bl`, `hid-appletb-kbd`, `applesmc-t2`) in kernel `7.2.9-1`.
+  - **Pacman Unpinning**: Safely commented out `IgnorePkg = linux-cachyos linux-cachyos-headers` in `/etc/pacman.conf`.
+  - **Full Package Upgrade (359 packages)**:
+    - Upgraded core kernel stack: `linux-cachyos` `7.2.9-1`, `linux-cachyos-headers` `7.2.9-1`, `linux-cachyos-lts` `6.18.55-1`.
+    - Upgraded desktop compositor & shell: `hyprland` `0.56.2-4.1`, `noctalia` `5.2.1-1.1`, `noctalia-greeter` `1.6.0-1`, `hyprtoolkit` `0.6.0-1.1`.
+    - Upgraded system core & init: `systemd` `262-1`, `mkinitcpio` `42.2-1`, `glibc` `2.44+r50`.
+    - Upgraded audio & graphics: `pipewire` `1.6.9-1`, `wireplumber` `0.5.18-1.1`, `mesa` `3:26.2.4-1`.
+    - Upgraded applications: `zen-browser-bin` `1.23.1b-1`, `firefox` `157.0.1-1.1`, `kitty` `0.49.2-1.1`, `dolphin` `26.08.2-1.1`, `lazygit` `0.66.0-1.1`, `swayimg` `5.6-2.1`.
+  - **Diagnostics & Health**: Zero Hyprland config errors reported (`hyprctl configerrors`). `t2bce` modules verified installed in `/usr/lib/modules/7.2.9-1-cachyos/kernel/drivers/staging/t2bce/`.
+
+## [2.35.0] - 2026-09-15
+### Added
+- **Custom CachyOS Live & Install ISO for Microsoft Surface Book 3 (`~/surface-iso-build/`)**:
+  - Built custom bootable CachyOS ISO (`cachyos-desktop-linux-260915.iso`, 2.8 GB) tailored for Surface Book 3 (Intel Core i5/i7 10th Gen Ice Lake, `x86-64-v3`).
+  - Integrated `linux-surface` 6.19.8 kernel, `linux-surface-headers`, `iptsd` (IPTS touchscreen/stylus daemon), `surface-control`, and `surface-dtx-daemon` (clipboard detachment).
+  - Configured live bootloaders (`grub`, `systemd-boot`, `syslinux`) and `mkinitcpio` (`linux-surface.preset`) to boot directly into `vmlinuz-linux-surface` with enabled touchscreen and detachment daemons.
+  - Automated Calamares installer for instant whole-disk installation:
+    - Pre-selects **Erase disk** with **Btrfs** root filesystem.
+    - Sets UEFI System Partition (ESP) to **4096 MiB (4 GiB)** matching CachyOS official recommendations for Limine/systemd-boot.
+    - Enables **Swap (with Hibernate)** automatically (`initialSwapChoice: suspend` and `userSwapChoices: [none, suspend]`), creating a swap partition sized for RAM hibernation and configuring mkinitcpio `resume` hook and bootloader resume UUID parameter.
+    - Injects `[linux-surface]` repository into target `/etc/pacman.conf` and imports Maximilian Luz's signing key (`56C464BAAC421453`) so updates work seamlessly via `pacman -Syu`.
+- **Surface Dotfiles Profile Pre-Install Repository Fix (`profiles/surface/pre-install.sh`)**:
+  - Corrected official Surface Linux repository server URL from outdated `pkg.surfacelinux.org` to active `pkg.surfacelinux.com`.
+
 ## [Unreleased]
 ### Added
 - **Libinput Synthetic Gesture Daemon (`lisgd`) deployed for Surface Book 3 touchscreen (`surface`, 2026-10-09)**:

@@ -40,7 +40,9 @@ elif [ "$direction" = "down" ] && [ "$idx" -gt 0 ]; then
 fi
 
 new_scale="${steps[$idx]}"
-hyprctl keyword monitor "$monitor,preferred,auto,$new_scale" >/dev/null
+if ! hyprctl eval "hl.monitor({ output = '$monitor', mode = 'preferred', position = 'auto', scale = $new_scale })" >/dev/null 2>&1; then
+    hyprctl keyword monitor "$monitor,preferred,auto,$new_scale" >/dev/null
+fi
 
 msg="Display scale: ${new_scale}x ($monitor)"
 if command -v notify-send >/dev/null 2>&1; then

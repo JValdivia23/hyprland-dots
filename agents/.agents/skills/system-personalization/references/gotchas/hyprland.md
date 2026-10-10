@@ -132,3 +132,15 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$(id -u)/hypr/ 2>/dev/null | head -n1)
   hyprctl eval 'hl.exec_cmd("kitty --title <Title> -e bash -c \"<command>; read\"")'
   ```
+
+---
+
+## 12. Dynamic Monitor Scaling API (`hl.monitor` vs `hyprctl keyword`)
+
+- **Symptom**: Calling `hyprctl keyword monitor "eDP-1,preferred,auto,..."` from the command line or scripts fails with error: `keyword can't work with non-legacy parsers. Use eval.`
+- **Root Cause**: Hyprland configurations parsed via modular Lua reject legacy `keyword` dispatcher commands for monitors.
+- **Fix**: Dispatch monitor settings using `hyprctl eval` and the native `hl.monitor` Lua API:
+  ```bash
+  hyprctl eval 'hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6 })'
+  ```
+  Runtime switcher scripts (such as `~/.local/bin/hypr-monitor-scale`) should attempt `hyprctl eval "hl.monitor(...)"` first and fall back to `hyprctl keyword` for backwards compatibility.

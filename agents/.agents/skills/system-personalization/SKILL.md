@@ -1,11 +1,11 @@
 ---
 name: system-personalization
-description: "Comprehensive system personalization tracker for surface (Surface Book 3) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.24.0
+description: "Comprehensive system personalization tracker for surface (Surface Book 3) and cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
+version: 2.44.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
-# System Personalization (`surface` - Surface Book 3)
+# System Personalization (Multi-PC: `surface` & `cachyos-cu`)
 
 Complete documentation of this machine's configuration and personalization. This is a **self-improving skill** — after any system configuration change, software install, or gotcha discovery, update this skill's modular references (`references/changelog.md` and `references/gotchas/`).
 
@@ -38,22 +38,22 @@ Complete documentation of this machine's configuration and personalization. This
 
 ## Quick Reference
 
-| Category | Detail |
-|----------|--------|
-| **Machine** | Surface Book 3 |
-| **Hostname** | `surface` |
-| **OS** | CachyOS |
-| **Kernel** | `6.19.8-arch1-3-surface` |
-| **WM** | Hyprland (Lua modular API) |
-| **Wayland Shell** | Noctalia |
-| **Primary Display** | eDP-1 (3000x2000@60Hz, scale 2) |
-| **GPU** | Intel Corporation Iris Plus Graphics G7 |
-| **CPU** | Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz |
-| **RAM & Swap** | 7.4Gi RAM, 16Gi swap |
-| **Active Profiles** | surface |
-| **Shell** | `/bin/fish` |
-| **Terminal** | `kitty` (primary), `alacritty` (installed) |
-| **Package Manager**| `pacman` |
+| Category | Surface Book 3 (`surface`) | MacBook Pro 15,1 (`cachyos-cu`) |
+| :--- | :--- | :--- |
+| **Machine** | Surface Book 3 | MacBookPro15,1 |
+| **Hostname** | `surface` | `cachyos-cu` |
+| **OS** | CachyOS | CachyOS |
+| **Kernel** | `6.19.8-arch1-3-surface` | `7.2.9-1-cachyos` |
+| **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
+| **Wayland Shell** | Noctalia | Noctalia |
+| **Primary Display** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) |
+| **GPU** | Intel Iris Plus Graphics G7 | Intel UHD 630 / AMD Radeon Pro 560X / Apple T2 |
+| **CPU** | Intel Core i5-1035G7 @ 1.20GHz | Intel Core i9-9880H @ 2.30GHz |
+| **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap |
+| **Active Profiles** | surface | macbook-t2 |
+| **Shell** | `/bin/fish` | `/bin/fish` |
+| **Terminal** | `kitty` (primary) | `kitty` (primary) |
+| **Package Manager**| `pacman` | `pacman` |
 
 ---
 

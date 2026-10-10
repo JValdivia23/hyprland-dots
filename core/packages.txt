@@ -1,5 +1,6 @@
 # Universal Desktop & Shell Packages for CachyOS Hyprland
 alacritty
+ani-cli
 awesome-terminal-fonts
 brave-origin-bin
 brightnessctl
@@ -36,6 +37,7 @@ noctalia
 noto-fonts
 noto-fonts-cjk
 noto-fonts-emoji
+paru
 pavucontrol
 pipewire-alsa
 pipewire-pulse

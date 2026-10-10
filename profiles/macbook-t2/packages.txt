@@ -1,5 +1,6 @@
 # Apple MacBook Pro T2 Subsystem Packages
 apple-t2-audio-config
 easyeffects
-tiny-dfr
 t2fanrd
+fprintd
+msr-tools
