@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.43.0] - 2026-10-09
+### Added
+- **Turnkey Dual-GPU & Hardware Automation in Dotfiles (`profiles/macbook-t2/setup.sh`)**:
+  - Integrated complete automated deployment for Intel UHD 630 iGPU booting, Apple GMUX display routing, and AMD dGPU power-off into `profiles/macbook-t2/setup.sh`.
+  - Added privileged helpers [`t2-dgpu-control-helper`](file:///usr/local/libexec/t2-dgpu-control-helper) and `t2-dgpu-control-status` directly into the dotfiles repository under `profiles/macbook-t2/scripts/`.
+  - Tracked and automated systemd units: [`kait2en-dgpu-off.service`](file:///etc/systemd/system/kait2en-dgpu-off.service), [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service), [`suspend-fix-t2.service`](file:///etc/systemd/system/suspend-fix-t2.service), and [`t2-cpu-control.service`](file:///etc/systemd/system/t2-cpu-control.service).
+  - Added dedicated initramfs drop-in configuration [`20-apple-igpu.conf`](file:///etc/mkinitcpio.conf.d/20-apple-igpu.conf) (`MODULES+=(i915?)`) ensuring the Intel graphics driver is reliably built into early boot images even if CachyOS hardware detection configs are regenerated.
+  - Automated bootloader configuration in `setup.sh`: adds `i915.enable_guc=3` to `/etc/default/limine` and configures `spoof_osx_version 10.9` in `/boot/EFI/refind/refind.conf` while removing any invalid EFI drivers that could freeze the boot process.
+  - Guarantees 100% turnkey restoration of all GPU power savings, display scaling, thermals (~52°C), and sleep/resume stability upon executing `./install.sh` on a fresh OS installation.
+
 ## [2.42.0] - 2026-10-09
 ### Added
 - **ani-cli & paru Universal Package Integration (`core`)**:
