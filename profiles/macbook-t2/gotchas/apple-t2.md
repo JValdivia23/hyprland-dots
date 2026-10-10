@@ -30,12 +30,25 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ---
 
-## 2. Suspend / Sleep Wakeup Fix (`suspend-fix-t2.service` & `t2-sleep-helper`)
+## 2. Suspend / Sleep Wakeup Fix (`s2idle`, `pm_async=off` & `t2-sleep-helper`)
 
-- **Quirk**: T2 MacBooks can experience spontaneous wakeups or fail to enter deep sleep if PCIe devices (NVMe, Wi-Fi, T2 bridge) remain in active D0 power states, or leave Touch Bar drivers in unconfigured states.
+- **Architecture & Sleep Mode Standard (`mem_sleep_default=s2idle`)**:
+  - Apple T2 hardware is designed for Apple's Modern Standby / S0ix architecture. T2 MacBooks do not support ACPI S3 (`deep` sleep).
+  - PCIe devices (T2 bridge controller, NVMe controller, and Broadcom BCM4364 Wi-Fi) reject ACPI S3 with `pci_pm_enter_D3 returns -5`.
+  - If `mem_sleep` defaults to `deep`, the kernel spends 6–7 seconds offlining all 15 secondary CPU cores, aborting on driver rejection, bringing all 15 cores back online (`PM: suspend exit`), and falling back to `s2idle`.
+  - Configure `mem_sleep_default=s2idle` in [`/etc/limine-entry-tool.d/t2-mac.conf`](file:///etc/limine-entry-tool.d/t2-mac.conf) to enter sleep instantly in <50ms.
+- **Why `pm_async=off` Must Be Kept**:
+  - T2 MacBooks require sequential power management resume (`pm_async=off`).
+  - Asynchronous PM (`pm_async=on`) causes race conditions where internal USB input drivers poll before T2 BridgeOS Submission Queues (SQ/CQ) are ready, resulting in frozen keyboards/trackpads and `apple-bce: SQ registration failed (34/74)` (`EBADMSG`) audio corruption.
+  - Sequential resume of healthy devices (`i915`, `nvme`, `t2bce`) completes in <300ms, which is completely imperceptible.
+- **Wake Optimizations**:
+  - **Touch Bar Delay Tuning**: [`/usr/local/bin/t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper) uses `sleep 0.15` delays instead of `0.5s` during USB mode cycling `0 -> 2`, turning on the Touch Bar in ~0.35s instead of 1.5s.
+  - **Instant Touch ID (`t2_ncm` DAD)**: Apple T2 Bridge CDC-NCM Ethernet link is an internal point-to-point link. Disabling IPv6 Duplicate Address Detection via `/etc/sysctl.d/99-t2-ncm.conf` (`net.ipv6.conf.t2_ncm.dad_transmits = 0`) eliminates the 3–4s `os error 99` binding delay, making BiometricKit sessions available immediately upon lid open.
+  - **Suppressing `plocate` Wake Storm**: `/etc/systemd/system/plocate-updatedb.timer.d/override.conf` sets `Persistent=false`, preventing `plocate-updatedb` from seizing 52s CPU and 1.6 GB RAM immediately upon resuming from sleep.
 - **Service & Helper**: Handled automatically via `suspend-fix-t2.service` executing `/usr/local/bin/t2-sleep-helper {pre|post}`.
 - **Diagnostic**:
   ```bash
+  cat /sys/power/mem_sleep
   systemctl status suspend-fix-t2.service
   journalctl -u suspend-fix-t2.service -b
   ```
@@ -224,7 +237,9 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   - **Kernel Parameter**: `i915.enable_guc=3` in `/etc/default/limine` enables GuC/HuC firmware loading to prevent sleep/resume wake freezes.
   - **Initramfs**: `MODULES+=(i915? ...)` in `/etc/mkinitcpio.conf.d/11-chwd.conf`.
   - **dGPU Sleep Service (`kait2en-dgpu-off.service`)**: Powers off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), dropping idle draw from ~20W to ~8–9W and cooling thermals to ~52°C. Uses a 15-second loop on boot to wait for asynchronous `vgaswitcheroo` debugfs registration.
-  - **dGPU Sleep Cycle (`kait2en-dgpu-suspend.service`)**: Temporarily restores power to dGPU during suspend and cuts it after resume to prevent AMD driver wake crashes.
+  - **dGPU Suspend Hazard & Masking (`kait2en-dgpu-suspend.service`)**:
+    - **Hazard**: An older workaround attempted to restore power (`ON`) before suspend and cut power (`OFF`) after resume. On `MacBookPro15,1`, forcing `ON` from D3cold without UEFI GOP initialization causes immediate PCI accessibility failures, SMC alignment errors, and `ring gfx test failed -110`. On wake, `amdgpu` enters a 10-retry UVD reset loop with `-110 ETIMEDOUT`, freezing kernel resume for 11.6 seconds due to `pm_async=off`.
+    - **Resolution**: Mask `kait2en-dgpu-suspend.service`. In modern Linux kernels with `s2idle`, the PCI core sees the dGPU in runtime-suspended D3cold and skips re-initializing it on resume, completely eliminating the 11.6s wake hang.
 
 
 

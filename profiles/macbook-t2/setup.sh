@@ -65,13 +65,14 @@ if [ -f "$SCRIPT_DIR/scripts/t2-dgpu-control-status" ]; then
     $SUDO chmod 0755 /usr/local/libexec/t2-dgpu-control-status
 fi
 
-# Systemd services: kait2en-dgpu-off and kait2en-dgpu-suspend
+# Systemd services: kait2en-dgpu-off (powers off dGPU; kait2en-dgpu-suspend masked to avoid D3cold wake stall)
 if [ -f "$SCRIPT_DIR/scripts/kait2en-dgpu-off.service" ]; then
-    echo "    [GPU] Deploying kait2en-dgpu-off.service and kait2en-dgpu-suspend.service..."
+    echo "    [GPU] Deploying kait2en-dgpu-off.service and masking kait2en-dgpu-suspend.service..."
     $SUDO cp -v "$SCRIPT_DIR/scripts/kait2en-dgpu-off.service" /etc/systemd/system/kait2en-dgpu-off.service
-    $SUDO cp -v "$SCRIPT_DIR/scripts/kait2en-dgpu-suspend.service" /etc/systemd/system/kait2en-dgpu-suspend.service
     $SUDO systemctl daemon-reload
-    $SUDO systemctl enable kait2en-dgpu-off.service kait2en-dgpu-suspend.service 2>/dev/null || true
+    $SUDO systemctl enable kait2en-dgpu-off.service 2>/dev/null || true
+    $SUDO systemctl disable --now kait2en-dgpu-suspend.service 2>/dev/null || true
+    $SUDO systemctl mask kait2en-dgpu-suspend.service 2>/dev/null || true
 fi
 
 # AMDGPU fallback power profile switch rules (for when dGPU is powered)
@@ -90,18 +91,37 @@ if [ -d "/etc/mkinitcpio.conf.d" ] && [ -f "$SCRIPT_DIR/scripts/20-apple-igpu.co
     $SUDO cp -v "$SCRIPT_DIR/scripts/20-apple-igpu.conf" /etc/mkinitcpio.conf.d/20-apple-igpu.conf
 fi
 
-# Bootloader: Limine i915.enable_guc=3 kernel commandline
+# Bootloader: Limine i915.enable_guc=3 & t2-mac.conf (mem_sleep_default=s2idle)
 if [ -f "/etc/default/limine" ]; then
     if ! grep -q "i915.enable_guc=3" /etc/default/limine; then
         echo "    [Limine] Adding i915.enable_guc=3 to KERNEL_CMDLINE[default]..."
         $SUDO sed -i 's/\(KERNEL_CMDLINE\[default\]+="[^"]*\)/\1 i915.enable_guc=3/' /etc/default/limine
-        if command -v limine-update &>/dev/null; then
-            echo "    [Limine] Running limine-update to refresh boot entries..."
-            $SUDO limine-update || true
-        fi
-    else
-        echo "    [Limine] i915.enable_guc=3 already present in /etc/default/limine."
     fi
+fi
+if [ -d "/etc/limine-entry-tool.d" ] && [ -f "$SCRIPT_DIR/scripts/t2-mac.conf" ]; then
+    echo "    [Limine] Deploying /etc/limine-entry-tool.d/t2-mac.conf (mem_sleep_default=s2idle)..."
+    $SUDO cp -v "$SCRIPT_DIR/scripts/t2-mac.conf" /etc/limine-entry-tool.d/t2-mac.conf
+    if command -v limine-entry-tool &>/dev/null; then
+        echo "    [Limine] Refreshing Limine boot entries via limine-entry-tool..."
+        $SUDO limine-entry-tool 2>/dev/null || true
+    elif command -v limine-update &>/dev/null; then
+        $SUDO limine-update || true
+    fi
+fi
+
+# Suspend & Resume Optimizations: plocate timer override & t2_ncm IPv6 DAD
+if [ -f "$SCRIPT_DIR/scripts/plocate-timer-override.conf" ]; then
+    echo "    [Suspend] Deploying plocate-updatedb.timer override (Persistent=false)..."
+    $SUDO mkdir -p /etc/systemd/system/plocate-updatedb.timer.d
+    $SUDO cp -v "$SCRIPT_DIR/scripts/plocate-timer-override.conf" /etc/systemd/system/plocate-updatedb.timer.d/override.conf
+    $SUDO systemctl daemon-reload
+    $SUDO systemctl restart plocate-updatedb.timer 2>/dev/null || true
+fi
+
+if [ -f "$SCRIPT_DIR/scripts/99-t2-ncm.conf" ]; then
+    echo "    [TouchID] Deploying /etc/sysctl.d/99-t2-ncm.conf (disabling DAD for instant Touch ID on wake)..."
+    $SUDO cp -v "$SCRIPT_DIR/scripts/99-t2-ncm.conf" /etc/sysctl.d/99-t2-ncm.conf
+    $SUDO sysctl -p /etc/sysctl.d/99-t2-ncm.conf 2>/dev/null || true
 fi
 
 # Bootloader: rEFInd spoof_osx_version 10.9 (apple-set-os protocol) & entry deduplication

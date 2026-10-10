@@ -34,9 +34,9 @@ case "$1" in
                 if [ -f "$dev/idVendor" ] && [ -f "$dev/idProduct" ]; then
                     if [ "$(cat "$dev/idVendor" 2>/dev/null)" = "05ac" ] && [ "$(cat "$dev/idProduct" 2>/dev/null)" = "8302" ]; then
                         echo 0 > "$dev/bConfigurationValue" 2>/dev/null || true
-                        sleep 0.5
+                        sleep 0.15
                         echo 2 > "$dev/bConfigurationValue" 2>/dev/null || true
-                        sleep 0.5
+                        sleep 0.15
                         break
                     fi
                 fi
@@ -44,7 +44,7 @@ case "$1" in
 
             # Load appletbdrm to attach DRM framebuffer on minor 0
             modprobe appletbdrm 2>/dev/null || true
-            sleep 0.5
+            sleep 0.15
 
             # Restore keyboard and Touch Bar brightness
             if [ -f "/run/kbd_brightness" ] && [ -f "/sys/class/leds/apple::kbd_backlight/brightness" ]; then

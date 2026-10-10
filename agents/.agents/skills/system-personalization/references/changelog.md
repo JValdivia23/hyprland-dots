@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.46.0] - 2026-10-10
+### Fixed
+- **MacBookPro15,1 Suspend & Resume Latency Optimization (18s -> <0.5s Wake)**:
+  - **Eliminated 11.6s Wake Freeze**: Masked [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service). Waking the AMD Radeon dGPU from D3cold without UEFI GOP initialization caused PCI timeout failures (`-110 ETIMEDOUT`), SMC memory copy errors, and a 10-retry UVD reset loop that sequentially blocked kernel resume due to `pm_async=off`. With the service masked, the dGPU remains cleanly in D3cold and is bypassed during `s2idle` resume.
+  - **Eliminated 6s Suspend Abort Cycle**: Configured `mem_sleep_default=s2idle` in [`/etc/limine-entry-tool.d/t2-mac.conf`](file:///etc/limine-entry-tool.d/t2-mac.conf). Apple T2 MacBooks reject ACPI S3 (`deep` sleep) at the Broadcom Wi-Fi / T2 PCIe controller, which previously caused the kernel to offline 15 CPUs, abort S3, reboot 15 CPUs, and fall back to `s2idle`. Machine now suspends directly into `s2idle` in <50ms.
+  - **Eliminated Post-Wake Disk/CPU Thrashing**: Created `/etc/systemd/system/plocate-updatedb.timer.d/override.conf` setting `Persistent=false`. Prevents `plocate-updatedb.service` from catching up on missed daily scans immediately upon opening the laptop lid, saving 52s of 100% CPU time and 1.6 GB RAM.
+  - **Touch Bar Wake Acceleration**: Reduced artificial delays in [`/usr/local/bin/t2-sleep-helper`](file:///usr/local/bin/t2-sleep-helper) from `0.5s` to `0.15s` during USB mode cycling `0 -> 2`, reducing Touch Bar wake time from 1.5s to ~0.35s.
+  - **Instant Touch ID Availability**: Deployed `/etc/sysctl.d/99-t2-ncm.conf` (`net.ipv6.conf.t2_ncm.dad_transmits = 0`), disabling Duplicate Address Detection on the internal point-to-point CDC-NCM link. Eliminates 3–4s `os error 99` socket binding delay, making BiometricKit sessions available immediately upon lid open.
+  - **Dotfiles Automation**: Tracked all configs in `profiles/macbook-t2/scripts/` and integrated them into [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh).
+
 ## [2.45.0] - 2026-10-10
 ### Added
 - **Touch ID Fingerprint Login Integration (`greetd` / Noctalia Greeter)**:
