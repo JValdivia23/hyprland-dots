@@ -2,6 +2,13 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `cachyos-cu`.
 
+## [2.42.0] - 2026-10-09
+### Added
+- **ani-cli & paru Universal Package Integration (`core`)**:
+  - Installed CachyOS native AUR helper [`paru`](file:///usr/bin/paru) (v2.1.0-3) to facilitate managing AUR packages cleanly.
+  - Installed anime streaming CLI [`ani-cli`](file:///usr/bin/ani-cli) (v5.1-1) from the AUR, which leverages native `mpv`, `ffmpeg`, and `fzf` playback pipelines.
+  - Added `ani-cli` and `paru` to universal core package specification [`core/packages.txt`](file:///home/java1127/dotfiles/core/packages.txt) in alphabetical order to preserve reproducibility across all systems.
+
 ## [2.41.0] - 2026-10-09
 ### Fixed & Resolved
 - **Apple T2 Dual-GPU Unhide & Integrated Graphics Boot (Intel UHD 630)**:

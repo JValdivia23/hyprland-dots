@@ -24,6 +24,8 @@ Live system snapshot automatically generated on Fri Oct 09 05:31:42 PM MDT 2026.
 | noctalia | 5.2.1-1.1 | Wayland Shell & Panels |
 | kitty | 0.49.2-1.1 | Primary Terminal Emulator |
 | alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
+| ani-cli | 5.1-1 | Anime Streaming CLI (mpv/fzf) |
+| paru | 2.1.0-3 | AUR Helper (CachyOS Native) |
 | fish | 4.9.3-1 | System Interactive Shell |
 | btop | 1.4.7-1.1 | Process & System Monitor |
 | satty | 0.22.0-1.1 | Screenshot Annotation Editor |
