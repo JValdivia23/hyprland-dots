@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.51.0] - 2026-10-13
+### Fixed
+- **Surface IPTS Wake Handshake & Gesture Auto-Reconnect (`profiles/surface`)**:
+  - Hardened `/usr/local/bin/surface-ipts-resume-recover` against wake race conditions after suspend/hibernation.
+  - Increased `iptsd-check-device` timeout from `2s` to `6s` (`timeout --kill-after=2s 6s`) to prevent prematurely SIGKILLing in-flight Intel MEI firmware handshakes (which previously led to 30-second kernel blocks: `GET_FEATURES timed out!`).
+  - Added a 2-second initial wake settle delay and expanded retry attempts from 4 to 6 (spaced by 2s).
+  - Integrated `pkill -x lisgd` upon successful recovery so the `hypr-lisgd` supervisor automatically re-attaches to newly enumerated virtual touchscreen evdev nodes.
+  - Documented complete architecture and failure mode in [`profiles/surface/gotchas/touchscreen-iptsd.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/touchscreen-iptsd.md).
+
 ## [2.50.0] - 2026-10-13
 ### Added
 - **Surface Book 3 Hybrid Audio Architecture with EBU R128 AutoGain Leveling (`profiles/surface`)**:

@@ -116,3 +116,15 @@ esac
 - **Registered-hook direct restore passed**: The original boot and collector (PID `37771`) survived, IPTS changed `hidraw0` → `hidraw6`, and iptsd PID `37942` remained running in both post-resume snapshots and a later check. The journal records the worker starting and successfully finishing; it reported `IPTS instance already active: iptsd@dev-hidraw6.service`, preserving the daemon already started by normal udev. **User confirmed full power-off, lid-only restoration of the original desktop, and working touch; pen remains untested.** Both virtual inputs were present in Hyprland; no failed system units or compositor configuration errors were found.
 - **Asynchronous behavior / evidence limits**: The worker ran for about **2.14 seconds** and finished **2.13 seconds after `user.slice` had already thawed**: its settle/health-check sleeps did not hold up user-session thaw. This is not an exact lock-screen benchmark or a measured speedup. Its `inactive/dead` state afterward is expected for a completed oneshot; unloaded-unit timestamps may reset to zero, so use the journal invocation rather than default `Result=success` as proof. This single direct AC cycle verifies real dispatch and healthy-daemon preservation; the inactive-daemon branch was verified manually, not by deliberately inducing a new resume failure. Overnight reliability, physical pen, exact wake time, and standby drain remain unmeasured. `chronyd` later stepped the clock `+88.570899s`, again precluding naive physical-duration claims from raw hibernation journal timestamps.
 - **Evidence**: `~/.cache/opencode/surface-standby-tests/ipts-recovery-z4wvl2hs/` contains mock results and guarded deployment records; `direct-hibernate-x9pc08ys/` records the initial unregistered-hook cycle; `registered-hook-retest-gt6ybkeh/` records registration plus cancellation; `registered-hook-retry-pinr1140/` contains the completed registered-hook cycle, `analysis.json`, and `followup.json`. The preceding 30-minute automatic hibernation test is linked from `sleep-hibernate.md`, section 7.
+
+---
+
+### Option 3: Hardened Wake Handshake & Gesture Auto-Reconnect (Updated 2026-10-13)
+
+- **Issue**: On cold wake or deep s2idle sleep, the Intel MEI hardware handshake takes 3–5 seconds. The original 2-second `timeout` killed `iptsd-check-device` mid-ioctl, causing the in-flight MEI request to hang in the kernel (`GET_FEATURES timed out!` after 30 seconds). All 4 retry attempts exhausted in ~15 seconds, leaving `iptsd` dead and gesture daemon `lisgd` stuck on a dead file descriptor.
+- **Fix deployed to `/usr/local/bin/surface-ipts-resume-recover`**:
+  1. Increased `iptsd-check-device` timeout from `2s` to `6s` (`timeout --kill-after=2s 6s`) to allow firmware handshakes to complete without being SIGKILLed.
+  2. Increased initial wake settle delay from `1s` to `2s`.
+  3. Increased retry attempts from 4 to 6 (spaced by 2s).
+  4. Added `pkill -x lisgd` upon successful `iptsd` recovery so the `hypr-lisgd` supervisor automatically re-attaches to the newly created virtual touchscreen evdev node.
+
