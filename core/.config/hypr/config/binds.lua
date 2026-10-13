@@ -14,6 +14,7 @@ local hyprScreenshot = homeDir .. "/.local/bin/hypr-screenshot "
 local hyprOcr = homeDir .. "/.local/bin/hypr-ocr"
 local hyprRecord = homeDir .. "/.local/bin/hypr-record"
 local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
+local trayDrawer = homeDir .. "/.local/bin/hypr-tray-drawer"
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
@@ -23,6 +24,8 @@ local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
 helpers.bind(mainMod .. " + Escape", "Toggle session menu", hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
 helpers.bind(mainMod .. " + Q",      "Close active window", hl.dsp.window.close())
 helpers.bind(mainMod .. " + W",      "Close active window", hl.dsp.window.close())
+helpers.bind(mainMod .. " + M",      "Minimize active window to tray drawer", hl.dsp.exec_cmd(trayDrawer .. " minimize"))
+helpers.bind(mainMod .. " + SHIFT + M", "Restore last minimized window from tray drawer", hl.dsp.exec_cmd(trayDrawer .. " restore"))
 helpers.bind(mainMod .. " + T",      "Toggle window floating", hl.dsp.window.float({ action = "toggle" }))
 helpers.bind(mainMod .. " + D",      "Toggle monocle fullscreen", hl.dsp.window.fullscreen({ mode = 1 }))
 helpers.bind(mainMod .. " + F",      "Toggle fullscreen", hl.dsp.window.fullscreen())

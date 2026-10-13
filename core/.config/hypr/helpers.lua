@@ -81,17 +81,28 @@ function helpers.launch_or_focus(window_class, exec_command)
         local active = hl.get_active_window()
         local active_addr = active and tostring(active.address) or ""
 
+        local function focus_or_restore(client)
+            local addr = tostring(client.address)
+            local ws = client.workspace
+            local ws_name = ws and tostring(ws.name or "") or ""
+            if ws_name == "special:minimized" then
+                hl.dispatch(hl.dsp.exec_raw("movetoworkspace", "current,address:" .. addr))
+                hl.exec_cmd("hypr-tray-drawer restore " .. addr)
+            end
+            hl.dispatch(hl.dsp.focus({ window = "address:" .. addr }))
+        end
+
         -- If current window already matches, cycle to the next matching instance
         for i, client in ipairs(matches) do
             if tostring(client.address) == active_addr then
                 local next_client = matches[(i % #matches) + 1]
-                hl.dispatch(hl.dsp.focus({ window = "address:" .. tostring(next_client.address) }))
+                focus_or_restore(next_client)
                 return
             end
         end
 
         -- Otherwise focus the first matching window
-        hl.dispatch(hl.dsp.focus({ window = "address:" .. tostring(matches[1].address) }))
+        focus_or_restore(matches[1])
     end
 end
 

@@ -2,6 +2,23 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.53.0] - 2026-10-13
+### Added
+- **Unified Minimized Window Tray Drawer (`core`)**:
+  - Developed and deployed [`hypr-tray-drawer`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-tray-drawer) in core dotfiles:
+    - Provides a single, clean StatusNotifierItem (SNI) tray icon for Noctalia to manage minimized application windows, avoiding system bar clutter.
+    - **Dynamic Visibility**: Stays completely hidden (`PASSIVE`) when 0 windows are minimized. When apps are minimized, automatically becomes `ACTIVE`, displaying the `window-restore-symbolic` icon and a numeric count badge.
+    - **Interactive Menu**: Left-clicking opens a native dropdown menu listing each minimized app by window title/class. Clicking any item restores that specific window directly to the active workspace and focuses it.
+    - **Quick Actions**: Includes "Restore Most Recent" (middle-click / secondary activate target), "Restore All", and "Close All Minimized".
+    - **Hyprland Socket2 Sync**: Background thread listens to Hyprland's `.socket2.sock` for `closewindow>>` events to auto-prune windows if closed in the background.
+  - **Keybindings (`binds.lua`)**:
+    - `SUPER + M`: Minimize active window to the tray drawer (`hypr-tray-drawer minimize`).
+    - `SUPER + SHIFT + M`: Restore the most recently minimized window back to active workspace (`hypr-tray-drawer restore`).
+  - **Focus-or-Launch Integration (`helpers.lua`)**:
+    - Enhanced `helpers.launch_or_focus` to automatically detect if a target app is currently minimized in `special:minimized`, seamlessly pulling it onto the active workspace and focusing it upon launcher activation.
+  - **Autostart (`autostart.lua`)**:
+    - Added `hypr-tray-drawer daemon` to core Hyprland autostart.
+
 ## [2.52.0] - 2026-10-13
 ### Added
 - **Interactive Touchscreen Window Resizer Daemon (`profiles/surface`)**:

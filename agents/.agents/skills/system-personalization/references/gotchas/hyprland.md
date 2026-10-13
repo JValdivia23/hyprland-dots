@@ -167,3 +167,18 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
      ```
   2. In `hl.define_submap("resize", ...)`, register **both** bare keys (`Right`, `Left`, `Up`, `Down`, `h`, `j`, `k`, `l`) and `SUPER`-modified keys (`mainMod .. " + Right"`, etc.) with `{ repeating = true }`.
   3. Support `=` (`equal`) to reset the split ratio to 50/50 (`splitratio 1.0 exact`).
+
+---
+
+## 14. `hyprctl dispatch` Syntax Error in Lua Mode (`hl.dsp.exec_raw`)
+
+- **Symptom**: Calling `hyprctl dispatch <dispatcher> <args>` (e.g. `hyprctl dispatch movetoworkspacesilent special:minimized,address:0x...`) fails with `error: [string "return hl.dispatch(...)"]:1: ')' expected near ... Note: dispatch in lua is a shorthand for hl.dispatch(...)`.
+- **Root Cause**: In Hyprland 0.55+ with Lua configuration, `hyprctl dispatch` directly translates CLI arguments into a raw Lua call `return hl.dispatch(...)`. Complex CLI argument strings containing commas, colons, or whitespace fail Lua syntax parsing.
+- **Fix**: In helper scripts and IPC calls, use `hyprctl eval` wrapping `hl.dsp.exec_raw`:
+  ```bash
+  hyprctl eval 'hl.dispatch(hl.dsp.exec_raw("<dispatcher>", "<args>"))'
+  ```
+  Example:
+  ```bash
+  hyprctl eval 'hl.dispatch(hl.dsp.exec_raw("movetoworkspacesilent", "special:minimized,address:0x55d30d..."))'
+  ```

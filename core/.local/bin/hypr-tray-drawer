@@ -1,0 +1,477 @@
+#!/usr/bin/env python3
+"""
+hypr-tray-drawer: Universal single tray icon drawer for minimized Hyprland windows.
+Integrates with Hyprland IPC and Noctalia's StatusNotifierItem (SNI) tray.
+"""
+
+import os
+import sys
+import json
+import time
+import socket
+import select
+import threading
+import subprocess
+from pathlib import Path
+
+import gi
+gi.require_version("Gtk", "3.0")
+gi.require_version("AyatanaAppIndicator3", "0.1")
+from gi.repository import Gtk, AyatanaAppIndicator3, GLib
+
+UID = os.getuid()
+XDG_RUNTIME_DIR = os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{UID}")
+SOCK_FILE = Path(XDG_RUNTIME_DIR) / "hypr-tray-drawer.sock"
+STATE_FILE = Path(XDG_RUNTIME_DIR) / "hypr-tray-drawer.json"
+
+def get_hypr_signature():
+    his = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    if his:
+        return his
+    hypr_dir = Path(XDG_RUNTIME_DIR) / "hypr"
+    if hypr_dir.exists():
+        entries = sorted(hypr_dir.iterdir(), key=lambda p: p.stat().st_mtime, reverse=True)
+        for p in entries:
+            if p.is_dir() and (p / ".socket2.sock").exists():
+                return p.name
+    return None
+
+def normalize_address(addr: str) -> str:
+    if not addr:
+        return ""
+    addr = str(addr).strip().lower()
+    if not addr.startswith("0x"):
+        addr = "0x" + addr
+    return addr
+
+def hyprctl_json(cmd: str):
+    try:
+        res = subprocess.run(["hyprctl", cmd, "-j"], capture_output=True, text=True, check=True)
+        return json.loads(res.stdout)
+    except Exception as e:
+        return None
+
+def hyprctl_dispatch(dispatcher: str, args: str = ""):
+    try:
+        lua_cmd = f'hl.dispatch(hl.dsp.exec_raw("{dispatcher}", "{args}"))'
+        subprocess.run(["hyprctl", "eval", lua_cmd], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        return True
+    except Exception:
+        return False
+
+
+class TrayDrawerDaemon:
+    def __init__(self):
+        self.lock = threading.Lock()
+        self.minimized_windows = []  # list of dicts: address, title, class, workspace, floating, time
+        self.load_state()
+
+        self.indicator = AyatanaAppIndicator3.Indicator.new(
+            "hypr-tray-drawer",
+            "window-restore-symbolic",
+            AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS
+        )
+        self.update_tray()
+
+        # Start socket server
+        self.sock_thread = threading.Thread(target=self._run_socket_server, daemon=True)
+        self.sock_thread.start()
+
+        # Start Hyprland event listener
+        self.hypr_thread = threading.Thread(target=self._run_hypr_listener, daemon=True)
+        self.hypr_thread.start()
+
+    def load_state(self):
+        if STATE_FILE.exists():
+            try:
+                with open(STATE_FILE, "r") as f:
+                    self.minimized_windows = json.load(f)
+            except Exception:
+                self.minimized_windows = []
+
+    def save_state(self):
+        try:
+            with open(STATE_FILE, "w") as f:
+                json.dump(self.minimized_windows, f, indent=2)
+        except Exception:
+            pass
+
+    def update_tray(self):
+        with self.lock:
+            count = len(self.minimized_windows)
+            self.save_state()
+
+            menu = Gtk.Menu()
+
+            if count == 0:
+                self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.PASSIVE)
+                self.indicator.set_label("", "")
+
+                empty_item = Gtk.MenuItem(label="No minimized windows")
+                empty_item.set_sensitive(False)
+                menu.append(empty_item)
+            else:
+                self.indicator.set_status(AyatanaAppIndicator3.IndicatorStatus.ACTIVE)
+                self.indicator.set_icon_full("window-restore-symbolic", f"Minimized Windows ({count})")
+                self.indicator.set_label(str(count), "minimized")
+
+                header = Gtk.MenuItem(label=f"Minimized Windows ({count})")
+                header.set_sensitive(False)
+                menu.append(header)
+                menu.append(Gtk.SeparatorMenuItem())
+
+                restore_recent_item = None
+
+                # List minimized windows in reverse order (newest on top)
+                for win in reversed(self.minimized_windows):
+                    addr = win.get("address", "")
+                    title = win.get("title") or win.get("class") or "Window"
+                    cls = win.get("class") or ""
+
+                    # Format label: "Class: Title"
+                    display_title = title if len(title) <= 45 else title[:42] + "..."
+                    if cls and cls.lower() not in title.lower():
+                        item_label = f"[{cls}] {display_title}"
+                    else:
+                        item_label = display_title
+
+                    item = Gtk.MenuItem(label=item_label)
+                    # Bind address to closure
+                    item.connect("activate", self._make_restore_callback(addr))
+                    menu.append(item)
+
+                menu.append(Gtk.SeparatorMenuItem())
+
+                # Quick Actions
+                recent_item = Gtk.MenuItem(label="↩ Restore Most Recent  (Super+Shift+M)")
+                recent_item.connect("activate", lambda _: self.restore_last())
+                menu.append(recent_item)
+                restore_recent_item = recent_item
+
+                restore_all_item = Gtk.MenuItem(label="📂 Restore All")
+                restore_all_item.connect("activate", lambda _: self.restore_all())
+                menu.append(restore_all_item)
+
+                close_all_item = Gtk.MenuItem(label="❌ Close All Minimized")
+                close_all_item.connect("activate", lambda _: self.close_all())
+                menu.append(close_all_item)
+
+                # Set middle-click / secondary activation to Restore Most Recent
+                if hasattr(self.indicator, "set_secondary_activate_target") and restore_recent_item:
+                    self.indicator.set_secondary_activate_target(restore_recent_item)
+
+            menu.show_all()
+            self.indicator.set_menu(menu)
+
+    def _make_restore_callback(self, addr: str):
+        return lambda _: self.restore_window(addr)
+
+    def minimize_window(self, target_addr: str = None) -> bool:
+        if not target_addr:
+            active = hyprctl_json("activewindow")
+            if not active or not active.get("address"):
+                return False
+            win_data = active
+        else:
+            norm_target = normalize_address(target_addr)
+            clients = hyprctl_json("clients") or []
+            win_data = None
+            for c in clients:
+                if normalize_address(c.get("address", "")) == norm_target:
+                    win_data = c
+                    break
+            if not win_data:
+                return False
+
+        addr = normalize_address(win_data.get("address"))
+        ws_info = win_data.get("workspace", {})
+        ws_name = str(ws_info.get("name", ""))
+
+        # Don't minimize if already on special:minimized
+        if ws_name == "special:minimized":
+            return False
+
+        # If window is pinned, unpin it first
+        if win_data.get("pinned"):
+            hyprctl_dispatch("pin", f"address:{addr}")
+
+        # Send to special:minimized
+        success = hyprctl_dispatch("movetoworkspacesilent", f"special:minimized,address:{addr}")
+        if not success:
+            return False
+
+        entry = {
+            "address": addr,
+            "title": win_data.get("title", ""),
+            "class": win_data.get("class", ""),
+            "initialClass": win_data.get("initialClass", ""),
+            "origin_workspace": ws_name,
+            "origin_workspace_id": ws_info.get("id", 1),
+            "floating": win_data.get("floating", False),
+            "timestamp": time.time(),
+        }
+
+        with self.lock:
+            # Remove any existing entry with this address
+            self.minimized_windows = [w for w in self.minimized_windows if normalize_address(w.get("address")) != addr]
+            self.minimized_windows.append(entry)
+
+        GLib.idle_add(self.update_tray)
+        return True
+
+    def restore_window(self, addr: str) -> bool:
+        norm_addr = normalize_address(addr)
+        target_win = None
+
+        with self.lock:
+            for w in self.minimized_windows:
+                if normalize_address(w.get("address")) == norm_addr:
+                    target_win = w
+                    break
+
+        if not target_win:
+            # Fallback: check if client exists in Hyprland
+            clients = hyprctl_json("clients") or []
+            for c in clients:
+                if normalize_address(c.get("address")) == norm_addr:
+                    target_win = c
+                    break
+
+        if not target_win:
+            return False
+
+        # Determine target workspace
+        active_ws = hyprctl_json("activeworkspace") or {}
+        active_ws_name = str(active_ws.get("name", ""))
+        
+        # If currently viewing a special workspace, restore to origin workspace
+        if active_ws_name.startswith("special:"):
+            orig = str(target_win.get("origin_workspace", "1"))
+            dest = orig if not orig.startswith("special:") else "1"
+        else:
+            dest = "current"
+
+        hyprctl_dispatch("movetoworkspace", f"{dest},address:{norm_addr}")
+        hyprctl_dispatch("focuswindow", f"address:{norm_addr}")
+
+        with self.lock:
+            self.minimized_windows = [w for w in self.minimized_windows if normalize_address(w.get("address")) != norm_addr]
+
+        GLib.idle_add(self.update_tray)
+        return True
+
+    def restore_last(self) -> bool:
+        with self.lock:
+            if not self.minimized_windows:
+                return False
+            last_addr = self.minimized_windows[-1].get("address")
+        return self.restore_window(last_addr)
+
+    def restore_all(self):
+        with self.lock:
+            addrs = [w.get("address") for w in self.minimized_windows]
+
+        for addr in addrs:
+            hyprctl_dispatch("movetoworkspace", f"current,address:{addr}")
+
+        if addrs:
+            hyprctl_dispatch("focuswindow", f"address:{addrs[-1]}")
+
+        with self.lock:
+            self.minimized_windows.clear()
+
+        GLib.idle_add(self.update_tray)
+
+    def close_all(self):
+        with self.lock:
+            addrs = [w.get("address") for w in self.minimized_windows]
+            self.minimized_windows.clear()
+
+        for addr in addrs:
+            hyprctl_dispatch("closewindow", f"address:{addr}")
+
+        GLib.idle_add(self.update_tray)
+
+    def toggle(self) -> bool:
+        active = hyprctl_json("activewindow")
+        if active and active.get("address"):
+            ws_name = str((active.get("workspace") or {}).get("name", ""))
+            if ws_name != "special:minimized":
+                return self.minimize_window()
+        # If no active window or active window is on special:minimized, restore last
+        return self.restore_last()
+
+    def _run_socket_server(self):
+        if SOCK_FILE.exists():
+            try:
+                SOCK_FILE.unlink()
+            except Exception:
+                pass
+
+        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        server.bind(str(SOCK_FILE))
+        server.listen(5)
+
+        while True:
+            try:
+                conn, _ = server.accept()
+                req = conn.recv(1024).decode("utf-8").strip()
+                if not req:
+                    conn.close()
+                    continue
+
+                parts = req.split(maxsplit=1)
+                cmd = parts[0].upper()
+                arg = parts[1] if len(parts) > 1 else ""
+
+                resp = "OK"
+                if cmd == "MINIMIZE":
+                    res = self.minimize_window(arg or None)
+                    resp = "OK" if res else "FAIL"
+                elif cmd == "RESTORE":
+                    res = self.restore_window(arg) if arg else self.restore_last()
+                    resp = "OK" if res else "FAIL"
+                elif cmd == "RESTORE_LAST":
+                    res = self.restore_last()
+                    resp = "OK" if res else "FAIL"
+                elif cmd == "RESTORE_ALL":
+                    self.restore_all()
+                    resp = "OK"
+                elif cmd == "CLOSE_ALL":
+                    self.close_all()
+                    resp = "OK"
+                elif cmd == "TOGGLE":
+                    res = self.toggle()
+                    resp = "OK" if res else "FAIL"
+                elif cmd == "LIST":
+                    with self.lock:
+                        resp = json.dumps(self.minimized_windows)
+                elif cmd == "PING":
+                    resp = "PONG"
+                elif cmd == "QUIT":
+                    conn.sendall(b"BYE\n")
+                    conn.close()
+                    GLib.idle_add(Gtk.main_quit)
+                    break
+
+                conn.sendall((resp + "\n").encode("utf-8"))
+                conn.close()
+            except Exception as e:
+                time.sleep(0.1)
+
+    def _run_hypr_listener(self):
+        sig = get_hypr_signature()
+        if not sig:
+            return
+
+        sock_path = Path(XDG_RUNTIME_DIR) / "hypr" / sig / ".socket2.sock"
+
+        while True:
+            try:
+                if not sock_path.exists():
+                    time.sleep(1)
+                    continue
+
+                s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                s.connect(str(sock_path))
+                f = s.makefile("r", encoding="utf-8", errors="ignore")
+
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    if line.startswith("closewindow>>"):
+                        raw_addr = line[len("closewindow>>"):].strip()
+                        norm_addr = normalize_address(raw_addr)
+                        with self.lock:
+                            orig_len = len(self.minimized_windows)
+                            self.minimized_windows = [
+                                w for w in self.minimized_windows
+                                if normalize_address(w.get("address")) != norm_addr
+                            ]
+                            if len(self.minimized_windows) != orig_len:
+                                GLib.idle_add(self.update_tray)
+            except Exception:
+                time.sleep(1)
+
+
+def send_client_cmd(cmd_str: str) -> str:
+    # Ensure daemon is alive
+    if not SOCK_FILE.exists():
+        start_daemon_bg()
+        # Wait up to 1.5s
+        for _ in range(15):
+            time.sleep(0.1)
+            if SOCK_FILE.exists():
+                break
+
+    try:
+        s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        s.settimeout(2.0)
+        s.connect(str(SOCK_FILE))
+        s.sendall((cmd_str + "\n").encode("utf-8"))
+        resp = s.recv(4096).decode("utf-8").strip()
+        s.close()
+        return resp
+    except Exception as e:
+        return f"ERROR: {e}"
+
+
+def start_daemon_bg():
+    script_path = str(Path(__file__).resolve())
+    subprocess.Popen(
+        ["uwsm-app", "--", script_path, "daemon"],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True
+    )
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] == "daemon":
+        daemon = TrayDrawerDaemon()
+        Gtk.main()
+        return
+
+    cmd = sys.argv[1].lower()
+
+    if cmd == "minimize":
+        addr = sys.argv[2] if len(sys.argv) > 2 else ""
+        resp = send_client_cmd(f"MINIMIZE {addr}".strip())
+        print(resp)
+    elif cmd in ("restore", "restore-last", "unminimize"):
+        addr = sys.argv[2] if len(sys.argv) > 2 else ""
+        if addr:
+            resp = send_client_cmd(f"RESTORE {addr}")
+        else:
+            resp = send_client_cmd("RESTORE_LAST")
+        print(resp)
+    elif cmd in ("restore-all", "restore_all"):
+        resp = send_client_cmd("RESTORE_ALL")
+        print(resp)
+    elif cmd in ("close-all", "close_all"):
+        resp = send_client_cmd("CLOSE_ALL")
+        print(resp)
+    elif cmd == "toggle":
+        resp = send_client_cmd("TOGGLE")
+        print(resp)
+    elif cmd == "list":
+        resp = send_client_cmd("LIST")
+        try:
+            items = json.loads(resp)
+            print(json.dumps(items, indent=2))
+        except Exception:
+            print(resp)
+    elif cmd == "status":
+        resp = send_client_cmd("PING")
+        print(resp)
+    elif cmd == "quit":
+        resp = send_client_cmd("QUIT")
+        print(resp)
+    else:
+        print("Usage: hypr-tray-drawer {daemon|minimize [addr]|restore [addr]|restore-all|close-all|toggle|list|status|quit}")
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()

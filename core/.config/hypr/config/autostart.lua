@@ -9,5 +9,6 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("hypridle")
     hl.exec_cmd("xhost +SI:localuser:root")
     hl.exec_cmd(homeDir .. "/.local/bin/kitty-focus-opacity")
+    hl.exec_cmd(homeDir .. "/.local/bin/hypr-tray-drawer daemon")
 end)
 
