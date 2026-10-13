@@ -65,6 +65,11 @@ In EasyEffects 8.3+:
   easyeffects -l "Dolby Atmos"
   easyeffects -l "Advanced Auto Gain"
   ```
+- **Hybrid Presets (Combining Surface acoustic tuning + Spatial Convolver)**:
+  ```bash
+  easyeffects -l surface-book-hybrid   # Dolby Atmos 3D impulse + Surface acoustic method
+  easyeffects -l surface-book-razor    # Razor +20 Bass impulse + Surface acoustic method
+  ```
 - **Emergency Clean Audio Pipeline Reset**:
   ```bash
   pkill -x easyeffects
