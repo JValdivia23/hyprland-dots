@@ -58,6 +58,13 @@ In EasyEffects 8.3+:
   ```bash
   easyeffects -l surface-book
   ```
+- **Switch to Community Presets (JackHack96)**:
+  ```bash
+  easyeffects -l "Bass Enhancing + Perfect EQ"
+  easyeffects -l "Laptop"
+  easyeffects -l "Dolby Atmos"
+  easyeffects -l "Advanced Auto Gain"
+  ```
 - **Emergency Clean Audio Pipeline Reset**:
   ```bash
   pkill -x easyeffects
@@ -65,3 +72,10 @@ In EasyEffects 8.3+:
   wpctl set-volume @DEFAULT_AUDIO_SINK@ 40%
   easyeffects --service-mode &
   ```
+
+---
+
+## 6. JackHack96 Community Presets & Calf Range Gotchas
+
+- **IRS Convolver Directory**: Impulse responses for `Bass Enhancing + Perfect EQ` and `Dolby Atmos` must reside in `~/.local/share/easyeffects/irs/`.
+- **Parameter Range Validation Gotcha (`dry: -100.0`)**: In older community presets (like `Dolby Atmos.json`), `stereo_tools` or compressors may contain `dry: -100.0`. In EasyEffects 8.x with Calf LV2 plugins, values below `-80.0` fail parameter validation and cause EasyEffects to silently drop filter nodes from the PipeWire graph. Clamping `dry` to `-80.0` resolves the validation failure.
