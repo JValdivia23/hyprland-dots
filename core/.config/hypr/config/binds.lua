@@ -34,8 +34,13 @@ helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.d
 -- Interactive Window Resize Mode (Keyboard & Touchscreen / Mouse)
 -- Enter with SUPER + R. Drag anywhere on screen with touchscreen or mouse,
 -- or use Arrow keys / HJKL. Exit with Escape, Return, Tap, or SUPER + R.
-local function resize_dir(dx, dy)
-    hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+local function resize_dir(dx, dy, ratio)
+    local win = hl.get_active_window()
+    if win and win.floating then
+        hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+    else
+        hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
+    end
 end
 
 local function exit_resize()
@@ -50,10 +55,10 @@ hl.define_submap("resize", function()
     helpers.bind(mainMod .. " + mouse:273", "Resize window with right-click drag", hl.dsp.window.resize(), { mouse = true })
 
     -- Keyboard arrow incremental resizing (works seamlessly for tiled & floating windows)
-    local function do_right() resize_dir(40, 0) end
-    local function do_left()  resize_dir(-40, 0) end
-    local function do_up()    resize_dir(0, -40) end
-    local function do_down()  resize_dir(0, 40) end
+    local function do_right() resize_dir(40, 0, "+0.05") end
+    local function do_left()  resize_dir(-40, 0, "-0.05") end
+    local function do_up()    resize_dir(0, -40, "-0.05") end
+    local function do_down()  resize_dir(0, 40, "+0.05") end
 
     -- Bare arrows (modmask 0)
     helpers.bind("Right", "Expand width right", do_right, { repeating = true })

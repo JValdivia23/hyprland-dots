@@ -313,7 +313,7 @@ def main():
                                     else:
                                         is_touching = False
                                         elapsed = time.time() - touch_start_time
-                                        if elapsed < 0.35 and total_dist < 40.0:
+                                        if elapsed < 0.25 and total_dist < 15.0:
                                             # Quick tap -> Exit resize mode cleanly
                                             send_hypr_cmd("dispatch hl.dsp.submap('reset')")
                                             stop_grab()
@@ -347,7 +347,21 @@ def main():
                                             step_y = int(round(accum_y))
                                             accum_x -= step_x
                                             accum_y -= step_y
-                                            send_hypr_cmd(f"dispatch hl.dsp.exec_raw('resizeactive', '{step_x} {step_y}')")
+
+                                            if abs(step_x) >= abs(step_y):
+                                                ratio = "+0.04" if step_x > 0 else "-0.04"
+                                            else:
+                                                ratio = "+0.04" if step_y > 0 else "-0.04"
+
+                                            cmd = (
+                                                f"eval local win = hl.get_active_window(); "
+                                                f"if win and win.floating then "
+                                                f"hl.dispatch(hl.dsp.exec_raw('resizeactive', '{step_x} {step_y}')) "
+                                                f"else "
+                                                f"hl.dispatch(hl.dsp.layout('splitratio {ratio}')) "
+                                                f"end"
+                                            )
+                                            send_hypr_cmd(cmd)
         except Exception as e:
             log(f"Exception in main event loop: {e}")
             import traceback
