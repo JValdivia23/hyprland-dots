@@ -56,7 +56,9 @@ Live system snapshot automatically generated for multi-PC environment.
 | dolphin | 26.08.2-1.1 | File Manager |
 | zen-browser-bin | 1.23.1b-1 | Primary Web Browser |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
-| easyeffects | 8.3.0-1.1 | Audio Processing Backend |
+| easyeffects | 8.3.0-1.1 | Audio Processing Backend (`surface-book` DSP preset active) |
+| lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
+| calf | 0.90.9-2.1 | LV2 Audio Plugins (Bass Enhancer / Virtual Bass, Stereo Tools) |
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | lisgd | 0.4.0-1 | Surface Libinput Synthetic Gesture Daemon |
 | wvkbd | 0.20-1 | Surface Virtual Touch Keyboard |

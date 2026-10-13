@@ -2,6 +2,18 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.47.0] - 2026-10-13
+### Added
+- **Surface Book 3 Psychoacoustic Audio DSP & EasyEffects Engine (`profiles/surface`)**:
+  - Engineered and deployed a tailored 5-stage DSP audio enhancement preset [`surface-book.json`](file:///home/jmvp/dotfiles/profiles/surface/.config/easyeffects/output/surface-book.json) for the Microsoft Surface Book 3 tablet speakers.
+  - **Psychoacoustic Virtual Bass**: Integrated Calf Bass Enhancer generating 2nd and 3rd order harmonics for frequencies up to 145 Hz (+10 dB virtual bass presence), leveraging the "missing fundamental" effect so the human brain perceives deep sub-bass despite physical speaker driver limits.
+  - **Subsonic High-Pass Protection**: Configured a 90 Hz steep 12 dB/oct cut (RLC BT) filter to eliminate destructive sub-bass excursion, preventing speaker distortion, rattling, and voice coil overheating.
+  - **Chassis Acoustic Equalization**: Configured a 32-band parametric EQ providing lower-mid body warmth (156–194 Hz), speech clarity (1.3–1.7 kHz), chassis resonance peak suppression (-3 dB at 3.2 kHz), and air/sparkle (9.5–12 kHz).
+  - **Stereo Widening & Peak Limiting**: Applied Calf Stereo Tools (+15% width, 0.04 ms delay) for immersive soundstage and LSP True Peak Limiter (-1.0 dB ceiling) to guarantee distortion-free playback at maximum volume.
+  - Installed plugin engines `lsp-plugins-lv2` and `calf`, tracking them in [`profiles/surface/packages.txt`](file:///home/jmvp/dotfiles/profiles/surface/packages.txt).
+  - Configured silent background service autostart (`easyeffects --service-mode`) in [`autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+  - Documented complete architecture, plugin engine dependencies, EasyEffects 8.3 preset paths, and A/B testing commands in [`profiles/surface/gotchas/audio-dsp.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/audio-dsp.md).
+
 ## [2.46.0] - 2026-10-13
 ### Added
 - **Surface Touch & Stylus (IPTS) Support for Linux 7.2 Mainline / CachyOS (`profiles/surface`)**:
