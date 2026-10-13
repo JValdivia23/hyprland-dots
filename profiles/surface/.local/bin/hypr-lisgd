@@ -60,6 +60,8 @@ while true; do
         -g "1,UD,TL,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
         -g "1,UD,TR,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
         -g "2,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "2,LR,*,*,R,$HOME/.local/bin/hypr-resize-step right 60" \
+        -g "2,RL,*,*,R,$HOME/.local/bin/hypr-resize-step left 60" \
         -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
         -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
         -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \

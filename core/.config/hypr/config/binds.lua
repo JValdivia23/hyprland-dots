@@ -32,15 +32,10 @@ helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_c
 helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
 -- Interactive Window Resize Mode (Keyboard & Touchscreen / Mouse)
--- Enter with SUPER + R. Drag anywhere on the window with finger/left-click,
--- or use Arrow keys / HJKL. Exit with Escape, Return, or SUPER + R.
-local function resize_dir(dx, dy, ratio)
-    local win = hl.get_active_window()
-    if win and win.floating then
-        hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
-    else
-        hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
-    end
+-- Enter with SUPER + R. Drag anywhere on screen with touchscreen or mouse,
+-- or use Arrow keys / HJKL. Exit with Escape, Return, Tap, or SUPER + R.
+local function resize_dir(dx, dy)
+    hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
 end
 
 local function exit_resize()
@@ -48,58 +43,52 @@ local function exit_resize()
 end
 
 hl.define_submap("resize", function()
-    -- Touchscreen & Mouse Drag resizing across full window surface
-    helpers.bind("mouse:272", "Resize window with touch or mouse drag", hl.dsp.window.resize())
-    helpers.bind("mouse:273", "Resize window with right-click drag", hl.dsp.window.resize())
-    helpers.bind(mainMod .. " + mouse:272", "Resize window with touch or mouse drag", hl.dsp.window.resize())
-    helpers.bind(mainMod .. " + mouse:273", "Resize window with right-click drag", hl.dsp.window.resize())
+    -- Mouse drag resizing across window surface
+    helpers.bind("mouse:272", "Resize window with mouse drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind("mouse:273", "Resize window with right-click drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind(mainMod .. " + mouse:272", "Resize window with mouse drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind(mainMod .. " + mouse:273", "Resize window with right-click drag", hl.dsp.window.resize(), { mouse = true })
 
-    -- Keyboard arrow incremental resizing (tiled splitratio & floating resizeactive)
-    local function do_right() resize_dir(30, 0, "0.05") end
-    local function do_left()  resize_dir(-30, 0, "-0.05") end
-    local function do_up()    resize_dir(0, -30, "-0.05") end
-    local function do_down()  resize_dir(0, 30, "0.05") end
+    -- Keyboard arrow incremental resizing (works seamlessly for tiled & floating windows)
+    local function do_right() resize_dir(40, 0) end
+    local function do_left()  resize_dir(-40, 0) end
+    local function do_up()    resize_dir(0, -40) end
+    local function do_down()  resize_dir(0, 40) end
 
     -- Bare arrows (modmask 0)
-    helpers.bind("Right", "Expand / shift split right", do_right, { repeating = true })
-    helpers.bind("Left",  "Shrink / shift split left",  do_left,  { repeating = true })
-    helpers.bind("Up",    "Shrink / shift split up",    do_up,    { repeating = true })
-    helpers.bind("Down",  "Expand / shift split down",  do_down,  { repeating = true })
+    helpers.bind("Right", "Expand width right", do_right, { repeating = true })
+    helpers.bind("Left",  "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("Up",    "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("Down",  "Expand height down",  do_down,  { repeating = true })
 
     -- Super + arrows (modmask 64 - for when user holds Super)
-    helpers.bind(mainMod .. " + Right", "Expand / shift split right", do_right, { repeating = true })
-    helpers.bind(mainMod .. " + Left",  "Shrink / shift split left",  do_left,  { repeating = true })
-    helpers.bind(mainMod .. " + Up",    "Shrink / shift split up",    do_up,    { repeating = true })
-    helpers.bind(mainMod .. " + Down",  "Expand / shift split down",  do_down,  { repeating = true })
+    helpers.bind(mainMod .. " + Right", "Expand width right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + Left",  "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + Up",    "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + Down",  "Expand height down",  do_down,  { repeating = true })
 
     -- Vim HJKL keys (lowercase & uppercase, with & without Super)
-    helpers.bind("l", "Expand / shift split right", do_right, { repeating = true })
-    helpers.bind("h", "Shrink / shift split left",  do_left,  { repeating = true })
-    helpers.bind("k", "Shrink / shift split up",    do_up,    { repeating = true })
-    helpers.bind("j", "Expand / shift split down",  do_down,  { repeating = true })
+    helpers.bind("l", "Expand width right", do_right, { repeating = true })
+    helpers.bind("h", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("k", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("j", "Expand height down",  do_down,  { repeating = true })
 
-    helpers.bind("L", "Expand / shift split right", do_right, { repeating = true })
-    helpers.bind("H", "Shrink / shift split left",  do_left,  { repeating = true })
-    helpers.bind("K", "Shrink / shift split up",    do_up,    { repeating = true })
-    helpers.bind("J", "Expand / shift split down",  do_down,  { repeating = true })
+    helpers.bind("L", "Expand width right", do_right, { repeating = true })
+    helpers.bind("H", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("K", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("J", "Expand height down",  do_down,  { repeating = true })
 
-    helpers.bind(mainMod .. " + l", "Expand / shift split right", do_right, { repeating = true })
-    helpers.bind(mainMod .. " + h", "Shrink / shift split left",  do_left,  { repeating = true })
-    helpers.bind(mainMod .. " + k", "Shrink / shift split up",    do_up,    { repeating = true })
-    helpers.bind(mainMod .. " + j", "Expand / shift split down",  do_down,  { repeating = true })
+    helpers.bind(mainMod .. " + l", "Expand width right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + h", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + k", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + j", "Expand height down",  do_down,  { repeating = true })
 
     -- Reset split ratio to default 50/50 with '='
     helpers.bind("equal", "Reset split to 50/50", function()
-        local win = hl.get_active_window()
-        if not (win and win.floating) then
-            hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
-        end
+        hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
     end)
     helpers.bind(mainMod .. " + equal", "Reset split to 50/50", function()
-        local win = hl.get_active_window()
-        if not (win and win.floating) then
-            hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
-        end
+        hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
     end)
 
     -- Exit submap back to normal mode
@@ -112,10 +101,12 @@ hl.define_submap("resize", function()
     helpers.bind(mainMod .. " + Escape", "Exit resize mode", exit_resize)
 end)
 
-helpers.bind(mainMod .. " + R", "Enter window resize mode", function()
+local function enter_resize()
     hl.dispatch(hl.dsp.submap("resize"))
-    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch/mouse or use Arrows/HJKL (Esc or Super+R to exit)'"))
-end)
+    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch screen or use Arrows/HJKL (Esc or Super+R to exit)'"))
+end
+helpers.bind(mainMod .. " + R", "Enter window resize mode", enter_resize)
+helpers.bind(mainMod .. " + r", "Enter window resize mode", enter_resize)
 
 -- Window grouping / stacking
 helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacking", hl.dsp.group.toggle())
@@ -160,8 +151,8 @@ for i = 1, NUM_WPM do
 end
 
 -- Move & Resize with mouse
-helpers.bind(mainMod .. " + mouse:272", "Move window with mouse", hl.dsp.window.drag())
-helpers.bind(mainMod .. " + mouse:273", "Resize window with mouse", hl.dsp.window.resize())
+helpers.bind(mainMod .. " + mouse:272", "Move window with mouse", hl.dsp.window.drag(), { mouse = true })
+helpers.bind(mainMod .. " + mouse:273", "Resize window with mouse", hl.dsp.window.resize(), { mouse = true })
 
 -------------------------------
 ---- macOS TEXT & EDITING ----

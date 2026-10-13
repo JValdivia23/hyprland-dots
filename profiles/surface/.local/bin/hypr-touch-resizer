@@ -1,0 +1,360 @@
+#!/usr/bin/env python3
+"""
+hypr-touch-resizer: Real-Time Touchscreen Window Resizer Daemon for Hyprland
+=============================================================================
+Enables direct, interactive touchscreen window resizing when Hyprland is in
+the 'resize' submap (SUPER + R).
+
+Features:
+- Listens to Hyprland's UNIX event socket (.socket2.sock).
+- Upon submap>>resize, grabs the touchscreen exclusively via EVIOCGRAB so
+  Wayland applications do not intercept touch/drag events.
+- Tracks 1-finger drag and dispatches real-time relative resizing (resizeactive).
+- Quick tap (<350ms, <40px displacement) confirms and exits resize mode.
+- 30s inactivity auto-exit safeguard.
+- Seamlessly releases grab on Escape, Return, SUPER+R, or submap reset.
+"""
+
+import os
+import sys
+import glob
+import time
+import fcntl
+import struct
+import socket
+import select
+import signal
+import atexit
+import math
+import re
+
+# Linux input event constants
+EV_SYN = 0x00
+EV_KEY = 0x01
+EV_ABS = 0x03
+SYN_REPORT = 0x00
+ABS_MT_SLOT = 0x2F
+ABS_MT_POSITION_X = 0x35
+ABS_MT_POSITION_Y = 0x36
+ABS_MT_TRACKING_ID = 0x39
+
+# EVIOCGRAB ioctl: _IOW('E', 0x90, int)
+EVIOCGRAB = 0x40044590
+
+# Input event struct format: timeval (qq) + uint16 type + uint16 code + int32 value
+EVENT_FORMAT = "qqHHi"
+EVENT_SIZE = struct.calcsize(EVENT_FORMAT)
+
+# Surface Book 3 touchscreen coordinate scaling: 9600x7200 touch units -> 1500x1000 logical px
+SCALE_X = 1500.0 / 9600.0
+SCALE_Y = 1000.0 / 7200.0
+PIXEL_THRESHOLD = 12.0  # Movement step in pixels before dispatching resizeactive
+IDLE_TIMEOUT = 30.0    # Auto-exit resize mode after 30s of inactivity
+
+PID_FILE = f"/run/user/{os.getuid()}/hypr-touch-resizer.pid"
+LOG_FILE = "/tmp/hypr-touch-resizer.log"
+
+active_fd = None
+lock_fd = None
+touch_device_path = None
+
+
+def find_touch_device():
+    """Locate the accessible IPTS/IPTSD virtual touchscreen device node."""
+    try:
+        with open("/proc/bus/input/devices", "r") as f:
+            content = f.read()
+        blocks = content.split("\n\n")
+        # Priority 1: IPTSD Virtual Touchscreen
+        for b in blocks:
+            if "IPTSD Virtual Touchscreen" in b:
+                m = re.search(r"Handlers=.*?(event\d+)", b)
+                if m:
+                    p = f"/dev/input/{m.group(1)}"
+                    if os.access(p, os.R_OK):
+                        return p
+        # Priority 2: Any IPTS Touchscreen
+        for b in blocks:
+            if "Touchscreen" in b and "IPTS" in b:
+                m = re.search(r"Handlers=.*?(event\d+)", b)
+                if m:
+                    p = f"/dev/input/{m.group(1)}"
+                    if os.access(p, os.R_OK):
+                        return p
+    except Exception as e:
+        log(f"Error in find_touch_device: {e}")
+    return None
+
+
+def get_hypr_socket():
+    """Find the Hyprland command socket (.socket.sock)."""
+    runtime = os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+    socks = glob.glob(f"{runtime}/hypr/*/.socket.sock")
+    return socks[0] if socks else None
+
+
+def get_hypr_event_socket():
+    """Find the Hyprland event socket (.socket2.sock)."""
+    runtime = os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")
+    socks = glob.glob(f"{runtime}/hypr/*/.socket2.sock")
+    return socks[0] if socks else None
+
+
+def send_hypr_cmd(cmd_str):
+    """Send a command string to Hyprland's UNIX command socket."""
+    sock_path = get_hypr_socket()
+    if not sock_path:
+        return None
+    try:
+        with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as s:
+            s.connect(sock_path)
+            s.sendall(cmd_str.encode("utf-8") + b"\n")
+            return s.recv(1024)
+    except Exception:
+        return None
+
+
+def log(msg):
+    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+
+
+def cleanup():
+    """Release exclusive device grab and close fd."""
+    global active_fd
+    if active_fd is not None:
+        try:
+            fcntl.ioctl(active_fd, EVIOCGRAB, 0)
+        except Exception:
+            pass
+        try:
+            os.close(active_fd)
+        except Exception:
+            pass
+        active_fd = None
+
+
+atexit.register(cleanup)
+
+
+def handle_signal(sig, frame):
+    log(f"Received termination signal {sig}, exiting.")
+    cleanup()
+    sys.exit(0)
+
+
+signal.signal(signal.SIGINT, handle_signal)
+signal.signal(signal.SIGTERM, handle_signal)
+signal.signal(signal.SIGHUP, signal.SIG_IGN)
+
+
+def daemonize():
+    """Double-fork daemonization to completely detach from parent process group."""
+    if os.fork() > 0:
+        sys.exit(0)
+    os.setsid()
+    if os.fork() > 0:
+        sys.exit(0)
+
+    sys.stdout.flush()
+    sys.stderr.flush()
+    log_fd = os.open(LOG_FILE, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o644)
+    os.dup2(log_fd, sys.stdout.fileno())
+    os.dup2(log_fd, sys.stderr.fileno())
+    os.close(log_fd)
+
+
+def acquire_single_instance_lock():
+    """Ensure only one instance of the daemon runs per user session."""
+    global lock_fd
+    try:
+        lock_fd = os.open(PID_FILE, os.O_RDWR | os.O_CREAT, 0o644)
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        os.ftruncate(lock_fd, 0)
+        os.write(lock_fd, f"{os.getpid()}\n".encode())
+        return True
+    except (BlockingIOError, OSError):
+        return False
+
+
+def main():
+    global active_fd, touch_device_path
+
+    # Check for daemonize flag (default: daemonize unless -f/--foreground is passed)
+    if "-f" not in sys.argv and "--foreground" not in sys.argv:
+        daemonize()
+
+    if not acquire_single_instance_lock():
+        log("Another instance of hypr-touch-resizer is already running. Exiting.")
+        sys.exit(0)
+
+    log("hypr-touch-resizer daemon started successfully.")
+    touch_device_path = find_touch_device()
+    in_resize = False
+
+    curr_slot = 0
+    is_touching = False
+    touch_start_time = 0.0
+    last_x = None
+    last_y = None
+    curr_x = None
+    curr_y = None
+    accum_x = 0.0
+    accum_y = 0.0
+    total_dist = 0.0
+    last_touch_time = time.time()
+
+    def start_grab():
+        nonlocal in_resize, last_touch_time, is_touching
+        nonlocal last_x, last_y, curr_x, curr_y, accum_x, accum_y, total_dist
+        global active_fd, touch_device_path
+
+        if not touch_device_path or not os.access(touch_device_path, os.R_OK):
+            touch_device_path = find_touch_device()
+        if not touch_device_path:
+            return
+
+        try:
+            active_fd = os.open(touch_device_path, os.O_RDONLY | os.O_NONBLOCK)
+            fcntl.ioctl(active_fd, EVIOCGRAB, 1)
+            in_resize = True
+            is_touching = False
+            last_x = None
+            last_y = None
+            curr_x = None
+            curr_y = None
+            accum_x = 0.0
+            accum_y = 0.0
+            total_dist = 0.0
+            last_touch_time = time.time()
+            log(f"Grabbed touch device {touch_device_path} for interactive resize")
+        except Exception as e:
+            log(f"Failed to grab {touch_device_path}: {e}")
+            stop_grab()
+
+    def stop_grab():
+        nonlocal in_resize
+        global active_fd
+        if active_fd is not None:
+            try:
+                fcntl.ioctl(active_fd, EVIOCGRAB, 0)
+            except Exception:
+                pass
+            try:
+                os.close(active_fd)
+            except Exception:
+                pass
+            active_fd = None
+            log("Released touch device grab, returned to normal mode")
+        in_resize = False
+
+    while True:
+        event_sock_path = get_hypr_event_socket()
+        if not event_sock_path:
+            time.sleep(1.0)
+            continue
+
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as event_sock:
+                event_sock.connect(event_sock_path)
+                buf = b""
+
+                while True:
+                    read_fds = [event_sock]
+                    if in_resize and active_fd is not None:
+                        read_fds.append(active_fd)
+                        if time.time() - last_touch_time > IDLE_TIMEOUT:
+                            send_hypr_cmd("dispatch hl.dsp.submap('reset')")
+                            stop_grab()
+
+                    timeout = 1.0 if in_resize else None
+                    rlist, _, _ = select.select(read_fds, [], [], timeout)
+
+                    if event_sock in rlist:
+                        data = event_sock.recv(4096)
+                        if not data:
+                            break
+                        buf += data
+                        while b"\n" in buf:
+                            line, buf = buf.split(b"\n", 1)
+                            line_str = line.decode("utf-8", errors="ignore").strip()
+                            if line_str == "submap>>resize":
+                                if not in_resize:
+                                    start_grab()
+                            elif line_str.startswith("submap>>"):
+                                if in_resize:
+                                    stop_grab()
+
+                    if in_resize and active_fd is not None and active_fd in rlist:
+                        last_touch_time = time.time()
+                        try:
+                            raw_data = os.read(active_fd, 4096)
+                        except BlockingIOError:
+                            continue
+                        except Exception:
+                            stop_grab()
+                            continue
+
+                        for i in range(0, len(raw_data) - EVENT_SIZE + 1, EVENT_SIZE):
+                            chunk = raw_data[i:i + EVENT_SIZE]
+                            _, _, ev_type, ev_code, ev_value = struct.unpack(EVENT_FORMAT, chunk)
+
+                            if ev_type == EV_ABS:
+                                if ev_code == ABS_MT_SLOT:
+                                    curr_slot = ev_value
+                                elif ev_code == ABS_MT_TRACKING_ID:
+                                    if ev_value != -1:
+                                        is_touching = True
+                                        touch_start_time = time.time()
+                                        last_x = None
+                                        last_y = None
+                                        accum_x = 0.0
+                                        accum_y = 0.0
+                                        total_dist = 0.0
+                                    else:
+                                        is_touching = False
+                                        elapsed = time.time() - touch_start_time
+                                        if elapsed < 0.35 and total_dist < 40.0:
+                                            # Quick tap -> Exit resize mode cleanly
+                                            send_hypr_cmd("dispatch hl.dsp.submap('reset')")
+                                            stop_grab()
+                                            break
+                                        last_x = None
+                                        last_y = None
+                                elif ev_code == ABS_MT_POSITION_X:
+                                    curr_x = ev_value
+                                elif ev_code == ABS_MT_POSITION_Y:
+                                    curr_y = ev_value
+
+                            elif ev_type == EV_SYN and ev_code == SYN_REPORT:
+                                if is_touching and curr_slot == 0 and curr_x is not None and curr_y is not None:
+                                    if last_x is None or last_y is None:
+                                        last_x = curr_x
+                                        last_y = curr_y
+                                    else:
+                                        dx_raw = curr_x - last_x
+                                        dy_raw = curr_y - last_y
+                                        last_x = curr_x
+                                        last_y = curr_y
+
+                                        dx_px = dx_raw * SCALE_X
+                                        dy_px = dy_raw * SCALE_Y
+                                        accum_x += dx_px
+                                        accum_y += dy_px
+                                        total_dist += math.hypot(dx_px, dy_px)
+
+                                        if abs(accum_x) >= PIXEL_THRESHOLD or abs(accum_y) >= PIXEL_THRESHOLD:
+                                            step_x = int(round(accum_x))
+                                            step_y = int(round(accum_y))
+                                            accum_x -= step_x
+                                            accum_y -= step_y
+                                            send_hypr_cmd(f"dispatch hl.dsp.exec_raw('resizeactive', '{step_x} {step_y}')")
+        except Exception as e:
+            log(f"Exception in main event loop: {e}")
+            import traceback
+            traceback.print_exc()
+            stop_grab()
+            time.sleep(1.0)
+
+
+if __name__ == "__main__":
+    main()

@@ -40,14 +40,15 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 
 | Action | Bindings | Description |
 |---|---|---|
-| Enter mode | `SUPER + R` | Enters resize submap with notification confirmation |
-| Touch / Mouse Drag | Touchscreen 1-finger drag or Left/Right mouse drag | Interactively resizes window anywhere on window body (no 1px border grab needed) |
-| Shift split right / Expand | `Right` / `SUPER + Right` / `L` / `l` / `SUPER + L` / `SUPER + l` | Moves split right (tiled: `splitratio +0.05`, floating: `+30px`) |
-| Shift split left / Shrink | `Left` / `SUPER + Left` / `H` / `h` / `SUPER + H` / `SUPER + h` | Moves split left (tiled: `splitratio -0.05`, floating: `-30px`) |
-| Shift split up / Shrink height | `Up` / `SUPER + Up` / `K` / `k` / `SUPER + K` / `SUPER + k` | Moves split up (tiled: `splitratio -0.05`, floating: `-30px`) |
-| Shift split down / Expand height | `Down` / `SUPER + Down` / `J` / `j` / `SUPER + J` / `SUPER + j` | Moves split down (tiled: `splitratio +0.05`, floating: `+30px`) |
+| Enter mode | `SUPER + R` / `SUPER + r` | Enters resize submap with notification confirmation |
+| Touchscreen Drag | 1-finger drag on touchscreen | Interactively resizes window in real-time via `hypr-touch-resizer` (exclusive evdev grab) |
+| Mouse Drag | Left / Right mouse drag | Resizes window with mouse pointer |
+| Expand width | `Right` / `SUPER + Right` / `L` / `l` / `SUPER + L` / `SUPER + l` | Expands width by 40px (`resizeactive 40 0`) for tiled or floating |
+| Shrink width | `Left` / `SUPER + Left` / `H` / `h` / `SUPER + H` / `SUPER + h` | Shrinks width by 40px (`resizeactive -40 0`) for tiled or floating |
+| Shrink height | `Up` / `SUPER + Up` / `K` / `k` / `SUPER + K` / `SUPER + k` | Shrinks height by 40px (`resizeactive 0 -40`) for tiled or floating |
+| Expand height | `Down` / `SUPER + Down` / `J` / `j` / `SUPER + J` / `SUPER + j` | Expands height by 40px (`resizeactive 0 40`) for tiled or floating |
 | Reset split | `=` / `SUPER + =` | Resets split ratio to 50/50 center (`splitratio 1.0 exact`) |
-| Exit mode | `Escape`, `Return`, `R`, `r`, `SUPER + R`, `SUPER + Escape` | Returns to normal mode |
+| Exit mode | Touch Tap, `Escape`, `Return`, `R`, `r`, `SUPER + R`, `SUPER + Escape` | Returns to normal mode (auto-exits after 30s idle) |
 
 ## Application Launchers (`SUPER + SHIFT + <key>`)
 
@@ -149,3 +150,21 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 |----------|--------|-------------|
 | `SUPER` + `ALT` + `D` | Detach Base | Request Surface Book tablet/base detachment (`surface dtx request`) |
 | `SUPER` + `ALT` + `V` | Virtual Keyboard | Toggle on-screen virtual keyboard overlay (`hypr-virtual-keyboard` / `wvkbd`) |
+
+## Touchscreen Gestures (`lisgd`)
+
+Tuned touchscreen gestures configured in [`profiles/surface/.local/bin/hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) for Surface Book 3:
+
+| Gesture | Action | Description |
+|---------|--------|-------------|
+| 1 finger swipe up from bottom edge | Virtual Keyboard | Toggles `wvkbd` on-screen virtual keyboard overlay |
+| 1 finger swipe left from right edge | Control Center | Toggles Noctalia quick settings & control center |
+| 1 finger swipe right from left edge | Window Switcher | Toggles Noctalia app / window switcher |
+| 1 finger swipe down from top edge | Fullscreen Toggle | Toggles active window fullscreen |
+| 2 fingers swipe right | Expand Window Width | Expands width by 60px via `hypr-resize-step right` |
+| 2 fingers swipe left | Shrink Window Width | Shrinks width by 60px via `hypr-resize-step left` |
+| 2 fingers swipe up / down | Fullscreen Toggle | Toggles active window fullscreen |
+| 3 fingers swipe left | Next Workspace | Switches to next workspace (`e+1`) |
+| 3 fingers swipe right | Previous Workspace | Switches to previous workspace (`e-1`) |
+| 3 fingers swipe down | Close Window | Closes active window |
+| 3 fingers swipe up | Toggle Floating | Toggles active window between tiled and floating |

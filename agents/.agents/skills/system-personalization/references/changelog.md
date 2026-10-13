@@ -2,6 +2,26 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.52.0] - 2026-10-13
+### Added
+- **Interactive Touchscreen Window Resizer Daemon (`profiles/surface`)**:
+  - Developed and deployed [`hypr-touch-resizer`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-touch-resizer) daemon for Microsoft Surface Book 3:
+    - Listens to Hyprland's UNIX event socket (`.socket2.sock`) for `submap>>resize`.
+    - Claims an exclusive `EVIOCGRAB` on the IPTS virtual touchscreen device (`/dev/input/event25`) whenever `SUPER + R` resize mode is active. This prevents Wayland applications from receiving touch inputs or text selections.
+    - Translates 1-finger touchscreen drags into real-time relative window resizing (`resizeactive`) via Hyprland's IPC socket (`.socket.sock`), enabling true 1:1 touchscreen dragging across active window surfaces.
+    - Quick tap (<350ms, <40px displacement) immediately confirms and exits resize mode cleanly.
+    - 30-second inactivity safeguard auto-exits resize mode if left idle.
+    - Double-fork daemonized with single-instance lock file (`/run/user/$UID/hypr-touch-resizer.pid`).
+    - Configured auto-start in [`profiles/surface/.config/hypr/config/profile/autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+- **Universal Window Resizing & Touch Gestures (`core` & `profiles/surface`)**:
+  - Unified keyboard resizing in [`binds.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/binds.lua): replaced layout-dependent `splitratio` with Hyprland's native `resizeactive` dispatcher (40px deltas), providing smooth, continuous resizing across all windows whether tiled or floating.
+  - Added both `SUPER + R` and `SUPER + r` enter bindings and modifier hold-through (`modmask: 64`) for arrows and Vim HJKL keys.
+  - Corrected mouse drag bindings to `{ mouse = true }` across all mouse drag bindings.
+  - Deployed dedicated helper script [`hypr-resize-step`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-resize-step) and connected it to 2-finger horizontal swipe gestures in [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd):
+    - **2 fingers swipe right**: Expands active window width by 60px.
+    - **2 fingers swipe left**: Shrinks active window width by 60px.
+  - Expanded `extend_border_grab_area` from 10 to 24 pixels in [`decorations.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/decorations.lua) (~5mm touch target on high-DPI Surface displays).
+
 ## [2.51.0] - 2026-10-13
 ### Fixed
 - **Surface IPTS Wake Handshake & Gesture Auto-Reconnect (`profiles/surface`)**:

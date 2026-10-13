@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# ==============================================================================
+# hypr-resize-step: Fast step-resizer for Hyprland windows (tiled or floating)
+# ==============================================================================
+
+DIR="${1:-right}"
+AMOUNT="${2:-60}"
+
+case "$DIR" in
+    right|expand-x)
+        DX="$AMOUNT"; DY="0" ;;
+    left|shrink-x)
+        DX="-$AMOUNT"; DY="0" ;;
+    down|expand-y)
+        DX="0"; DY="$AMOUNT" ;;
+    up|shrink-y)
+        DX="0"; DY="-$AMOUNT" ;;
+    *)
+        DX="$AMOUNT"; DY="0" ;;
+esac
+
+hyprctl dispatch "hl.dsp.exec_raw('resizeactive', '$DX $DY')" >/dev/null 2>&1
