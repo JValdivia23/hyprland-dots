@@ -8,43 +8,62 @@ if ! command -v lisgd &>/dev/null; then
     exit 1
 fi
 
-# Find IPTSD virtual touchscreen event node dynamically
-DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTSD Virtual Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
-if [[ -z "$DEVICE_NODE" ]]; then
-    # Fallback to direct kernel IPTS touchscreen node
-    DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTS .* Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
-fi
+# Wait for Wayland display socket to become available (prevents startup coredump)
+for ((i = 0; i < 30; i++)); do
+    if [[ -n "${WAYLAND_DISPLAY:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$UID}/${WAYLAND_DISPLAY}" ]]; then
+        break
+    fi
+    sleep 0.1
+done
 
-if [[ -z "$DEVICE_NODE" ]]; then
-    echo "hypr-lisgd: No touchscreen input device found." >&2
-    exit 1
-fi
+# Ensure single supervisor instance runs
+pkill -x lisgd 2>/dev/null || true
 
-DEVICE_PATH="/dev/input/${DEVICE_NODE}"
+# Supervisor loop: auto-reconnects if iptsd reloads, sleeps, or disconnects
+while true; do
+    DEVICE_NODE=""
+    for ((i = 0; i < 30; i++)); do
+        DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTSD Virtual Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
+        if [[ -z "$DEVICE_NODE" ]]; then
+            DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTS .* Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
+        fi
+        if [[ -n "$DEVICE_NODE" && -r "/dev/input/${DEVICE_NODE}" ]]; then
+            break
+        fi
+        sleep 0.2
+    done
 
-# Ensure no duplicate instance runs
-pkill -x lisgd 2>/dev/null
+    if [[ -z "$DEVICE_NODE" || ! -r "/dev/input/${DEVICE_NODE}" ]]; then
+        echo "hypr-lisgd: Waiting for accessible touchscreen input device..." >&2
+        sleep 2
+        continue
+    fi
 
-# Tuned parameters:
-# -s 3.5  : Expanded bezel touch grab area (175px) to comfortably clear top Noctalia bar
-# -r 35   : Expanded angle leniency from 15deg to 35deg for multi-finger alignment
-# -t 80   : Lowered distance threshold to 80px for natural 3-finger swipe triggers
-# -m 1500 : Generous 1.5s gesture timeout window
-exec lisgd -d "$DEVICE_PATH" \
-    -s 3.5 \
-    -r 20 \
-    -t 80 \
-    -m 1500 \
-    -g "1,DU,B,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,DU,BL,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,DU,BR,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,RL,R,*,R,noctalia msg panel-toggle control-center" \
-    -g "1,LR,L,*,R,noctalia msg window-switcher" \
-    -g "1,UD,T,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "1,UD,TL,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "1,UD,TR,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "2,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
-    -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
-    -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \
-    -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'"
+    DEVICE_PATH="/dev/input/${DEVICE_NODE}"
+
+    # Tuned parameters:
+    # -s 3.5  : Expanded bezel touch grab area (175px) to comfortably clear top Noctalia bar
+    # -r 20   : Expanded angle leniency for multi-finger alignment
+    # -t 80   : Lowered distance threshold to 80px for natural 3-finger swipe triggers
+    # -m 1500 : Generous 1.5s gesture timeout window
+    lisgd -d "$DEVICE_PATH" \
+        -s 3.5 \
+        -r 20 \
+        -t 80 \
+        -m 1500 \
+        -g "1,DU,B,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,DU,BL,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,DU,BR,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,RL,R,*,R,noctalia msg panel-toggle control-center" \
+        -g "1,LR,L,*,R,noctalia msg window-switcher" \
+        -g "1,UD,T,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "1,UD,TL,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "1,UD,TR,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "2,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
+        -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
+        -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \
+        -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'" || true
+
+    sleep 1
+done

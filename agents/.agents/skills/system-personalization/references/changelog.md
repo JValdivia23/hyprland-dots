@@ -19,6 +19,13 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Upgraded 171 packages via `pacman -Syu`, including `linux-cachyos` (7.2.9-1 -> 7.2.9-2), `linux-cachyos-lts` (6.18.55-1 -> 6.18.55-2), `limine` (12.9.0-1 -> 12.9.3-2), `limine-snapper-sync`, and core desktop applications (`zen-browser-bin`, `neovim`).
   - Installed `dkms` package to automate out-of-tree module builds across future kernel updates.
 
+### Fixed
+- **Surface Touchscreen Gestures (`lisgd`) Boot Race Condition & Auto-Recovery**:
+  - Resolved startup crash where `lisgd` dumped core with `SEGV` (`wl_proxy_get_version`) when spawned before Hyprland had initialized the Wayland display socket.
+  - Wrapped `hl.exec_cmd("~/.local/bin/hypr-lisgd")` inside `hl.on("hyprland.start", ...)` in [`autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+  - Enhanced [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) with polling loops for Wayland socket readiness and dynamic device node access.
+  - Added a supervisor loop so `lisgd` automatically reconnects to `/dev/input/event*` if `iptsd` reloads, sleeps, or re-enumerates devices after wake.
+
 ## [2.45.0] - 2026-10-10
 ### Added
 - **Touch ID Fingerprint Login Integration (`greetd` / Noctalia Greeter)**:
