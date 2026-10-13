@@ -50,4 +50,4 @@ Monitor eDP-1 (ID 0):
 - **Default Routing**: PipeWire 1.6.9 + WirePlumber 0.5.18 (`alsa_output.pci-0000_00_1f.3.analog-stereo`)
 - **Physical Transducers**: Front-firing stereo micro-speakers integrated into tablet display glass bezel
 - **Active DSP Engine**: EasyEffects 8.3 (`easyeffects --service-mode`) backed by `lsp-plugins-lv2` & `calf`
-- **Active Preset**: `surface-book` (90Hz subsonic high-pass filter, 145Hz missing-fundamental psychoacoustic bass synthesis, 3.2kHz chassis resonance suppression EQ, 15% stereo expansion, -1.0dB true-peak lookahead limiter)
+- **Active Preset**: `surface-book-hybrid` (90Hz subsonic high-pass filter, 145Hz missing-fundamental psychoacoustic bass synthesis, 3.2kHz chassis resonance suppression EQ, Dolby Atmos 3D Convolver impulse, 15% stereo expansion, -1.0dB true-peak lookahead limiter)
