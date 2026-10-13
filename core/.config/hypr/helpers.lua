@@ -86,8 +86,8 @@ function helpers.launch_or_focus(window_class, exec_command)
             local ws = client.workspace
             local ws_name = ws and tostring(ws.name or "") or ""
             if ws_name == "special:minimized" then
-                hl.dispatch(hl.dsp.exec_raw("movetoworkspace", "current,address:" .. addr))
                 hl.exec_cmd("hypr-tray-drawer restore " .. addr)
+                return
             end
             hl.dispatch(hl.dsp.focus({ window = "address:" .. addr }))
         end

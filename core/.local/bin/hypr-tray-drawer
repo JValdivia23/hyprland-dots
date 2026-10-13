@@ -51,13 +51,37 @@ def hyprctl_json(cmd: str):
     except Exception as e:
         return None
 
-def hyprctl_dispatch(dispatcher: str, args: str = ""):
+def hypr_eval(lua_code: str) -> bool:
     try:
-        lua_cmd = f'hl.dispatch(hl.dsp.exec_raw("{dispatcher}", "{args}"))'
-        subprocess.run(["hyprctl", "eval", lua_cmd], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-        return True
+        res = subprocess.run(["hyprctl", "eval", lua_code], capture_output=True, text=True, check=True)
+        return "ok" in res.stdout
     except Exception:
         return False
+
+def hypr_move_window_to_special(addr: str, special_name: str = "special:minimized") -> bool:
+    return hypr_eval(f'hl.dispatch(hl.dsp.window.move({{ workspace = "{special_name}", window = "address:{addr}", silent = true }}))')
+
+def get_current_workspace_name(fallback: str = "1") -> str:
+    active_ws = hyprctl_json("activeworkspace") or {}
+    name = str(active_ws.get("name", ""))
+    if name and not name.startswith("special:") and name != "null":
+        return name
+    ws_id = active_ws.get("id", 1)
+    if isinstance(ws_id, int) and ws_id > 0:
+        return str(ws_id)
+    return fallback
+
+def hypr_restore_window(addr: str, dest_ws: str = None) -> bool:
+    if not dest_ws or dest_ws == "current":
+        dest_ws = get_current_workspace_name()
+    lua = f'hl.dispatch(hl.dsp.window.move({{ workspace = "{dest_ws}", window = "address:{addr}" }})); hl.dispatch(hl.dsp.focus({{ window = "address:{addr}" }}))'
+    return hypr_eval(lua)
+
+def hypr_close_window(addr: str) -> bool:
+    return hypr_eval(f'hl.dispatch(hl.dsp.window.close({{ window = "address:{addr}" }}))')
+
+def hypr_unpin_window(addr: str) -> bool:
+    return hypr_eval(f'hl.dispatch(hl.dsp.window.pin({{ window = "address:{addr}" }}))')
 
 
 class TrayDrawerDaemon:
@@ -193,11 +217,25 @@ class TrayDrawerDaemon:
 
         # If window is pinned, unpin it first
         if win_data.get("pinned"):
-            hyprctl_dispatch("pin", f"address:{addr}")
+            hypr_unpin_window(addr)
 
-        # Send to special:minimized
-        success = hyprctl_dispatch("movetoworkspacesilent", f"special:minimized,address:{addr}")
+        # Send to special:minimized using native Lua API
+        success = hypr_move_window_to_special(addr, "special:minimized")
         if not success:
+            return False
+
+        # Verify the window actually moved to special:minimized
+        time.sleep(0.05)
+        clients = hyprctl_json("clients") or []
+        moved = False
+        for c in clients:
+            if normalize_address(c.get("address", "")) == addr:
+                c_ws = str((c.get("workspace") or {}).get("name", ""))
+                if c_ws == "special:minimized":
+                    moved = True
+                break
+
+        if not moved:
             return False
 
         entry = {
@@ -249,10 +287,11 @@ class TrayDrawerDaemon:
             orig = str(target_win.get("origin_workspace", "1"))
             dest = orig if not orig.startswith("special:") else "1"
         else:
-            dest = "current"
+            dest = get_current_workspace_name(str(target_win.get("origin_workspace", "1")))
 
-        hyprctl_dispatch("movetoworkspace", f"{dest},address:{norm_addr}")
-        hyprctl_dispatch("focuswindow", f"address:{norm_addr}")
+        success = hypr_restore_window(norm_addr, dest)
+        if not success:
+            return False
 
         with self.lock:
             self.minimized_windows = [w for w in self.minimized_windows if normalize_address(w.get("address")) != norm_addr]
@@ -269,13 +308,12 @@ class TrayDrawerDaemon:
 
     def restore_all(self):
         with self.lock:
-            addrs = [w.get("address") for w in self.minimized_windows]
+            wins = list(self.minimized_windows)
 
-        for addr in addrs:
-            hyprctl_dispatch("movetoworkspace", f"current,address:{addr}")
-
-        if addrs:
-            hyprctl_dispatch("focuswindow", f"address:{addrs[-1]}")
+        dest = get_current_workspace_name("1")
+        for w in wins:
+            addr = w.get("address")
+            hypr_restore_window(addr, dest)
 
         with self.lock:
             self.minimized_windows.clear()
@@ -288,7 +326,7 @@ class TrayDrawerDaemon:
             self.minimized_windows.clear()
 
         for addr in addrs:
-            hyprctl_dispatch("closewindow", f"address:{addr}")
+            hypr_close_window(addr)
 
         GLib.idle_add(self.update_tray)
 
