@@ -6,6 +6,7 @@
             "bass_enhancer#0",
             "equalizer#0",
             "convolver#0",
+            "autogain#0",
             "stereo_tools#0",
             "limiter#0"
         ],
@@ -346,6 +347,9 @@
                 "radius": 1.0
             },
             "wet": 0.0
+        },
+        "autogain#0": {
+            "target": -14.0
         }
     }
 }

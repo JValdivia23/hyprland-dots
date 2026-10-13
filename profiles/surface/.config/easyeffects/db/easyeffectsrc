@@ -11,5 +11,5 @@ plugins=filter#0,bass_enhancer#0,equalizer#0,convolver#0,stereo_tools#0,limiter#
 usedPresets=surface-book:5,Bass Enhancing + Perfect EQ:2,Dolby Atmos:4,Advanced Auto Gain:1,Laptop:2,surface-book-hybrid:6,surface-book-razor:3
 
 [Window]
-height=473
-width=809
+height=472
+width=361

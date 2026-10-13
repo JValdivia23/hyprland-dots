@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.50.0] - 2026-10-13
+### Added
+- **Surface Book 3 Hybrid Audio Architecture with EBU R128 AutoGain Leveling (`profiles/surface`)**:
+  - Upgraded [`surface-book-hybrid.json`](file:///home/jmvp/dotfiles/profiles/surface/.local/share/easyeffects/output/surface-book-hybrid.json) into a 7-stage unified DSP audio stack, combining Surface Book 3 acoustic chassis correction, JackHack96 Dolby Atmos 3D room impulse, and automatic volume leveling.
+  - **Dynamic Range Normalization (AutoGain)**: Integrated EBU R128 / ITU-R BS.1770 AutoGain normalizer (`target: -14.0 LUFS`) that automatically eliminates wide volume swings, smoothly lifting quiet whispers/dialogue while preventing loud action scenes and music from blasting.
+  - **DSP Efficiency & CPU Optimization**: Pruned 32-band EQ to 11 active acoustic bands (eliminating 21 idle 0 dB biquad filters and 4M+ floating-point ops/sec) and disabled 4x oversampling on the limiter to native lookahead rate, reducing limiter cycle time by 91% (from 620 µs down to 54 µs).
+  - Persisted the complete JackHack96 spatial Impulse Response library (25+ `.irs` files) into `profiles/surface/.local/share/easyeffects/irs/`.
+  - Set `surface-book-hybrid` as the persistent default in `~/.config/easyeffects/db/easyeffectsrc`.
+
 ## [2.49.0] - 2026-10-13
 ### Fixed
 - **Hybrid Keyboard & Tiled Submap Resizing (`core`)**:
