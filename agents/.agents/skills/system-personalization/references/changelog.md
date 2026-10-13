@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.49.0] - 2026-10-13
+### Fixed
+- **Hybrid Keyboard & Tiled Submap Resizing (`core`)**:
+  - Resolved issue where keyboard Arrow keys and Vim HJKL keys did not resize tiled windows in Hyprland's `dwindle` layout after entering `SUPER + R` resize mode.
+  - Implemented dynamic window state inspection via `hl.get_active_window().floating`: tiled windows now dynamically adjust container split boundaries via native `hl.dsp.layout("splitratio <ratio>")` (`+0.05` / `-0.05`), while floating windows use `resizeactive` (`30px` deltas).
+  - Added support for modifier hold-through (`modmask = 64`): registered `SUPER + Arrow` and `SUPER + HJKL` keybinds alongside bare keys so resizing functions reliably whether `SUPER` is released or kept held.
+  - Registered full touchscreen and mouse drag bindings (`mouse:272` and `mouse:273`, both bare and `SUPER`-held) across active window surfaces.
+  - Added split reset binding via `=` / `SUPER + =` (`splitratio 1.0 exact`) to quickly re-center split containers to 50/50.
+  - Documented root cause and solution in [`references/gotchas/hyprland.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/hyprland.md) and [`references/keybindings.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/keybindings.md).
+
 ## [2.48.0] - 2026-10-13
 ### Added
 - **Interactive Window Resize Mode Submap (`core`)**:

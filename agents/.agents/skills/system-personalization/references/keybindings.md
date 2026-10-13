@@ -36,6 +36,19 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + Left Click Drag | Drag Move | Move floating window |
 | `SUPER` + Right Click Drag | Drag Resize | Resize floating window |
 
+### Window Resize Submap (`SUPER + R`)
+
+| Action | Bindings | Description |
+|---|---|---|
+| Enter mode | `SUPER + R` | Enters resize submap with notification confirmation |
+| Touch / Mouse Drag | Touchscreen 1-finger drag or Left/Right mouse drag | Interactively resizes window anywhere on window body (no 1px border grab needed) |
+| Shift split right / Expand | `Right` / `SUPER + Right` / `L` / `l` / `SUPER + L` / `SUPER + l` | Moves split right (tiled: `splitratio +0.05`, floating: `+30px`) |
+| Shift split left / Shrink | `Left` / `SUPER + Left` / `H` / `h` / `SUPER + H` / `SUPER + h` | Moves split left (tiled: `splitratio -0.05`, floating: `-30px`) |
+| Shift split up / Shrink height | `Up` / `SUPER + Up` / `K` / `k` / `SUPER + K` / `SUPER + k` | Moves split up (tiled: `splitratio -0.05`, floating: `-30px`) |
+| Shift split down / Expand height | `Down` / `SUPER + Down` / `J` / `j` / `SUPER + J` / `SUPER + j` | Moves split down (tiled: `splitratio +0.05`, floating: `+30px`) |
+| Reset split | `=` / `SUPER + =` | Resets split ratio to 50/50 center (`splitratio 1.0 exact`) |
+| Exit mode | `Escape`, `Return`, `R`, `r`, `SUPER + R`, `SUPER + Escape` | Returns to normal mode |
+
 ## Application Launchers (`SUPER + SHIFT + <key>`)
 
 > [!NOTE]

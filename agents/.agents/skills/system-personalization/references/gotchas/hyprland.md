@@ -144,3 +144,26 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   hyprctl eval 'hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6 })'
   ```
   Runtime switcher scripts (such as `~/.local/bin/hypr-monitor-scale`) should attempt `hyprctl eval "hl.monitor(...)"` first and fall back to `hyprctl keyword` for backwards compatibility.
+
+---
+
+## 13. Submap Window Resizing: Tiled (`splitratio`) vs Floating (`resizeactive`) & Modifier Masks
+
+- **Symptom**: Pressing `SUPER + R` enters a resize submap, but arrow keys (`Right`, `Left`, `Up`, `Down`) do not resize tiled windows or do nothing when the user keeps holding `SUPER`.
+- **Root Cause**:
+  1. **Tiled vs Floating Resizing**: Hyprland's `resizeactive <X> <Y>` dispatcher was designed for floating windows. On tiled windows in the `dwindle` layout, relative coordinate vectors frequently fail or get rejected with `"Invalid size provided"` when edges hit monitor bounds. In `dwindle`, tiled windows are sized by split ratios (`splitratio`).
+  2. **Submap Modifier Masks**: When entering a submap via `SUPER + R`, users often keep holding `SUPER` while tapping arrow keys. If the submap only binds bare keys (`Right`, `modmask = 0`), pressing `SUPER + Right` (`modmask = 64`) does not match and is completely ignored.
+- **Fix**:
+  1. Inspect `win.floating` via `hl.get_active_window()`. If floating, dispatch `resizeactive dx dy`. If tiled, dispatch `hl.dsp.layout("splitratio <ratio>")`:
+     ```lua
+     local function resize_dir(dx, dy, ratio)
+         local win = hl.get_active_window()
+         if win and win.floating then
+             hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+         else
+             hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
+         end
+     end
+     ```
+  2. In `hl.define_submap("resize", ...)`, register **both** bare keys (`Right`, `Left`, `Up`, `Down`, `h`, `j`, `k`, `l`) and `SUPER`-modified keys (`mainMod .. " + Right"`, etc.) with `{ repeating = true }`.
+  3. Support `=` (`equal`) to reset the split ratio to 50/50 (`splitratio 1.0 exact`).

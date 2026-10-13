@@ -34,32 +34,87 @@ helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.d
 -- Interactive Window Resize Mode (Keyboard & Touchscreen / Mouse)
 -- Enter with SUPER + R. Drag anywhere on the window with finger/left-click,
 -- or use Arrow keys / HJKL. Exit with Escape, Return, or SUPER + R.
+local function resize_dir(dx, dy, ratio)
+    local win = hl.get_active_window()
+    if win and win.floating then
+        hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+    else
+        hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
+    end
+end
+
+local function exit_resize()
+    hl.dispatch(hl.dsp.submap("reset"))
+end
+
 hl.define_submap("resize", function()
-    -- Touchscreen & Mouse Left-Drag resizing (works without hitting 1px border)
+    -- Touchscreen & Mouse Drag resizing across full window surface
     helpers.bind("mouse:272", "Resize window with touch or mouse drag", hl.dsp.window.resize())
     helpers.bind("mouse:273", "Resize window with right-click drag", hl.dsp.window.resize())
+    helpers.bind(mainMod .. " + mouse:272", "Resize window with touch or mouse drag", hl.dsp.window.resize())
+    helpers.bind(mainMod .. " + mouse:273", "Resize window with right-click drag", hl.dsp.window.resize())
 
-    -- Keyboard arrow incremental resizing (30px repeating)
-    helpers.bind("Right", "Expand window width",  hl.dsp.exec_raw("resizeactive", "30 0"),  { repeating = true })
-    helpers.bind("Left",  "Shrink window width",  hl.dsp.exec_raw("resizeactive", "-30 0"), { repeating = true })
-    helpers.bind("Up",    "Shrink window height", hl.dsp.exec_raw("resizeactive", "0 -30"), { repeating = true })
-    helpers.bind("Down",  "Expand window height", hl.dsp.exec_raw("resizeactive", "0 30"),  { repeating = true })
+    -- Keyboard arrow incremental resizing (tiled splitratio & floating resizeactive)
+    local function do_right() resize_dir(30, 0, "0.05") end
+    local function do_left()  resize_dir(-30, 0, "-0.05") end
+    local function do_up()    resize_dir(0, -30, "-0.05") end
+    local function do_down()  resize_dir(0, 30, "0.05") end
 
-    -- Vim HJKL keys incremental resizing (30px repeating)
-    helpers.bind("L", "Expand window width",  hl.dsp.exec_raw("resizeactive", "30 0"),  { repeating = true })
-    helpers.bind("H", "Shrink window width",  hl.dsp.exec_raw("resizeactive", "-30 0"), { repeating = true })
-    helpers.bind("K", "Shrink window height", hl.dsp.exec_raw("resizeactive", "0 -30"), { repeating = true })
-    helpers.bind("J", "Expand window height", hl.dsp.exec_raw("resizeactive", "0 30"),  { repeating = true })
+    -- Bare arrows (modmask 0)
+    helpers.bind("Right", "Expand / shift split right", do_right, { repeating = true })
+    helpers.bind("Left",  "Shrink / shift split left",  do_left,  { repeating = true })
+    helpers.bind("Up",    "Shrink / shift split up",    do_up,    { repeating = true })
+    helpers.bind("Down",  "Expand / shift split down",  do_down,  { repeating = true })
+
+    -- Super + arrows (modmask 64 - for when user holds Super)
+    helpers.bind(mainMod .. " + Right", "Expand / shift split right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + Left",  "Shrink / shift split left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + Up",    "Shrink / shift split up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + Down",  "Expand / shift split down",  do_down,  { repeating = true })
+
+    -- Vim HJKL keys (lowercase & uppercase, with & without Super)
+    helpers.bind("l", "Expand / shift split right", do_right, { repeating = true })
+    helpers.bind("h", "Shrink / shift split left",  do_left,  { repeating = true })
+    helpers.bind("k", "Shrink / shift split up",    do_up,    { repeating = true })
+    helpers.bind("j", "Expand / shift split down",  do_down,  { repeating = true })
+
+    helpers.bind("L", "Expand / shift split right", do_right, { repeating = true })
+    helpers.bind("H", "Shrink / shift split left",  do_left,  { repeating = true })
+    helpers.bind("K", "Shrink / shift split up",    do_up,    { repeating = true })
+    helpers.bind("J", "Expand / shift split down",  do_down,  { repeating = true })
+
+    helpers.bind(mainMod .. " + l", "Expand / shift split right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + h", "Shrink / shift split left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + k", "Shrink / shift split up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + j", "Expand / shift split down",  do_down,  { repeating = true })
+
+    -- Reset split ratio to default 50/50 with '='
+    helpers.bind("equal", "Reset split to 50/50", function()
+        local win = hl.get_active_window()
+        if not (win and win.floating) then
+            hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
+        end
+    end)
+    helpers.bind(mainMod .. " + equal", "Reset split to 50/50", function()
+        local win = hl.get_active_window()
+        if not (win and win.floating) then
+            hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
+        end
+    end)
 
     -- Exit submap back to normal mode
-    helpers.bind("Escape", "Exit resize mode", hl.dsp.submap("reset"))
-    helpers.bind("Return", "Exit resize mode", hl.dsp.submap("reset"))
-    helpers.bind(mainMod .. " + R", "Exit resize mode", hl.dsp.submap("reset"))
+    helpers.bind("Escape", "Exit resize mode", exit_resize)
+    helpers.bind("Return", "Exit resize mode", exit_resize)
+    helpers.bind("r",      "Exit resize mode", exit_resize)
+    helpers.bind("R",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + r",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + R",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + Escape", "Exit resize mode", exit_resize)
 end)
 
 helpers.bind(mainMod .. " + R", "Enter window resize mode", function()
     hl.dispatch(hl.dsp.submap("resize"))
-    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch/mouse or use Arrows/HJKL (Esc to exit)'"))
+    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch/mouse or use Arrows/HJKL (Esc or Super+R to exit)'"))
 end)
 
 -- Window grouping / stacking
