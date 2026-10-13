@@ -5,3 +5,4 @@
 ^scripts
 ^gotchas
 ^\.stow-local-ignore$
+^dkms

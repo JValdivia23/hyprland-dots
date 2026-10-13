@@ -15,16 +15,25 @@ if systemctl list-unit-files iptsd.service &>/dev/null; then
     echo "    Enabled iptsd.service"
 fi
 
-# 2. Prioritize linux-surface kernel in Limine bootloader if limine-entry-tool is present
+# 2. Limine boot order: linux-cachyos (7.x + DKMS ipts, see step 10) first,
+#    linux-surface kept second as the fully patched fallback.
+SURFACE_BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"
 if [ -d "/etc/limine-entry-tool.d" ]; then
     echo "--> Configuring Limine bootloader default kernel for Surface..."
-    sudo bash -c 'cat > /etc/limine-entry-tool.d/zz-surface-kernel.conf << '\''LIMINE_EOF'\''
-# Prioritize Surface kernel as default boot entry
-BOOT_ORDER="linux-surface*, *, *fallback, Snapshots"
-LIMINE_EOF'
-    if command -v limine-update &>/dev/null; then
-        sudo limine-update 2>/dev/null || true
+    sudo bash -c "cat > /etc/limine-entry-tool.d/zz-surface-kernel.conf << LIMINE_EOF
+# Surface boot order: CachyOS kernel first, linux-surface fallback
+BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"
+LIMINE_EOF"
+elif [ -f "/etc/default/limine" ]; then
+    echo "--> Setting Surface BOOT_ORDER in /etc/default/limine..."
+    if grep -q '^BOOT_ORDER=' /etc/default/limine; then
+        sudo sed -i "s/^BOOT_ORDER=.*/BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"/" /etc/default/limine
+    else
+        echo "BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"" | sudo tee -a /etc/default/limine >/dev/null
     fi
+fi
+if command -v limine-update &>/dev/null; then
+    sudo limine-update 2>/dev/null || true
 fi
 
 # 3. Deploy Surface tiered sleep & Modern Standby hibernate configurations
@@ -194,6 +203,26 @@ if [ -f "$SCRIPT_DIR/systemd/71-iptsd-touchscreen-uaccess.rules" ]; then
         sudo chmod 644 /etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules
         sudo udevadm control --reload-rules 2>/dev/null || true
         sudo udevadm trigger -s input 2>/dev/null || true
+    fi
+fi
+
+# 10. IPTS touch/pen on non-linux-surface kernels (linux-cachyos 7.x):
+#     DKMS-built out-of-tree ipts + udev-triggered mei_me binder for 8086:34e4.
+IPTS_DKMS_SRC="$SCRIPT_DIR/dkms/ipts"
+if [ -f "$IPTS_DKMS_SRC/dkms.conf" ] && command -v dkms &>/dev/null && command -v sudo &>/dev/null; then
+    ipts_ver="$(sed -n 's/^PACKAGE_VERSION="\(.*\)"/\1/p' "$IPTS_DKMS_SRC/dkms.conf")"
+    echo "--> Deploying DKMS ipts/$ipts_ver (CachyOS kernels only)..."
+    sudo rm -rf "/usr/src/ipts-$ipts_ver"
+    sudo cp -r "$IPTS_DKMS_SRC" "/usr/src/ipts-$ipts_ver"
+    dkms status -m ipts -v "$ipts_ver" 2>/dev/null | grep -q . || sudo dkms add -m ipts -v "$ipts_ver"
+    sudo dkms autoinstall || true
+
+    if [ -f "$SCRIPT_DIR/scripts/surface-ipts-mei-bind.sh" ] && [ -f "$SCRIPT_DIR/systemd/72-surface-ipts-mei-bind.rules" ]; then
+        echo "--> Deploying Surface iTouch mei_me binder..."
+        sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-ipts-mei-bind.sh" /usr/local/bin/surface-ipts-mei-bind
+        sudo install -Dm644 "$SCRIPT_DIR/systemd/72-surface-ipts-mei-bind.rules" /etc/udev/rules.d/72-surface-ipts-mei-bind.rules
+        sudo udevadm control --reload-rules 2>/dev/null || true
+        sudo /usr/local/bin/surface-ipts-mei-bind || true
     fi
 fi
 

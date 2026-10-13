@@ -4,16 +4,17 @@ Live system snapshot automatically generated for multi-PC environment.
 
 ## Operating System & Kernel
 - **OS**: CachyOS Linux
-- **Kernel (`surface`)**: `6.19.8-arch1-3-surface`
+- **Kernel (`surface`)**: `7.2.9-2-cachyos` (default since 2026-10-13; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `6.19.8-arch1-3-surface` (linux-surface, kept installed).
 - **Kernel (`cachyos-cu`)**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (version 4.9.3)
 - **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
 - **Active Profiles**: `surface` (Surface Book 3), `macbook-t2` (MacBookPro15,1)
 
 ## Boot & Sleep (`surface`)
-- **Bootloader**: Active Limine 12.9.0; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-08).
+- **Bootloader**: Active Limine 12.9.3; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-13).
 - **Boot menu**: Hidden one-second countdown (`quiet: yes`, `timeout: 1`), replacing the visible five-second wait on 2026-10-08. Press Space during that second to reveal the menu.
-- **Kernel selection**: `default_entry: 2` selects `linux-surface`; existing `remember_last_entry: yes` remains enabled. Regular CachyOS, LTS, and snapshot recovery entries are preserved.
+- **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
+- **IPTS on CachyOS kernels (2026-10-13)**: DKMS `ipts/2024.04.16` (built for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
 - **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
 - **Hibernation compression**: **LZ4 selected**, read-back verified after approved persistence on 2026-10-08.
 - **Persistent LZ4 service verified (2026-10-08)**: `/usr/local/bin/surface-hibernate-compressor` and `/etc/systemd/system/surface-hibernate-compressor.service` enabled for `multi-user.target`.

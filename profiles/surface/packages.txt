@@ -2,6 +2,7 @@
 linux-surface
 linux-surface-headers
 iptsd
+dkms
 surface-dtx-daemon
 surface-control
 wvkbd

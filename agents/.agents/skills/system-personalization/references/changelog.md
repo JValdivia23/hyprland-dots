@@ -2,6 +2,23 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.46.0] - 2026-10-13
+### Added
+- **Surface Touch & Stylus (IPTS) Support for Linux 7.2 Mainline / CachyOS (`profiles/surface`)**:
+  - Enabled complete Surface touchscreen and stylus functionality on stock `linux-cachyos` (7.2.9+) without requiring `linux-surface` kernel patching.
+  - Vendored IPTS kernel driver source from upstream `intel-precise-touch` (commit `3b88a45`) into `profiles/surface/dkms/ipts/` and deployed to `/usr/src/ipts-2024.04.16/`.
+  - Configured DKMS integration with `BUILD_EXCLUSIVE_KERNEL="-cachyos"` and an LLVM/Clang-aware Makefile wrapper that automatically handles CachyOS Clang-built kernel flags. Successfully built and installed modules for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`.
+  - Created runtime PCI MEI binder script [`surface-ipts-mei-bind.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-ipts-mei-bind.sh) (installed to `/usr/local/bin/surface-ipts-mei-bind`) dynamically binding device `8086:34e4` (Ice Lake iTouch MEI function) to `mei_me` using config index 9 (`MEI_ME_PCH12_CFG`).
+  - Added udev rules [`72-surface-ipts-mei-bind.rules`](file:///home/jmvp/dotfiles/profiles/surface/systemd/72-surface-ipts-mei-bind.rules) (installed to `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`) triggering binding on PCI add and `mei_me` module loading. Fully backwards-compatible and acts as a no-op on `linux-surface`.
+  - Updated Limine bootloader configuration in `/etc/default/limine` (`BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"`) making `linux-cachyos` the default boot entry while preserving `linux-surface` as an immediate working fallback.
+  - Updated `profiles/surface/setup.sh` (step 10) and `profiles/surface/packages.txt` to guarantee 100% turnkey deployment on fresh installations.
+  - Documented complete architecture, root causes, gotchas, and verification commands in [`profiles/surface/gotchas/kernel-cachyos-ipts.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/kernel-cachyos-ipts.md) and symlinked to active skill references.
+
+### Changed
+- **Full System Upgrade**:
+  - Upgraded 171 packages via `pacman -Syu`, including `linux-cachyos` (7.2.9-1 -> 7.2.9-2), `linux-cachyos-lts` (6.18.55-1 -> 6.18.55-2), `limine` (12.9.0-1 -> 12.9.3-2), `limine-snapper-sync`, and core desktop applications (`zen-browser-bin`, `neovim`).
+  - Installed `dkms` package to automate out-of-tree module builds across future kernel updates.
+
 ## [2.45.0] - 2026-10-10
 ### Added
 - **Touch ID Fingerprint Login Integration (`greetd` / Noctalia Greeter)**:
@@ -9,6 +26,10 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Enables biometric login using the MacBook Pro's Apple T2 Touch ID sensor at the Noctalia / greetd login screen, logging in user `java1127` upon resting an enrolled finger on the sensor.
   - Automatically falls back to standard password entry if fingerprint verification times out or is bypassed.
   - Automated deployment in [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) and updated hardware documentation in [`apple-t2.md`](file:///home/java1127/dotfiles/profiles/macbook-t2/gotchas/apple-t2.md).
+- **ani-cli-mx Spanish Anime & Media Streaming Integration (`core`)**:
+  - Installed terminal streaming helper [`ani-cli-mx`](file:///usr/bin/ani-cli-mx) (v3.0.10-1) from the AUR via `yay`.
+  - Scrapes Spanish-language anime, movies, series, and doramas using providers like AnimeAV1, JKAnime, and PelisPlusHD with automatic fallback mirrors.
+  - Added `ani-cli-mx` to universal package specification [`core/packages.txt`](file:///home/jmvp/dotfiles/core/packages.txt) in alphabetical order to preserve reproducibility across all systems.
 
 ## [2.44.0] - 2026-10-09
 ### Fixed
