@@ -31,6 +31,37 @@ helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.exec_raw("ps
 helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_cmd(winPop))
 helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
+-- Interactive Window Resize Mode (Keyboard & Touchscreen / Mouse)
+-- Enter with SUPER + R. Drag anywhere on the window with finger/left-click,
+-- or use Arrow keys / HJKL. Exit with Escape, Return, or SUPER + R.
+hl.define_submap("resize", function()
+    -- Touchscreen & Mouse Left-Drag resizing (works without hitting 1px border)
+    helpers.bind("mouse:272", "Resize window with touch or mouse drag", hl.dsp.window.resize())
+    helpers.bind("mouse:273", "Resize window with right-click drag", hl.dsp.window.resize())
+
+    -- Keyboard arrow incremental resizing (30px repeating)
+    helpers.bind("Right", "Expand window width",  hl.dsp.exec_raw("resizeactive", "30 0"),  { repeating = true })
+    helpers.bind("Left",  "Shrink window width",  hl.dsp.exec_raw("resizeactive", "-30 0"), { repeating = true })
+    helpers.bind("Up",    "Shrink window height", hl.dsp.exec_raw("resizeactive", "0 -30"), { repeating = true })
+    helpers.bind("Down",  "Expand window height", hl.dsp.exec_raw("resizeactive", "0 30"),  { repeating = true })
+
+    -- Vim HJKL keys incremental resizing (30px repeating)
+    helpers.bind("L", "Expand window width",  hl.dsp.exec_raw("resizeactive", "30 0"),  { repeating = true })
+    helpers.bind("H", "Shrink window width",  hl.dsp.exec_raw("resizeactive", "-30 0"), { repeating = true })
+    helpers.bind("K", "Shrink window height", hl.dsp.exec_raw("resizeactive", "0 -30"), { repeating = true })
+    helpers.bind("J", "Expand window height", hl.dsp.exec_raw("resizeactive", "0 30"),  { repeating = true })
+
+    -- Exit submap back to normal mode
+    helpers.bind("Escape", "Exit resize mode", hl.dsp.submap("reset"))
+    helpers.bind("Return", "Exit resize mode", hl.dsp.submap("reset"))
+    helpers.bind(mainMod .. " + R", "Exit resize mode", hl.dsp.submap("reset"))
+end)
+
+helpers.bind(mainMod .. " + R", "Enter window resize mode", function()
+    hl.dispatch(hl.dsp.submap("resize"))
+    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch/mouse or use Arrows/HJKL (Esc to exit)'"))
+end)
+
 -- Window grouping / stacking
 helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacking", hl.dsp.group.toggle())
 helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.exec_raw("moveoutofgroup", ""))

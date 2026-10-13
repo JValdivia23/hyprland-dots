@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.48.0] - 2026-10-13
+### Added
+- **Interactive Window Resize Mode Submap (`core`)**:
+  - Implemented `SUPER + R` interactive resize mode submap in universal [`core/.config/hypr/config/binds.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/binds.lua) using Hyprland's native Lua `hl.define_submap("resize", ...)`.
+  - Enables effortless touchscreen and mouse left-drag resizing (`mouse:272`) anywhere on active windows without requiring millimeter precision on thin 1px window borders.
+  - Enabled keyboard incremental resizing with repeating keys via Arrow keys and Vim HJKL keys (30px step increments).
+  - Configured clean exit bindings via `Escape`, `Return`, or `SUPER + R`, returning to default submap seamlessly.
+  - Added OSD feedback notification on entering resize mode.
+  - Updated universal keyboard shortcut documentation in [`references/keybindings.md`](file:///home/jmvp/.agents/skills/system-personalization/references/keybindings.md).
+
 ## [2.47.0] - 2026-10-13
 ### Added
 - **Surface Book 3 Psychoacoustic Audio DSP & EasyEffects Engine (`profiles/surface`)**:
