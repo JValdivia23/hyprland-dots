@@ -90,11 +90,14 @@ class TrayDrawerDaemon:
         self.minimized_windows = []  # list of dicts: address, title, class, workspace, floating, time
         self.load_state()
 
+        self.drawer_running = False
+
         self.indicator = AyatanaAppIndicator3.Indicator.new(
             "hypr-tray-drawer",
             "window-restore-symbolic",
             AyatanaAppIndicator3.IndicatorCategory.APPLICATION_STATUS
         )
+        self.indicator.connect("activate", self._on_indicator_activate)
         self.update_tray()
 
         # Start socket server
@@ -180,12 +183,77 @@ class TrayDrawerDaemon:
                 close_all_item.connect("activate", lambda _: self.close_all())
                 menu.append(close_all_item)
 
-                # Set middle-click / secondary activation to Restore Most Recent
-                if hasattr(self.indicator, "set_secondary_activate_target") and restore_recent_item:
-                    self.indicator.set_secondary_activate_target(restore_recent_item)
+                # Set simple left-click (Activate) to open the interactive drawer menu
+                drawer_trigger = Gtk.MenuItem(label="Open Drawer")
+                drawer_trigger.connect("activate", lambda _: self.show_interactive_drawer())
+                menu.append(drawer_trigger)
+                if hasattr(self.indicator, "set_secondary_activate_target"):
+                    self.indicator.set_secondary_activate_target(drawer_trigger)
 
             menu.show_all()
             self.indicator.set_menu(menu)
+
+    def _on_indicator_activate(self, ind, x, y):
+        self.show_interactive_drawer()
+
+    def show_interactive_drawer(self):
+        if self.drawer_running:
+            return
+        threading.Thread(target=self._interactive_drawer_worker, daemon=True).start()
+
+    def _interactive_drawer_worker(self):
+        if self.drawer_running:
+            return
+        self.drawer_running = True
+        try:
+            with self.lock:
+                if not self.minimized_windows:
+                    return
+                wins = list(self.minimized_windows)
+
+            labels = []
+            mapping = {}
+            for w in reversed(wins):
+                addr = w.get("address", "")
+                title = w.get("title") or w.get("class") or "Window"
+                cls = w.get("class") or ""
+                display_title = title if len(title) <= 50 else title[:47] + "..."
+                if cls and cls.lower() not in title.lower():
+                    label = f"🪟  [{cls}] {display_title}"
+                else:
+                    label = f"🪟  {display_title}"
+                labels.append(label)
+                mapping[label] = ("restore", addr)
+
+            if len(wins) > 1:
+                labels.append("📂  Restore All")
+                mapping["📂  Restore All"] = ("restore_all", "")
+            labels.append("❌  Close All Minimized")
+            mapping["❌  Close All Minimized"] = ("close_all", "")
+
+            p = subprocess.Popen(
+                ["noctalia", "dmenu", "-p", f"📦 Minimized Apps ({len(wins)})"],
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True
+            )
+            out, _ = p.communicate(input="\n".join(labels) + "\n")
+            selected = out.strip()
+            if not selected or selected not in mapping:
+                return
+
+            action, arg = mapping[selected]
+            if action == "restore":
+                self.restore_window(arg)
+            elif action == "restore_all":
+                self.restore_all()
+            elif action == "close_all":
+                self.close_all()
+        except Exception:
+            pass
+        finally:
+            self.drawer_running = False
 
     def _make_restore_callback(self, addr: str):
         return lambda _: self.restore_window(addr)
@@ -378,6 +446,9 @@ class TrayDrawerDaemon:
                 elif cmd == "CLOSE_ALL":
                     self.close_all()
                     resp = "OK"
+                elif cmd in ("MENU", "DRAWER", "OPEN"):
+                    self.show_interactive_drawer()
+                    resp = "OK"
                 elif cmd == "TOGGLE":
                     res = self.toggle()
                     resp = "OK" if res else "FAIL"
@@ -484,6 +555,9 @@ def main():
         else:
             resp = send_client_cmd("RESTORE_LAST")
         print(resp)
+    elif cmd in ("menu", "open", "drawer"):
+        resp = send_client_cmd("MENU")
+        print(resp)
     elif cmd in ("restore-all", "restore_all"):
         resp = send_client_cmd("RESTORE_ALL")
         print(resp)
@@ -507,7 +581,7 @@ def main():
         resp = send_client_cmd("QUIT")
         print(resp)
     else:
-        print("Usage: hypr-tray-drawer {daemon|minimize [addr]|restore [addr]|restore-all|close-all|toggle|list|status|quit}")
+        print("Usage: hypr-tray-drawer {daemon|minimize [addr]|restore [addr]|menu|restore-all|close-all|toggle|list|status|quit}")
         sys.exit(1)
 
 
