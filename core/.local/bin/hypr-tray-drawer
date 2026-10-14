@@ -59,7 +59,25 @@ def hypr_eval(lua_code: str) -> bool:
         return False
 
 def hypr_move_window_to_special(addr: str, special_name: str = "special:minimized") -> bool:
-    return hypr_eval(f'hl.dispatch(hl.dsp.window.move({{ workspace = "{special_name}", window = "address:{addr}", silent = true }}))')
+    # In Hyprland, window.move to a special workspace activates the special workspace overlay on screen.
+    # We atomically move the window and immediately toggle off the special workspace so the window disappears into background.
+    lua = (
+        f'hl.dispatch(hl.dsp.window.move({{ workspace = "{special_name}", window = "address:{addr}", silent = true }})); '
+        f'hl.dispatch(hl.dsp.workspace.toggle_special("minimized"))'
+    )
+    success = hypr_eval(lua)
+
+    # Safety check: ensure special:minimized is never left open as a visible overlay on any monitor
+    monitors = hyprctl_json("monitors") or []
+    for m in monitors:
+        spec = m.get("specialWorkspace", {})
+        spec_name = str(spec.get("name", ""))
+        spec_id = spec.get("id", 0)
+        if spec_name == special_name or spec_name == "minimized" or spec_id == -98:
+            hypr_eval('hl.dispatch(hl.dsp.workspace.toggle_special("minimized"))')
+            break
+
+    return success
 
 def get_current_workspace_name(fallback: str = "1") -> str:
     active_ws = hyprctl_json("activeworkspace") or {}
@@ -282,6 +300,10 @@ class TrayDrawerDaemon:
         # Don't minimize if already on special:minimized
         if ws_name == "special:minimized":
             return False
+
+        # If window is fullscreen, unfullscreen it first so it doesn't get stuck fullscreened
+        if win_data.get("fullscreen"):
+            hypr_eval(f'hl.dispatch(hl.dsp.window.fullscreen({{ window = "address:{addr}", mode = 0 }}))')
 
         # If window is pinned, unpin it first
         if win_data.get("pinned"):
