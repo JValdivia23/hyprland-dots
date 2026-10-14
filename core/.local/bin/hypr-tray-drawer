@@ -226,6 +226,11 @@ class TrayDrawerDaemon:
         try:
             with self.lock:
                 if not self.minimized_windows:
+                    subprocess.run(
+                        ["notify-send", "-i", "window-restore-symbolic", "-t", "2000",
+                         "📦 Minimized Apps Tray", "No apps are currently minimized in the tray drawer."],
+                        check=False
+                    )
                     return
                 wins = list(self.minimized_windows)
 
