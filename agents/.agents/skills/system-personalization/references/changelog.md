@@ -2,18 +2,30 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.54.0] - 2026-10-13
+### Added
+- **Surface Touch Daemon Resilience via `systemd --user` Services (`profiles/surface`)**:
+  - Migrated [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) and [`hypr-touch-resizer`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-touch-resizer) from ephemeral subshell/agent background jobs into permanent `systemd --user` units:
+    - [`hypr-lisgd.service`](file:///home/jmvp/dotfiles/profiles/surface/.config/systemd/user/hypr-lisgd.service): Supervises `lisgd` touchscreen gesture daemon, attaching to IPTS virtual touchscreen (`/dev/input/event25`).
+    - [`hypr-touch-resizer.service`](file:///home/jmvp/dotfiles/profiles/surface/.config/systemd/user/hypr-touch-resizer.service): Supervises interactive window resizer daemon with `--foreground`.
+    - Both units configured with `PartOf=graphical-session.target`, `After=graphical-session.target`, `WantedBy=graphical-session.target`, `Restart=always`, and `RestartSec=2s`.
+  - Updated [`profiles/surface/.config/hypr/config/profile/autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua) to trigger `systemctl --user start hypr-lisgd hypr-touch-resizer`.
+  - Verified automatic self-healing restart upon process kill/crash and active event socket listening for `submap>>resize`.
+
 ## [2.53.0] - 2026-10-13
 ### Added
 - **Unified Minimized Window Tray Drawer (`core`)**:
   - Developed and deployed [`hypr-tray-drawer`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-tray-drawer) in core dotfiles:
     - Provides a single, clean StatusNotifierItem (SNI) tray icon for Noctalia to manage minimized application windows, avoiding system bar clutter.
     - **Dynamic Visibility**: Stays completely hidden (`PASSIVE`) when 0 windows are minimized. When apps are minimized, automatically becomes `ACTIVE`, displaying the `window-restore-symbolic` icon and a numeric count badge.
-    - **Interactive Menu**: Left-clicking opens a native dropdown menu listing each minimized app by window title/class. Clicking any item restores that specific window directly to the active workspace and focuses it.
-    - **Quick Actions**: Includes "Restore Most Recent" (middle-click / secondary activate target), "Restore All", and "Close All Minimized".
+    - **Single-Click Tray Activation**: Left-clicking the tray icon triggers the `"activate"` StatusNotifierItem D-Bus signal to instantly open Noctalia's native interactive launcher drawer (`noctalia dmenu`), displaying each minimized app with its icon and title, plus "Restore All" and "Close All" quick actions.
+    - **Context Menu & Secondary Activation**: Right-clicking opens the native GTK/DBusMenu dropdown, and middle-clicking activates "Restore Most Recent".
     - **Hyprland Socket2 Sync**: Background thread listens to Hyprland's `.socket2.sock` for `closewindow>>` events to auto-prune windows if closed in the background.
+    - **Special Workspace Overlay Fix**: Atomically toggle off `special:minimized` upon moving the window so Hyprland does not display the special workspace as a full-screen overlay over the monitor.
   - **Keybindings (`binds.lua`)**:
     - `SUPER + M`: Minimize active window to the tray drawer (`hypr-tray-drawer minimize`).
     - `SUPER + SHIFT + M`: Restore the most recently minimized window back to active workspace (`hypr-tray-drawer restore`).
+    - `SUPER + ALT + M`: Open the interactive minimized apps drawer menu directly via keyboard (`hypr-tray-drawer menu`).
   - **Focus-or-Launch Integration (`helpers.lua`)**:
     - Enhanced `helpers.launch_or_focus` to automatically detect if a target app is currently minimized in `special:minimized`, seamlessly pulling it onto the active workspace and focusing it upon launcher activation.
   - **Autostart (`autostart.lua`)**:

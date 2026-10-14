@@ -182,3 +182,30 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   ```bash
   hyprctl eval 'hl.dispatch(hl.dsp.exec_raw("movetoworkspacesilent", "special:minimized,address:0x55d30d..."))'
   ```
+
+---
+
+## 15. Moving Windows to Special Workspaces & Fullscreen Overlay Behavior
+
+- **Symptom**: Minimizing or moving a window to `special:<name>` (e.g. `special:minimized`) causes the window to suddenly take over the screen at full monitor size as if fullscreened, instead of disappearing into the background.
+- **Root Cause**: In Hyprland, `hl.dsp.window.move({ workspace = "special:<name>", silent = true })` automatically activates that special workspace as an active overlay on the monitor. Even with `silent = true`, Hyprland leaves the special workspace open on the monitor, making the moved window appear full screen.
+- **Fix**: Atomically dispatch the move and close the special workspace overlay in the same Lua execution:
+  ```lua
+  hl.dispatch(hl.dsp.window.move({ workspace = "special:minimized", window = "address:" .. addr, silent = true }));
+  hl.dispatch(hl.dsp.workspace.toggle_special("minimized"))
+  ```
+  Follow up with a defensive check against `hyprctl monitors -j` (`specialWorkspace.name == "special:minimized"`) to toggle it off if still open.
+
+---
+
+## 16. Touchscreen & Hardware Gesture Daemon Lifecycle (`systemd --user`)
+
+- **Symptom**: Touchscreen gestures (edge swipes, 3-finger workspace switching) or interactive touch resizing suddenly stop working, leaving only single taps/clicks functional, while `iptsd` itself is active and healthy.
+- **Root Cause**:
+  1. Daemons like `lisgd` (`hypr-lisgd`) and `hypr-touch-resizer` spawned via ad-hoc terminal sessions or agent task jobs are terminated when the subshell, terminal, or agent background supervisor restarts.
+  2. Spawning them exclusively in `hl.on("hyprland.start", ...)` only triggers once during initial compositor startup; it does not restart them if they crash, receive signals, or if the user reloads Hyprland.
+- **Fix**: Supervise all input helper daemons as native `systemd --user` units bound to `graphical-session.target`:
+  - Create units in `profiles/surface/.config/systemd/user/`: `hypr-lisgd.service` and `hypr-touch-resizer.service` with `Restart=always` and `RestartSec=2s`.
+  - Enable and start: `systemctl --user enable --now hypr-lisgd hypr-touch-resizer`.
+  - In `autostart.lua`, simply call `hl.exec_cmd("systemctl --user start hypr-lisgd hypr-touch-resizer")` for idempotent assurance.
+

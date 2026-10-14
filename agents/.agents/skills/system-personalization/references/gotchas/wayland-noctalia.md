@@ -90,3 +90,19 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
      killall -TERM noctalia; sleep 0.5; export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1); hyprctl eval 'hl.exec_cmd("noctalia -d")'
      ```
 
+---
+
+## 8. StatusNotifierItem (SNI) Left-Click Activation in `libayatana-appindicator` & Noctalia
+
+- **Symptom**: Left-clicking a tray icon created with `libayatana-appindicator` in Noctalia does nothing, while right-clicking opens the menu. Inspection with `busctl` reveals `Call failed: No handler for Activate`.
+- **Root Cause**:
+  1. Noctalia invokes `org.kde.StatusNotifierItem.Activate(x, y)` on primary click (left-click) and `ContextMenu(x, y)` / DBusMenu on secondary click (right-click).
+  2. By default, `libayatana-appindicator` is designed as menu-only and rejects `Activate` D-Bus calls with `No handler for Activate` unless an explicit `activate` GObject signal handler is connected on the Indicator instance: `indicator.connect("activate", callback)`.
+  3. `set_secondary_activate_target` only binds to middle-click (`SecondaryActivate`), not left-click (`Activate`).
+- **Fix**: Connect the `"activate"` GObject signal directly on the indicator:
+  ```python
+  self.indicator.connect("activate", self._on_indicator_activate)
+  ```
+  This satisfies the D-Bus method call, returns success immediately, and triggers the tray drawer menu (`noctalia dmenu`).
+
+

@@ -12,6 +12,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `Q` / `W` | Close Window | Close the focused window |
 | `SUPER` + `M` | Minimize to Tray | Minimize active window to the unified tray drawer (keeps alive in background) |
 | `SUPER` + `SHIFT` + `M` | Restore Window | Restore the most recently minimized window back to active workspace |
+| `SUPER` + `ALT` + `M` | Minimized Drawer Menu | Open the interactive minimized apps drawer menu (`noctalia dmenu`) |
 | `SUPER` + `T` | Toggle Floating | Toggle floating/tiling state of active window |
 | `SUPER` + `D` | Fullscreen Mode 1 | Fullscreen window keeping workspace bar |
 | `SUPER` + `C` | macOS Copy | `CTRL` + `C` in GUI apps / `CTRL` + `SHIFT` + `C` in terminals |
