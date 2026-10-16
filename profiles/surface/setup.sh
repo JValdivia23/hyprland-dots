@@ -94,6 +94,8 @@ if [ -f "$SCRIPT_DIR/scripts/surface-battery-watchdog.sh" ]; then
         if [ -f "$SCRIPT_DIR/systemd/20-surface-battery-resume.sh" ]; then
             sudo cp -v "$SCRIPT_DIR/systemd/20-surface-battery-resume.sh" /etc/systemd/system-sleep/20-surface-battery-resume.sh
             sudo chmod 755 /etc/systemd/system-sleep/20-surface-battery-resume.sh
+            sudo mkdir -p /usr/lib/systemd/system-sleep
+            sudo ln -sf /etc/systemd/system-sleep/20-surface-battery-resume.sh /usr/lib/systemd/system-sleep/20-surface-battery-resume.sh
         fi
     fi
 fi
@@ -166,30 +168,8 @@ fi
 if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" ] && [ -f "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" ]; then
     if command -v sudo &>/dev/null; then
         echo "--> Deploying Surface LZ4 hibernation compressor selection..."
-        compressor_fragment="$(systemctl show surface-hibernate-compressor.service --value --property=FragmentPath)"
-        if [[ -n "$compressor_fragment" && "$compressor_fragment" != /etc/systemd/system/surface-hibernate-compressor.service ]]; then
-            echo "Refusing to shadow an unexpected compressor unit: $compressor_fragment" >&2
-            exit 1
-        fi
-        for target in /usr/local/bin/surface-hibernate-compressor /etc/systemd/system/surface-hibernate-compressor.service; do
-            if [[ -e "$target" || -L "$target" ]]; then
-                if [[ "$target" == /usr/local/bin/* ]]; then
-                    source="$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh"
-                else
-                    source="$SCRIPT_DIR/systemd/surface-hibernate-compressor.service"
-                fi
-                if [[ -L "$target" ]] || ! cmp -s -- "$source" "$target"; then
-                    echo "Refusing to replace an unexpected compressor file: $target" >&2
-                    exit 1
-                fi
-            fi
-        done
-        if [[ ! -e /usr/local/bin/surface-hibernate-compressor ]]; then
-            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" /usr/local/bin/surface-hibernate-compressor
-        fi
-        if [[ ! -e /etc/systemd/system/surface-hibernate-compressor.service ]]; then
-            sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" /etc/systemd/system/surface-hibernate-compressor.service
-        fi
+        sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" /usr/local/bin/surface-hibernate-compressor
+        sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" /etc/systemd/system/surface-hibernate-compressor.service
         sudo systemctl daemon-reload
         sudo systemctl enable --now surface-hibernate-compressor.service
     fi

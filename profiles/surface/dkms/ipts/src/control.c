@@ -108,7 +108,7 @@ static int ipts_control_set_mem_window(struct ipts_context *ipts)
 		dma_addr_t db_addr = ipts->resources.doorbell.dma_address;
 
 		cmd.tail_offset_addr_lower = lower_32_bits(wq_addr);
-		cmd.tail_offset_addr_lower = upper_32_bits(wq_addr);
+		cmd.tail_offset_addr_upper = upper_32_bits(wq_addr);
 
 		cmd.doorbell_addr_lower = lower_32_bits(db_addr);
 		cmd.doorbell_addr_upper = upper_32_bits(db_addr);

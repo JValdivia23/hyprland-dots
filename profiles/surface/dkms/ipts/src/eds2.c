@@ -22,10 +22,11 @@
 /**
  * GET_FEATURES_TIMEOUT - How long to wait for the reply to a GET_FEATURES request.
  *
- * Sometimes the answer can take 10 seconds or more to arrive,
- * so lets just wait for a long time to be sure.
+ * Match linux-surface (5 seconds) so an unresponsive sensor when the lid is
+ * closed during s2idle -> hibernate RTC wakes never exceeds the kernel's
+ * 20-second process freezer timeout (pm_freeze_timeout).
  */
-#define GET_FEATURES_TIMEOUT 30 * MSEC_PER_SEC
+#define GET_FEATURES_TIMEOUT (5 * MSEC_PER_SEC)
 
 int ipts_eds2_get_descriptor(struct ipts_context *ipts, u8 **desc_buffer, size_t *desc_size)
 {
@@ -58,11 +59,14 @@ static int ipts_eds2_get_feature(struct ipts_context *ipts, u8 *buffer, size_t s
 				 enum ipts_feedback_data_type type)
 {
 	int ret = 0;
+	long timeout = 0;
 
 	struct ipts_buffer feature = ipts->resources.feature;
 	struct ipts_data_buffer *response = (struct ipts_data_buffer *)feature.address;
 
-	mutex_lock(&ipts->feature_lock);
+	ret = mutex_lock_interruptible(&ipts->feature_lock);
+	if (ret)
+		return ret;
 
 	memset(buffer, 0, size);
 	buffer[0] = report_id;
@@ -75,12 +79,16 @@ static int ipts_eds2_get_feature(struct ipts_context *ipts, u8 *buffer, size_t s
 		goto out;
 	}
 
-	ret = wait_for_completion_timeout(&ipts->feature_event,
-					  msecs_to_jiffies(GET_FEATURES_TIMEOUT));
+	timeout = wait_for_completion_interruptible_timeout(
+		&ipts->feature_event, msecs_to_jiffies(GET_FEATURES_TIMEOUT));
 
-	if (ret == 0) {
+	if (timeout == 0) {
 		dev_warn(ipts->dev, "GET_FEATURES timed out!\n");
 		ret = -ETIMEDOUT;
+		goto out;
+	}
+	if (timeout < 0) {
+		ret = (int)timeout;
 		goto out;
 	}
 

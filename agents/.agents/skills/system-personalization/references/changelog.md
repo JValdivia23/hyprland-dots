@@ -2,6 +2,20 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.55.0] - 2026-10-15
+### Fixed
+- **Surface `suspend-then-hibernate` 30-Minute Transition Failure on CachyOS 7.x (`profiles/surface`)**:
+  - Diagnosed and resolved root cause where 30-minute RTC wakes from `s2idle` to `hibernate` aborted after `20.002s` (`Freezing user space processes failed ... task:iptsd-check-dev state:D`) and fell back into indefinite `s2idle` suspend.
+  - Patched [`profiles/surface/dkms/ipts/src/eds2.c`](file:///home/jmvp/dotfiles/profiles/surface/dkms/ipts/src/eds2.c): reduced `GET_FEATURES_TIMEOUT` from `30 * MSEC_PER_SEC` to `5 * MSEC_PER_SEC` (matching `linux-surface`) and replaced uninterruptible `mutex_lock` + `wait_for_completion_timeout` (`state:D`) with `mutex_lock_interruptible` + `wait_for_completion_interruptible_timeout` (`state:S`), allowing the kernel process freezer and `timeout` signals to interrupt an in-flight `GET_FEATURES` ioctl in `<1ms` when the touch panel is powered off (lid closed).
+  - Patched [`profiles/surface/dkms/ipts/src/control.c`](file:///home/jmvp/dotfiles/profiles/surface/dkms/ipts/src/control.c): fixed upstream typo overwriting `cmd.tail_offset_addr_lower` instead of setting `cmd.tail_offset_addr_upper`.
+  - Rebuilt and reloaded `ipts/2024.04.16` via DKMS for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`.
+- **Sleep & Hibernation Subsystem Consistency Hardening (`profiles/surface`)**:
+  - **Reactivated `surface-hibernate-compressor.service` on CachyOS Kernels**: Removed `ConditionKernelVersion=*-surface` from [`surface-hibernate-compressor.service`](file:///home/jmvp/dotfiles/profiles/surface/systemd/surface-hibernate-compressor.service) and the `*-surface` kernel-name filter from [`surface-hibernate-compressor.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-hibernate-compressor.sh) while preserving the `Surface*` DMI hardware check and `/proc/crypto` `lz4` self-test guard. Restored active `lz4` RAM-image compression on `7.2.9-2-cachyos`.
+  - **Guarded `surface-unplug-lid-handler` Against Active Sleep Transitions**: Added `is_sleep_in_progress()` check in [`surface-unplug-lid-handler.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-unplug-lid-handler.sh) so `ADP1` uevents emitted during the 30-minute RTC wake do not call `systemctl suspend-then-hibernate` while `systemd-suspend-then-hibernate.service` is already active.
+  - **Registered Battery Sleep Hook & Guarded Clamshell IPTS Hook**: Symlinked `/usr/lib/systemd/system-sleep/20-surface-battery-resume.sh` $\rightarrow$ `/etc/systemd/system-sleep/20-surface-battery-resume.sh`, updated [`21-surface-ipts-resume.sh`](file:///home/jmvp/dotfiles/profiles/surface/systemd/21-surface-ipts-resume.sh) to skip starting `surface-ipts-resume.service` on `post/*` when the lid is physically closed, and added `SuccessExitStatus=143 SIGTERM` to [`surface-ipts-resume.service`](file:///home/jmvp/dotfiles/profiles/surface/systemd/surface-ipts-resume.service).
+  - **Self-Healing `hypr-lisgd` Evdev FD Monitor**: Updated [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) to monitor `/proc/$LISGD_PID/fd/*` every 2 seconds and automatically restart `lisgd` if `libinput` drops the `/dev/input/event*` descriptor across suspend/resume or `iptsd` restarts.
+  - Synced `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` and [`profiles/surface/setup.sh`](file:///home/jmvp/dotfiles/profiles/surface/setup.sh).
+
 ## [2.54.0] - 2026-10-13
 ### Added
 - **Surface Touch Daemon Resilience via `systemd --user` Services (`profiles/surface`)**:

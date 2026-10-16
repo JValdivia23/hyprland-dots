@@ -42,6 +42,9 @@ kernel's `modules.alias` already contains `34E4`.
   If a future kernel reorders the enum, `mei_me` may fail to probe `00:16.4` → re-check the index.
 - **Harmless:** ~10× `ipts …: Failed to process buffer: -16` right after load (before iptsd attaches),
   and the kernel "taint" message for an unsigned out-of-tree module.
+- **Local patches applied over upstream `3b88a45` (`profiles/surface/dkms/ipts/src/`)**:
+  1. `eds2.c`: `GET_FEATURES_TIMEOUT` reduced from `30 * MSEC_PER_SEC` to `5 * MSEC_PER_SEC` (matching `linux-surface`) and `ipts_eds2_get_feature()` switched to `mutex_lock_interruptible()` + `wait_for_completion_interruptible_timeout()`. Without this, `udev`'s `iptsd-check-device` probe during a lid-closed 30-minute `s2idle` $\rightarrow$ `hibernate` RTC wake blocks in `TASK_UNINTERRUPTIBLE` (`state:D`) for 30s, exceeding the kernel's 20s `pm_freeze_timeout` and aborting hibernation.
+  2. `control.c`: Fixed upstream typo in `ipts_control_set_mem_window()` where `cmd.tail_offset_addr_lower = upper_32_bits(wq_addr);` overwrote `_lower` instead of setting `cmd.tail_offset_addr_upper`.
 - **Pen** detected (`IPTS 045E:09B2 Stylus`, `IPTSD Virtual Stylus`) but untested (no pen yet).
 
 ## 5. Verification

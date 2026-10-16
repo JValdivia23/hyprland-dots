@@ -16,8 +16,10 @@ for ((i = 0; i < 30; i++)); do
     sleep 0.1
 done
 
-# Ensure single supervisor instance runs
+# Ensure single supervisor instance runs and clean up child on exit
 pkill -x lisgd 2>/dev/null || true
+LISGD_PID=""
+trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' EXIT INT TERM
 
 # Supervisor loop: auto-reconnects if iptsd reloads, sleeps, or disconnects
 while true; do
@@ -65,7 +67,20 @@ while true; do
         -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
         -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
         -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \
-        -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'" || true
+        -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'" &
+    LISGD_PID=$!
 
+    # libinput closes the evdev fd on device removal without exiting lisgd;
+    # verify lisgd still holds an active (non-deleted) fd to DEVICE_PATH.
+    while kill -0 "$LISGD_PID" 2>/dev/null; do
+        sleep 2
+        if ! readlink /proc/"$LISGD_PID"/fd/* 2>/dev/null | grep -Fxq "$DEVICE_PATH"; then
+            echo "hypr-lisgd: Device $DEVICE_PATH disconnected; reconnecting..." >&2
+            kill "$LISGD_PID" 2>/dev/null || true
+            break
+        fi
+    done
+    wait "$LISGD_PID" 2>/dev/null || true
+    LISGD_PID=""
     sleep 1
 done

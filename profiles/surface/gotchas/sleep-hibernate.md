@@ -248,3 +248,38 @@ Detailed troubleshooting for hibernation failures, ACPI S4 platform power-down r
   Disabling/stopping the oneshot alone does **not** undo its previous sysfs write. No boot/initramfs rebuild or codec-library unload is needed. Future `profiles/surface/setup.sh` runs re-enable this profile preference unless its new compressor block is intentionally removed/skipped. Keep the matching kernel when an image is pending; never discard a pending image merely to change defaults.
 - **Historical harness caution**: The earlier LZO baseline, temporary LZ4 rollback collector and codec lab have LZO-specific guards/cleanup. They are historical evidence, not persistence verification tools; do not blindly rerun them after applying the new default or let their old rollback overwrite it.
 - **Backup / evidence**: Root-only manifest and reviewed payload copies: `/var/backups/surface-hibernate-lz4-20261008-191458-43170/`; the helper, unit and enablement link were originally absent, so no old configuration was overwritten. `~/.cache/opencode/surface-standby-tests/lz4-persistent-eq_82i4s/` contains plan, guarded `install.py`, mock validation, actual image inspection, before/after protected hashes, `completed.json`, command records and independent `followup.json`. Cold boot and another restore remain untested until separately requested.
+
+---
+
+## 11. CachyOS 7.x DKMS `ipts` 30s `state:D` Freezer Abort & Sleep Consistency Hardening (2026-10-15)
+
+- **Symptom**:
+  - After switching the default kernel from `linux-surface` (`6.19.8-arch1-3-surface`) to `linux-cachyos` (`7.2.9-2-cachyos`) with out-of-tree DKMS `ipts`, closing the lid triggered `systemd-suspend-then-hibernate.service`, but at the 30-minute mark the machine **failed to hibernate** and fell back into indefinite `s2idle` (staying suspended for 19–21 hours).
+  - Concurrently, `surface-hibernate-compressor.service` was `inactive (dead)` (`ConditionVersion=*-surface was not met`, reverting `/sys/module/hibernate/parameters/compressor` to `lzo`), and `surface-unplug-lid.service` entered `failed (Result: exit-code)` during the 30-minute RTC wake.
+- **Root Cause**:
+  1. **DKMS `ipts` 30-Second Uninterruptible `GET_FEATURES_TIMEOUT` Exceeding Kernel Freezer (20s)**:
+     - At the 30-minute RTC wake (`PM: suspend exit` $\rightarrow$ `PM: hibernation: hibernation entry`), the lid remains physically closed (touch panel unpowered).
+     - During the ~150ms transition window, `ipts` re-enumerates `/dev/hidraw0`, triggering `/usr/lib/udev/rules.d/50-iptsd.rules` $\rightarrow$ `/usr/bin/iptsd-check-device --quiet /dev/hidraw0`, which issues `ioctl(HIDIOCGFEATURE)` $\rightarrow$ `ipts_eds2_get_feature()`.
+     - Because the lid is closed, the touch sensor does not reply to `GET_FEATURES`.
+     - While `linux-surface` (`6.19.8-arch1-3-surface`) uses a **5-second** timeout (`5000` ms), the vendored `intel-precise-touch` (`commit 3b88a45`) in `profiles/surface/dkms/ipts/src/eds2.c` used `#define GET_FEATURES_TIMEOUT 30 * MSEC_PER_SEC` (30 seconds) with uninterruptible `wait_for_completion_timeout()` (`TASK_UNINTERRUPTIBLE` / `state:D`).
+     - Because `30s > 20s` (`pm_freeze_timeout`), `Freezing user space processes` failed after `20.002 seconds` (`task:iptsd-check-dev state:D`), aborting hibernation with `-EBUSY`. `systemd-sleep` then fell back to plain `suspend` (`s2idle` with no RTC timer), where the remaining `9.948s` of the 30s timeout expired (`20.002s + 9.948s = 29.950s`).
+  2. **Kernel-Name Gate on `surface-hibernate-compressor.service`**:
+     - `ConditionKernelVersion=*-surface` in the unit and `[[ "$kernel" != *-surface ]]` in `/usr/local/bin/surface-hibernate-compressor` prevented the service from running on `7.2.9-2-cachyos` (which has `CONFIG_CRYPTO_LZ4=y` built-in).
+  3. **`surface-unplug-lid.service` Colliding with Active `suspend-then-hibernate`**:
+     - During the 30-minute RTC wake on battery, the kernel emitted a `change` uevent on `ADP1` (`online=0`), triggering `surface-unplug-lid.service`, which called `systemctl suspend-then-hibernate` while `systemd-suspend-then-hibernate.service` was already running.
+  4. **Unregistered Battery Sleep Hook & Spurious Clamshell IPTS Recovery**:
+     - `20-surface-battery-resume.sh` was only in `/etc/systemd/system-sleep/` without a symlink in `/usr/lib/systemd/system-sleep/`.
+     - `21-surface-ipts-resume.sh` started `surface-ipts-resume.service` on `post/*` during the 30-minute clamshell RTC wake, only for `pre/*` to kill it 140ms later with `SIGTERM` (`Failed with result 'signal'`).
+- **Fixes Applied**:
+  1. **DKMS `ipts` (`profiles/surface/dkms/ipts/src/eds2.c` & `control.c`)**:
+     - Reduced `GET_FEATURES_TIMEOUT` to `5 * MSEC_PER_SEC` and switched `ipts_eds2_get_feature()` to `mutex_lock_interruptible()` + `wait_for_completion_interruptible_timeout()` (`TASK_INTERRUPTIBLE` / `state:S`), allowing the kernel freezer (`freeze_processes()`) and `timeout` signals to interrupt an in-flight `GET_FEATURES` request in `<1ms`.
+     - Fixed upstream typo in `control.c` line 111 (`cmd.tail_offset_addr_upper = upper_32_bits(wq_addr);`).
+     - Rebuilt and reloaded `ipts/2024.04.16` via DKMS for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`.
+  2. **Kernel-Agnostic Surface LZ4 Compressor (`surface-hibernate-compressor.service` & `.sh`)**:
+     - Removed `*-surface` kernel-name restrictions while preserving the `Surface*` DMI hardware check and `/proc/crypto` `lz4` self-test verification. Verified `lz4` active on `7.2.9-2-cachyos`.
+  3. **Active-Sleep Guard in `surface-unplug-lid-handler.sh`**:
+     - Added `is_sleep_in_progress()` check against `sleep.target`, `suspend-then-hibernate.target`, `hibernate.target`, `suspend.target`, and their `systemd-*.service` units before and after the 1.5s debounce.
+  4. **Sleep Hook Registration & Clamshell Guard**:
+     - Symlinked `/usr/lib/systemd/system-sleep/20-surface-battery-resume.sh` $\rightarrow$ `/etc/systemd/system-sleep/20-surface-battery-resume.sh`.
+     - Updated `21-surface-ipts-resume.sh` to skip starting `surface-ipts-resume.service` on `post/*` when the lid is physically closed, and added `SuccessExitStatus=143 SIGTERM` to `surface-ipts-resume.service`.
+

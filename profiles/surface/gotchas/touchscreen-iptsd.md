@@ -127,4 +127,8 @@ esac
   2. Increased initial wake settle delay from `1s` to `2s`.
   3. Increased retry attempts from 4 to 6 (spaced by 2s).
   4. Added `pkill -x lisgd` upon successful `iptsd` recovery so the `hypr-lisgd` supervisor automatically re-attaches to the newly created virtual touchscreen evdev node.
+- **Self-Healing `hypr-lisgd` Evdev FD Monitor & Clamshell RTC Guard (Updated 2026-10-15)**:
+  1. When `iptsd` stops across suspend/resume, `libinput` inside `lisgd` closes its `/dev/input/event*` file descriptor on `ENODEV` without exiting `lisgd` (leaving `lisgd` polling an empty `eventpoll` fd). If normal `udev` (`50-iptsd.rules`) restarts `iptsd` before `surface-ipts-resume-recover` runs, the recovery worker takes its `IPTS instance already active` fast path.
+  2. `~/.local/bin/hypr-lisgd` now runs `lisgd` as a background child and verifies every 2 seconds that `readlink /proc/$LISGD_PID/fd/*` still holds an active (non-deleted) reference to `$DEVICE_PATH`, automatically killing and re-attaching `lisgd` whenever the virtual touchscreen node is dropped or recreated.
+  3. `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` checks `/proc/acpi/button/lid/*/state` on `post/*` and skips starting `surface-ipts-resume.service` if the lid is physically closed (such as during the 30-minute RTC wake from `s2idle` to `hibernate`), and `surface-ipts-resume.service` includes `SuccessExitStatus=143 SIGTERM`.
 

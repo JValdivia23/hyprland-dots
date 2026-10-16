@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Select the tested RAM-image codec on Surface hardware / linux-surface only.
+# Select the tested RAM-image codec on Microsoft Surface hardware.
 set -euo pipefail
 
 main() {
     local product kernel parameter=/sys/module/hibernate/parameters/compressor current
     product="$(cat /sys/class/dmi/id/product_name)"
     kernel="$(uname -r)"
-    if [[ "$product" != Surface* || "$kernel" != *-surface ]]; then
+    if [[ "$product" != Surface* ]]; then
         printf 'Surface LZ4 selection skipped on %s / %s.\n' "$product" "$kernel"
         return 0
     fi
