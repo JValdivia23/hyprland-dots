@@ -105,6 +105,7 @@ Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-record` | Screen Recording | Toggle screen recording on/off to `~/Videos/Captures/` via `wf-recorder`. |
 | `hypr-capture-menu` | Capture Menu Launcher | Interactive floating capture menu (`SUPER+CONTROL+C`). |
 | `hypr-keybinds-menu` | Interactive Keybindings Cheatsheet & Launcher | Floating `fzf` menu (`SUPER+K`) querying live `hyprctl binds -j`; executes selected keybind on `Enter`. |
+| `hypr-tray-drawer` | Minimized Window Tray Drawer Daemon & CLI | Manages minimized windows in `special:minimized` with full-bleed `64x64` dynamic SVG count-badge SNI icons and `noctalia dmenu` integration; supervised by `~/.config/systemd/user/hypr-tray-drawer.service`. |
 | `kitty-focus-opacity` | Terminal Focus Opacity Daemon | Modulates Kitty opacity between `0.60` (unfocused) and `0.75` (focused) via Hyprland IPC. |
 | `mac-key-helper` | macOS Text Navigation Helper | Dispatches context-aware line and word cursor navigation shortcuts. |
 | `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window. |
@@ -124,7 +125,10 @@ Per Rule 9, all hardware-specific configurations, daemons, and system hooks are 
 | File / Component | Purpose | Description / Placement |
 |------------------|---------|-------------------------|
 | `.config/hypr/config/profile/binds.lua` | Surface Keybindings | Tablet detach (`SUPER+ALT+D`) and on-screen keyboard toggle (`SUPER+ALT+V`). |
+| `.config/hypr/config/profile/inputs.lua` | Surface Touch, Stylus, Touchpad & Lock Screen OSK Rule | Maps touch/tablet to `eDP-1`, configures 3/4-finger touchpad gestures, and sets `above_lock = 2` on `namespace = "^(wvkbd)$"` so `wvkbd-mobintl` renders and accepts touch over `ext-session-lock-v1`. |
 | `.local/bin/hypr-virtual-keyboard` | On-Screen Keyboard Wrapper | Launches `wvkbd-mobintl` touch keyboard bypassing systemd PATH lookups. |
+| `.local/bin/hypr-lisgd` | Touchscreen Gesture Supervisor | Supervises `lisgd -w 3000 -h 2000` on `IPTSD Virtual Touchscreen` with auto-reconnect across sleep/hibernate. |
+| `scripts/surface-greeter-session.sh`, `scripts/surface-greeter-client.sh` & `scripts/surface-greeter-hyprland.lua` | Pre-Login `greetd` Tablet OSK & Gesture Session | Deployed to `/usr/local/bin/surface-greeter-session`, `/usr/local/bin/surface-greeter-client`, and `/etc/greetd/surface-hyprland.lua`; runs `noctalia-greeter` + `wvkbd-mobintl --hidden` + `lisgd` bottom-up swipe in `greetd` with fail-safe fallback to `/usr/bin/noctalia-greeter-session`. |
 | `scripts/surface-battery-watchdog.sh` | Dual-Battery Watchdog Daemon | Deployed to `/usr/local/bin/surface-battery-watchdog`; recovers UPower ~200% desync. |
 | `scripts/surface-unplug-lid-handler.sh` | AC Disconnect Clamshell Handler | Deployed to `/usr/local/bin/surface-unplug-lid-handler`; triggers hibernate upon AC pull. |
 | `systemd/10-suspend-then-hibernate.conf` | Sleep Configuration Drop-in | Deployed to `/etc/systemd/sleep.conf.d/10-suspend-then-hibernate.conf` (`HibernateMode=shutdown`, 30m delay, `HibernateOnACPower=yes`). |
@@ -133,10 +137,11 @@ Per Rule 9, all hardware-specific configurations, daemons, and system hooks are 
 | `systemd/surface-unplug-lid.service` | Clamshell Udev Trigger Service | Deployed to `/etc/systemd/system/`; triggered by AC disconnect udev rule. |
 | `systemd/98-surface-unplug-lid.rules` | AC Disconnect Udev Rule | Deployed to `/etc/udev/rules.d/98-surface-unplug-lid.rules`; detects `ADP1` state switch. |
 | `systemd/99-surface-battery.rules` | Battery Udev Rule | Deployed to `/etc/udev/rules.d/99-surface-battery.rules`; monitors `BAT2` change events. |
-| `systemd/20-surface-battery-resume.sh` | Sleep Resume Battery Hook | Deployed to `/etc/systemd/system-sleep/20-surface-battery-resume.sh`. |
-| `systemd/21-surface-ipts-resume.sh` | Sleep Resume IPTS Hook | Deployed to `/etc/systemd/system-sleep/21-surface-ipts-resume.sh`. |
+| `scripts/surface-hibernate-rtc-sync.sh` & `systemd/19-surface-rtc-hibernate.sh` | Hibernation CMOS RTC Epoch Alignment | Deployed to `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`); shifts `rtc0` by `-25,179s` on `pre/hibernate` and restores UTC on `post/hibernate`. |
+| `systemd/20-surface-battery-resume.sh` | Sleep Resume Battery Hook | Deployed to `/etc/systemd/system-sleep/20-surface-battery-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`). |
+| `scripts/surface-ipts-resume-recover.sh`, `systemd/surface-ipts-resume.service` & `systemd/21-surface-ipts-resume.sh` | Sleep/Resume IPTS Hook & Fast-Path Recovery | Deployed to `/usr/local/bin/surface-ipts-resume-recover`, `/etc/systemd/system/surface-ipts-resume.service`, and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`); cleanly stops `iptsd@*.service` on `pre/*` and recovers touch on open-lid `post/*`. |
 | `systemd/iptsd-timeout.conf` | IPTS Daemon Timeout Drop-in | Deployed to `/etc/systemd/system/iptsd@.service.d/timeout.conf` (`TimeoutStopSec=3s`). |
-| `scripts/surface-hibernate-compressor.sh` & `systemd/surface-hibernate-compressor.service` | Surface LZ4 Hibernation Default | Installed / enabled (2026-10-08): helper `/usr/local/bin/surface-hibernate-compressor`, boot oneshot `/etc/systemd/system/surface-hibernate-compressor.service`; loads/self-tests provider and selects LZ4 on `*-surface` only. No boot-image or sleep-timing edit; rollback in sleep gotcha section 10. |
+| `scripts/surface-hibernate-compressor.sh` & `systemd/surface-hibernate-compressor.service` | Surface LZ4 & `image_size` Hibernation Default | Installed / enabled: helper `/usr/local/bin/surface-hibernate-compressor`, boot oneshot `/etc/systemd/system/surface-hibernate-compressor.service`; verifies `lz4` and sets `/sys/power/image_size = 4800000000` on Surface hardware. |
 
 ---
 

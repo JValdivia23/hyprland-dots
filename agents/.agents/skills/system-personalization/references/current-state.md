@@ -16,9 +16,9 @@ Live system snapshot automatically generated for multi-PC environment.
 - **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
 - **IPTS on CachyOS kernels (2026-10-13)**: DKMS `ipts/2024.04.16` (built for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
 - **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
-- **Hibernation compression**: **LZ4 selected**, read-back verified after approved persistence on 2026-10-08.
-- **Persistent LZ4 service verified (2026-10-08)**: `/usr/local/bin/surface-hibernate-compressor` and `/etc/systemd/system/surface-hibernate-compressor.service` enabled for `multi-user.target`.
-- **IPTS recovery (2026-10-08)**: Surface-only asynchronous worker and `/usr/lib/systemd/system-sleep` registration symlink deployed.
+- **Hibernation compression & image size (2026-10-18)**: **LZ4 selected** (`/sys/module/hibernate/parameters/compressor = lz4`) and `/sys/power/image_size = 4800000000` (`~4.8 GB`, bypassing pre-snapshot `zram0` swap thrashing), applied at boot by `/usr/local/bin/surface-hibernate-compressor` (`surface-hibernate-compressor.service`).
+- **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.
+- **IPTS recovery (2026-10-18)**: `/usr/local/bin/surface-ipts-resume-recover` (with `0.5s` fast-path healthy check) and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`, stopping active `iptsd@*.service` cleanly on `pre/*`).
 - **Touch Gestures (`lisgd`)**: External gesture daemon with session uaccess rule `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` active and automated.
 
 ## Multi-PC System Specs & Display
@@ -72,6 +72,11 @@ Live system snapshot automatically generated for multi-PC environment.
 | t2-power-tune | 0.02 | Package C-State & PCIe ASPM Power Tuner |
 | t2-power-explorer | 0.1.0 | PCIe Power Management & Lane Diagnostic |
 | apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
+
+## User-local Applications (current account)
+
+- **VLCdots Alpha `0.1.0-alpha.1`**: installed at `~/.local/opt/vlcdots-alpha/current` (versioned release underneath); launch with `vlcdots-alpha` or the **VLCdots Alpha** application-menu entry. Own persistent profile under `~/.local/state/vlcdots-alpha/profile` (original XDG state base respected). System VLC, MIME defaults, and ani-cli history remain separate/unchanged. This is a universal app, not a hardware profile or system package.
+- **Source/release**: private `JValdivia23/vlcdots`, main/tag `v0.1.0-alpha.1` at `81ae9d3`; runtime does not require its build/source checkout. Installer/uninstaller and limitations are documented in `/home/jmvp/work/vlcdots/README.md`. Uninstall preserves profile/count cache/history and refuses known mapped releases or modified owned files.
 
 ## Hardware Drivers & Subsystems (`macbook-t2`)
 - **T2 Driver**: `t2bce_core` actively bound to PCI `02:00.1`

@@ -13,6 +13,8 @@ is_lid_closed() {
 case "${1:-}/${2:-}" in
     pre/*)
         systemctl --no-block stop surface-ipts-resume.service
+        systemctl stop 'iptsd@*.service' 2>/dev/null || true
+        systemctl reset-failed 'iptsd@*.service' 2>/dev/null || true
         ;;
     post/*)
         if ! is_lid_closed; then

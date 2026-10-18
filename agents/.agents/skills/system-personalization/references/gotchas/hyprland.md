@@ -185,16 +185,22 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
 
 ---
 
-## 15. Moving Windows to Special Workspaces & Fullscreen Overlay Behavior
+## 15. Moving Windows Silently in Lua Mode (`follow = false` vs `silent = true`) & Window Switcher Special Workspace Interception
 
-- **Symptom**: Minimizing or moving a window to `special:<name>` (e.g. `special:minimized`) causes the window to suddenly take over the screen at full monitor size as if fullscreened, instead of disappearing into the background.
-- **Root Cause**: In Hyprland, `hl.dsp.window.move({ workspace = "special:<name>", silent = true })` automatically activates that special workspace as an active overlay on the monitor. Even with `silent = true`, Hyprland leaves the special workspace open on the monitor, making the moved window appear full screen.
-- **Fix**: Atomically dispatch the move and close the special workspace overlay in the same Lua execution:
-  ```lua
-  hl.dispatch(hl.dsp.window.move({ workspace = "special:minimized", window = "address:" .. addr, silent = true }));
-  hl.dispatch(hl.dsp.workspace.toggle_special("minimized"))
-  ```
-  Follow up with a defensive check against `hyprctl monitors -j` (`specialWorkspace.name == "special:minimized"`) to toggle it off if still open.
+- **Symptom**:
+  1. Calling `hl.dsp.window.move({ workspace = "special:minimized", window = "address:...", silent = true })` causes the window to activate `special:minimized` as a full-screen overlay on the monitor instead of moving silently into the background.
+  2. Selecting a minimized window from `noctalia msg window-switcher` (e.g. via the 1-finger left-to-right touchscreen swipe) pulls **all** minimized windows onto the screen inside `special:minimized` as a stuck overlay across all workspaces.
+- **Root Cause**:
+  1. Disassembly of `/usr/bin/Hyprland` (`Config::Lua::Bindings::Internal::registerDispatcherBindings` at `0xb816c0`, `tableOptBool(L, 1, "follow")`) shows that `hl.dsp.window.move` does **not** accept a `silent` parameter. Instead, it checks **`follow`** (defaulting to `true`, which dispatches non-silent `movetoworkspace`). Only when **`follow = false`** is passed does Hyprland set `silent = true` in `Config::Actions::moveToWorkspace()`.
+  2. When selecting a window in `noctalia msg window-switcher`, Noctalia sends `dispatch hl.dsp.focus({window = "address:0x..."})`. Because the target window resides in `special:minimized`, Hyprland activates `special:minimized` (`activespecial>>special:minimized,<mon>`) on the monitor, exposing every window in `special:minimized` as an overlay above normal workspaces.
+- **Fix**:
+  1. Pass `follow = false` to `hl.dsp.window.move`:
+     ```lua
+     hl.dispatch(hl.dsp.window.move({ workspace = "special:minimized", window = "address:" .. addr, follow = false }))
+     ```
+  2. In `hypr-tray-drawer`, listen on `.socket2.sock` for `activewindowv2>>`, `activespecial>>`, and `activespecialv2>>`. Whenever a window inside `special:minimized` is focused externally:
+     - **Latch a synchronous debounce (`suppress_intercept_until = now + 0.65`) immediately in the `.socket2.sock` reader** on the first matching `activewindowv2>>` event so cascading focus changes cannot trigger additional restores.
+     - **Close `special:minimized` (`hl.dsp.workspace.toggle_special("minimized")`) BEFORE moving the window (`hl.dsp.window.move(...)`)**: if a window is moved out of `special:minimized` while `special:minimized` is still open on the monitor, Hyprland immediately shifts focus to the next remaining window inside `special:minimized` and emits another `activewindowv2>>` event in a chain reaction. Closing `special:minimized` first and then moving + focusing only the selected window onto `monitors[].activeWorkspace.name` restores only the single chosen window.
 
 ---
 

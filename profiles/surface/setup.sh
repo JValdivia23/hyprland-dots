@@ -64,6 +64,13 @@ if [ -d "$SCRIPT_DIR/systemd" ]; then
             sudo chmod 644 /etc/udev/rules.d/98-surface-unplug-lid.rules
             sudo udevadm control --reload-rules 2>/dev/null || true
         fi
+        if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-rtc-sync.sh" ] && [ -f "$SCRIPT_DIR/systemd/19-surface-rtc-hibernate.sh" ]; then
+            echo "--> Deploying Surface hibernation CMOS RTC epoch alignment hook..."
+            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-rtc-sync.sh" /usr/local/bin/surface-hibernate-rtc-sync
+            sudo install -Dm755 "$SCRIPT_DIR/systemd/19-surface-rtc-hibernate.sh" /etc/systemd/system-sleep/19-surface-rtc-hibernate.sh
+            sudo mkdir -p /usr/lib/systemd/system-sleep /var/lib/surface-hibernate-rtc
+            sudo ln -sf /etc/systemd/system-sleep/19-surface-rtc-hibernate.sh /usr/lib/systemd/system-sleep/19-surface-rtc-hibernate.sh
+        fi
         sudo systemctl daemon-reload 2>/dev/null || true
     fi
 fi
@@ -206,4 +213,22 @@ if [ -f "$IPTS_DKMS_SRC/dkms.conf" ] && command -v dkms &>/dev/null && command -
     fi
 fi
 
+# 11. Deploy Surface pre-login greetd tablet touch keyboard & swipe gesture support
+if [ -f "$SCRIPT_DIR/scripts/surface-greeter-session.sh" ] && \
+   [ -f "$SCRIPT_DIR/scripts/surface-greeter-client.sh" ] && \
+   [ -f "$SCRIPT_DIR/scripts/surface-greeter-hyprland.lua" ] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface pre-login greetd tablet gesture & OSK support..."
+    sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-greeter-session.sh" /usr/local/bin/surface-greeter-session
+    sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-greeter-client.sh" /usr/local/bin/surface-greeter-client
+    sudo install -Dm644 "$SCRIPT_DIR/scripts/surface-greeter-hyprland.lua" /etc/greetd/surface-hyprland.lua
+    if id -u greeter &>/dev/null; then
+        sudo usermod -aG input greeter || true
+    fi
+    if [ -f /etc/greetd/config.toml ] && grep -q '/usr/bin/noctalia-greeter-session' /etc/greetd/config.toml; then
+        sudo sed -i 's|/usr/bin/noctalia-greeter-session|/usr/local/bin/surface-greeter-session|g' /etc/greetd/config.toml
+    fi
+fi
+
 echo "==> Microsoft Surface setup finished."
+

@@ -44,11 +44,14 @@ while true; do
     DEVICE_PATH="/dev/input/${DEVICE_NODE}"
 
     # Tuned parameters:
+    # -w 3000 / -h 2000 : Explicit Surface Book 3 display geometry (skips wl_display_connect race)
     # -s 3.5  : Expanded bezel touch grab area (175px) to comfortably clear top Noctalia bar
     # -r 20   : Expanded angle leniency for multi-finger alignment
     # -t 80   : Lowered distance threshold to 80px for natural 3-finger swipe triggers
     # -m 1500 : Generous 1.5s gesture timeout window
     lisgd -d "$DEVICE_PATH" \
+        -w 3000 \
+        -h 2000 \
         -s 3.5 \
         -r 20 \
         -t 80 \

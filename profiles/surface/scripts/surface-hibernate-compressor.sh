@@ -46,7 +46,19 @@ main() {
         printf 'LZ4 parameter read-back failed; inspect before hibernating.\n' >&2
         return 1
     fi
-    printf 'Surface hibernation RAM-image compressor verified: lz4.\n'
+
+    local image_size_path=/sys/power/image_size target_image_size=4800000000
+    if [[ -r "$image_size_path" && -w "$image_size_path" ]]; then
+        if [[ "$(< "$image_size_path")" != "$target_image_size" ]]; then
+            printf '%s\n' "$target_image_size" > "$image_size_path"
+        fi
+        if [[ "$(< "$image_size_path")" != "$target_image_size" ]]; then
+            printf 'Hibernation image_size read-back failed (expected %s).\n' "$target_image_size" >&2
+            return 1
+        fi
+    fi
+
+    printf 'Surface hibernation RAM-image compressor verified: lz4 (image_size=%s).\n' "$(cat "$image_size_path" 2>/dev/null || echo unknown)"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
