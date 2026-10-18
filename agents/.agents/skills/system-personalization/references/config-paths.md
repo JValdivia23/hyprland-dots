@@ -104,6 +104,7 @@ Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-ocr` | OCR Text Extraction | Extracts text from selected screen regions to clipboard via Tesseract. |
 | `hypr-record` | Screen Recording | Toggle screen recording on/off to `~/Videos/Captures/` via `wf-recorder`. |
 | `hypr-capture-menu` | Capture Menu Launcher | Interactive floating capture menu (`SUPER+CONTROL+C`). |
+| `hypr-keybinds-menu` | Interactive Keybindings Cheatsheet & Launcher | Floating `fzf` menu (`SUPER+K`) querying live `hyprctl binds -j`; executes selected keybind on `Enter`. |
 | `kitty-focus-opacity` | Terminal Focus Opacity Daemon | Modulates Kitty opacity between `0.60` (unfocused) and `0.75` (focused) via Hyprland IPC. |
 | `mac-key-helper` | macOS Text Navigation Helper | Dispatches context-aware line and word cursor navigation shortcuts. |
 | `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window. |

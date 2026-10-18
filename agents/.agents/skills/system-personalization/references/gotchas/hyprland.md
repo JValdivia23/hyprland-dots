@@ -209,3 +209,16 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   - Enable and start: `systemctl --user enable --now hypr-lisgd hypr-touch-resizer`.
   - In `autostart.lua`, simply call `hl.exec_cmd("systemctl --user start hypr-lisgd hypr-touch-resizer")` for idempotent assurance.
 
+---
+
+## 17. Triggering Lua Keybindings Programmatically (`debug.getregistry()[arg]()`)
+
+- **Symptom**: Querying `hyprctl binds -j` in Lua-configured Hyprland returns `"dispatcher": "__lua"` and `"arg": "<id>"` for every keybinding, and running `hyprctl dispatch __lua <id>` fails with `error: [string "return hl.dispatch(__lua <id>)"]:1: ')' expected near '<id>'`.
+- **Root Cause**: When `hl.bind(keys, action, opts)` registers a keybind in Hyprland's Lua runtime, it stores either the compiled `HL.Dispatcher` C closure or the Lua callback function inside Lua's `LUA_REGISTRYINDEX` (`luaL_ref`) and records the integer reference ID as `"arg"`. Meanwhile, `hyprctl dispatch` wraps its CLI string in `return hl.dispatch(...)`, which cannot call `__lua` directly.
+- **Fix**: Invoke the registered keybinding callable directly in Lua via `hyprctl eval`:
+  ```bash
+  hyprctl eval "local fn = debug.getregistry()[<id>]; if type(fn) == 'function' then fn() end"
+  ```
+  *(Note: When triggering from a floating launcher window such as `hypr-keybinds-menu`, spawn a detached helper and exit the launcher window first so Hyprland restores focus to the underlying target window before `fn()` executes).*
+
+

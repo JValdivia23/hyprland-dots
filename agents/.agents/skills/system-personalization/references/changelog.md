@@ -2,6 +2,14 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.64.0] - 2026-10-18
+### Added & Fixed
+- **Interactive Keybindings Cheatsheet Action Execution (`core/`, universal)**:
+  - Updated `core/.local/bin/hypr-keybinds-menu` (`~/.local/bin/hypr-keybinds-menu`, launched via `SUPER + K`) so pressing `Enter` on any searched/selected keybinding executes its action immediately.
+  - Prefixed submap-specific bindings (such as `[resize]`) in the `fzf` list and updated the header to `ENTER to run · ESC to exit`.
+  - Implemented `trigger_bind_detached(dispatcher, arg)` to fork a detached background helper and immediately exit `hypr-keybinds-menu`, waiting until the floating `Keybindings` terminal window unmaps and focus returns to the previously active window before invoking `hyprctl eval "local fn = debug.getregistry()[<arg>]; if type(fn) == 'function' then fn() end"`.
+  - Documented the Hyprland Lua registry keybind invocation pattern in `references/gotchas/hyprland.md` (Section 17).
+
 ## [2.55.0] - 2026-10-15
 ### Fixed
 - **Surface `suspend-then-hibernate` 30-Minute Transition Failure on CachyOS 7.x (`profiles/surface`)**:

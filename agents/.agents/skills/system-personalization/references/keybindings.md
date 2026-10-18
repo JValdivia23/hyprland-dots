@@ -81,7 +81,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `,` | Noctalia Settings | Toggle Noctalia Settings menu |
 | `SUPER` + `CONTROL` + `V` | Clipboard | Toggle Clipboard history panel |
 | `SUPER` + `ALT` + `K` / `SUPER` + `SHIFT` + `K` | Layout Toggle | Toggle Super/Alt position swap (Mac vs PC layout) |
-| `SUPER` + `K` | Live IPC Cheatsheet | Open instant floating `fzf` cheatsheet querying compositor runtime (`hyprctl binds -j`) |
+| `SUPER` + `K` | Live IPC Cheatsheet | Open instant floating `fzf` cheatsheet querying compositor runtime (`hyprctl binds -j`); press `Enter` to trigger selected action |
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `ALT` + `C` | Force-Kill Window | Turn cursor into crosshair to click & kill any window |
 | `SUPER` + `SHIFT` + `L` / `XF86Sleep` | Lock & Suspend | Lock screen and put system to sleep / suspend |
