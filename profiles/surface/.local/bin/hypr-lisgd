@@ -19,7 +19,22 @@ done
 # Ensure single supervisor instance runs and clean up child on exit
 pkill -x lisgd 2>/dev/null || true
 LISGD_PID=""
-trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' EXIT INT TERM
+trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' EXIT
+trap 'exit 0' INT TERM
+# Rotation changes only restart this supervisor's child, never another session.
+trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' USR1
+
+rotation_transform() {
+    local transform=0
+    local state="${XDG_RUNTIME_DIR:-/run/user/$UID}/surface-autorotate/transform"
+    if [[ -r "$state" ]]; then
+        read -r transform < "$state" || transform=0
+    fi
+    case "$transform" in
+        0|1|2|3) printf '%s\n' "$transform" ;;
+        *) printf '0\n' ;;
+    esac
+}
 
 # Supervisor loop: auto-reconnects if iptsd reloads, sleeps, or disconnects
 while true; do
@@ -42,6 +57,9 @@ while true; do
     fi
 
     DEVICE_PATH="/dev/input/${DEVICE_NODE}"
+    TRANSFORM=$(rotation_transform)
+    # lisgd rotates bindings into raw sensor space, the inverse of the display.
+    ORIENTATION=$(( (4 - TRANSFORM) % 4 ))
 
     # Tuned parameters:
     # -w 3000 / -h 2000 : Explicit Surface Book 3 display geometry (skips wl_display_connect race)
@@ -52,6 +70,7 @@ while true; do
     lisgd -d "$DEVICE_PATH" \
         -w 3000 \
         -h 2000 \
+        -o "$ORIENTATION" \
         -s 3.5 \
         -r 20 \
         -t 80 \
@@ -77,6 +96,11 @@ while true; do
     # verify lisgd still holds an active (non-deleted) fd to DEVICE_PATH.
     while kill -0 "$LISGD_PID" 2>/dev/null; do
         sleep 2
+        if [[ "$(rotation_transform)" != "$TRANSFORM" ]]; then
+            echo "hypr-lisgd: Display orientation changed; reconnecting..." >&2
+            kill "$LISGD_PID" 2>/dev/null || true
+            break
+        fi
         if ! readlink /proc/"$LISGD_PID"/fd/* 2>/dev/null | grep -Fxq "$DEVICE_PATH"; then
             echo "hypr-lisgd: Device $DEVICE_PATH disconnected; reconnecting..." >&2
             kill "$LISGD_PID" 2>/dev/null || true

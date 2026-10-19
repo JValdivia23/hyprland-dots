@@ -38,7 +38,7 @@ This repository is built around a **3-Tier Architecture** that cleanly isolates 
 | :--- | :--- | :--- |
 | **`macbook-t2`** | Apple MacBook Pro 15,1 (T2) | 2880x1800 @ 1.33 scale, AMD `radeonsi` GPU flags, MacBook trackpad gestures, Touch Bar `tiny-dfr`, sleep/resume fixes. |
 | **`desktop`** | Workstations / Generic PCs | Multi-monitor display templates (144Hz, portrait/landscape), flat mouse acceleration, audio routing (`pavucontrol`), gaming mode. |
-| **`surface`** | Microsoft Surface Book / Pro | 3000x2000 @ 2.0 integer scaling, Intel Precise Touch (`iptsd`), tablet detach daemon (`surface-dtx-daemon`). |
+| **`surface`** | Microsoft Surface Book / Pro | 3000x2000 @ 2.0 integer scaling, Intel Precise Touch (`iptsd`), tablet detach daemon (`surface-dtx-daemon`); physical-detachment-only automatic screen rotation on Surface Book 3. |
 | **`laptop`** | Generic Laptops | Touchpad natural scrolling, 3-finger & 4-finger gestures, battery power management. |
 
 ### 3. Self-Improving System Personalization Skill (`agents/`)
@@ -64,6 +64,40 @@ cd ~/dotfiles
 3. **Non-Destructive Backup**: Detects any existing non-symlink configuration files in `~/.config/` or `~/.local/bin/` and safely moves them to `~/.dotfiles_backup_<timestamp>/`.
 4. **Deployment**: Links `core/`, active profiles, and `agents/` into your `$HOME` directory using GNU Stow with `--no-folding`.
 5. **Post-Install Setup**: Runs profile setup scripts (e.g. enabling `tiny-dfr` on MacBook or `surface-dtx-daemon` on Surface), symlinks profile gotchas, and initializes the AI system personalization skill.
+
+### 3. Restore Surface Book 3 Detached-Only Rotation After Reinstall
+
+From a fresh clone, run the full Surface installer as your regular user:
+
+```fish
+cd ~/dotfiles
+bash ./install.sh --profile surface
+```
+
+This restores the orientation dependencies (`iio-sensor-proxy`, `python-gobject`),
+links the rotation/gesture/resizer helpers and user services, and installs/enables
+the root-owned, read-only physical-base status service. The rotation user service
+is enabled when a user service manager is available and starts on the next
+Hyprland login. **No files from `/tmp/opencode` or the previous OS are required.**
+
+- **Detached base:** auto-rotate the internal screen, touch/pen mapping and edge gestures.
+- **Any attached base, including backwards:** restore landscape and disable auto-rotation.
+- Restricted to **Surface Book 3**; does not enable rotation on other profiles or external monitors.
+- `--only-stow` is insufficient after an OS reinstall: it intentionally skips dependency installation and system-service setup.
+
+After logging into Hyprland, verify:
+
+```fish
+systemctl status surface-base-state.service
+systemctl --user status surface-autorotate.service
+hyprctl configerrors
+```
+
+The Surface kernel must expose `/dev/surface/dtx` and the accelerometer. Touch/pen
+also require working IPTS/iptsd; reboot into the installed Surface-capable kernel
+if the fresh OS has not loaded those drivers yet. See
+[`profiles/surface/gotchas/screen-rotation.md`](profiles/surface/gotchas/screen-rotation.md)
+for diagnostics, validation details and rollback.
 
 ---
 

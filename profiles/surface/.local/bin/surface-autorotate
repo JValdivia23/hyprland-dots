@@ -1,0 +1,314 @@
+#!/usr/bin/env python3
+"""Rotate only the physically detached Surface Book 3, using Hyprland's Lua API."""
+
+import fcntl
+import json
+import os
+from pathlib import Path
+import signal
+import socket
+import stat
+import subprocess
+import sys
+import threading
+import time
+
+import gi
+
+gi.require_version("Gio", "2.0")
+gi.require_version("GLibUnix", "2.0")
+from gi.repository import Gio, GLib, GLibUnix
+
+
+BASE_STATE = Path("/run/surface-base-state/state.json")
+RUNTIME = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+ROTATION_DIR = RUNTIME / "surface-autorotate"
+SENSOR_NAME = "net.hadess.SensorProxy"
+SENSOR_PATH = "/net/hadess/SensorProxy"
+ORIENTATIONS = {"normal": 0, "left-up": 1, "bottom-up": 2, "right-up": 3}
+
+
+def log(message):
+    print(f"surface-autorotate: {message}", flush=True)
+
+
+def read_base():
+    """Trust only the root-owned broker's non-writable, bounded status file."""
+    try:
+        fd = os.open(BASE_STATE, os.O_RDONLY | os.O_CLOEXEC | os.O_NOFOLLOW)
+        with os.fdopen(fd) as stream:
+            info = os.fstat(stream.fileno())
+            if info.st_uid != 0 or info.st_mode & 0o022 or not stat.S_ISREG(info.st_mode):
+                return None
+            value = json.loads(stream.read(4096))
+        attached = value.get("attached")
+        if (attached is False and value.get("base_state") == 0
+                and value.get("base_id") in (0, 0x0200)):
+            return False
+        return True if attached is True else None
+    except (OSError, ValueError, AttributeError):
+        return None
+
+
+def hypr(*arguments):
+    result = subprocess.run(["hyprctl", *arguments], capture_output=True, text=True, timeout=5)
+    if result.returncode:
+        raise RuntimeError(result.stderr.strip() or result.stdout.strip())
+    return result.stdout
+
+
+def rotation_lua(transform, devices):
+    if transform not in range(4):
+        raise ValueError("Only unmirrored orientations are supported")
+    commands = [f'hl.monitor({{ output = "eDP-1", transform = {transform} }})']
+    for kind in ("touch", "tablets"):
+        for device in devices.get(kind, []):
+            name = device.get("name", "")
+            if name.startswith(("ipts-", "iptsd-virtual-")):
+                commands.append(
+                    f'hl.device({{ name = {json.dumps(name)}, output = "eDP-1", '
+                    f'transform = {transform} }})'
+                )
+    return "; ".join(commands)
+
+
+def publish_geometry(monitor):
+    ROTATION_DIR.mkdir(mode=0o700, exist_ok=True)
+    geometry = {key: monitor[key] for key in ("width", "height", "scale", "transform")}
+    for name, contents in (
+        ("geometry.json", json.dumps(geometry) + "\n"),
+        ("transform", str(geometry["transform"]) + "\n"),
+    ):
+        temporary = ROTATION_DIR / (name + ".tmp")
+        temporary.write_text(contents)
+        temporary.replace(ROTATION_DIR / name)
+
+
+def apply_transform(transform):
+    devices = json.loads(hypr("devices", "-j"))
+    monitors = json.loads(hypr("monitors", "-j"))
+    if not any(monitor["name"] == "eDP-1" for monitor in monitors):
+        raise RuntimeError("Internal display eDP-1 is unavailable")
+    response = hypr("eval", rotation_lua(transform, devices))
+    if "error" in response.lower():
+        raise RuntimeError(response.strip())
+    # Monitor refresh is deferred by Hyprland; publish only its verified state.
+    for _ in range(10):
+        monitors = json.loads(hypr("monitors", "-j"))
+        monitor = next((item for item in monitors if item["name"] == "eDP-1"), None)
+        if monitor and monitor["transform"] == transform:
+            publish_geometry(monitor)
+            subprocess.run(
+                ["systemctl", "--user", "kill", "--kill-whom=main", "--signal=USR1", "hypr-lisgd.service"],
+                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=3,
+            )
+            return
+        time.sleep(0.05)
+    raise RuntimeError("Hyprland did not apply the requested orientation")
+
+
+class AutoRotate:
+    def __init__(self):
+        self.loop = GLib.MainLoop()
+        self.base = object()
+        self.applied = None
+        self.sensor = None
+        self.claimed = False
+        self.suspended = False
+        self.pending = 0
+        self.candidate = None
+        self.monitor = None
+        self.last_error = ""
+
+    def cancel_rotation(self):
+        if self.pending:
+            GLib.source_remove(self.pending)
+            self.pending = 0
+        self.candidate = None
+
+    def release_sensor(self):
+        self.cancel_rotation()
+        if self.claimed and self.sensor:
+            try:
+                self.sensor.call_sync("ReleaseAccelerometer", None, Gio.DBusCallFlags.NONE, 2000, None)
+            except GLib.Error as error:
+                log(f"Releasing sensor: {error.message}")
+        self.claimed = False
+
+    def set_transform(self, transform, force=False):
+        if self.applied == transform and not force:
+            return
+        try:
+            apply_transform(transform)
+            self.applied = transform
+            self.last_error = ""
+            log(f"Orientation {transform}; base {'detached' if self.base is False else 'attached/unknown'}")
+        except (OSError, RuntimeError, ValueError, subprocess.SubprocessError) as error:
+            message = str(error)
+            if message != self.last_error:
+                log(f"Cannot apply orientation: {message}")
+                self.last_error = message
+            self.applied = None
+            if transform != 0:
+                try:
+                    apply_transform(0)
+                    self.applied = 0
+                except (OSError, RuntimeError, ValueError, subprocess.SubprocessError):
+                    pass
+
+    def sensor_owner_changed(self, proxy, _property):
+        self.claimed = False
+        self.cancel_rotation()
+        if proxy.get_name_owner() and self.base is False and not self.suspended:
+            GLib.idle_add(self.sync_base)
+
+    def claim_sensor(self):
+        try:
+            if self.sensor is None:
+                self.sensor = Gio.DBusProxy.new_for_bus_sync(
+                    Gio.BusType.SYSTEM, Gio.DBusProxyFlags.NONE, None,
+                    SENSOR_NAME, SENSOR_PATH, SENSOR_NAME, None,
+                )
+                self.sensor.connect("g-properties-changed", self.orientation_changed)
+                self.sensor.connect("notify::g-name-owner", self.sensor_owner_changed)
+            if not self.claimed:
+                self.sensor.call_sync("ClaimAccelerometer", None, Gio.DBusCallFlags.NONE, 2000, None)
+                self.claimed = True
+                log("Accelerometer claimed while physically detached")
+            self.orientation_changed(self.sensor, None, None)
+        except GLib.Error as error:
+            self.claimed = False
+            message = error.message
+            if message != self.last_error:
+                log(f"Sensor unavailable: {message}")
+                self.last_error = message
+
+    def orientation_changed(self, proxy, _changed, _invalidated):
+        if self.base is not False or self.suspended or not self.claimed:
+            return
+        value = proxy.get_cached_property("AccelerometerOrientation")
+        transform = ORIENTATIONS.get(value.unpack() if value else None)
+        # Undefined/flat readings keep the last stable orientation.
+        if transform is None:
+            self.cancel_rotation()
+            return
+        if transform == self.candidate and self.pending:
+            return
+        self.cancel_rotation()
+        self.candidate = transform
+        self.pending = GLib.timeout_add(400, self.commit_rotation, transform)
+
+    def commit_rotation(self, transform):
+        self.pending = 0
+        self.candidate = None
+        # Recheck physical attachment immediately before every rotation.
+        if not self.suspended and self.claimed and read_base() is False:
+            self.set_transform(transform)
+        else:
+            self.sync_base()
+        return GLib.SOURCE_REMOVE
+
+    def watch_base(self):
+        if self.monitor is None and BASE_STATE.parent.is_dir():
+            try:
+                self.monitor = Gio.File.new_for_path(str(BASE_STATE.parent)).monitor_directory(
+                    Gio.FileMonitorFlags.NONE, None,
+                )
+                self.monitor.connect("changed", self.base_changed)
+            except GLib.Error:
+                pass
+
+    def base_changed(self, _monitor, _file, _other, event):
+        if event in (Gio.FileMonitorEvent.DELETED, Gio.FileMonitorEvent.UNMOUNTED):
+            if not BASE_STATE.parent.is_dir():
+                self.monitor.cancel()
+                self.monitor = None
+        self.sync_base()
+
+    def sync_base(self, force=False):
+        self.watch_base()
+        if self.suspended:
+            return GLib.SOURCE_REMOVE
+        base = read_base()
+        changed = base is not self.base
+        self.base = base
+        if base is not False:
+            self.release_sensor()
+            if changed or force or self.applied != 0:
+                self.set_transform(0, force=force)
+        else:
+            if force:
+                self.applied = None
+            self.claim_sensor()
+        return GLib.SOURCE_REMOVE
+
+    def periodic(self):
+        # This only reads a tiny status file. No accelerometer polling or
+        # recurring Hyprland commands are performed while attached.
+        self.sync_base()
+        return GLib.SOURCE_CONTINUE
+
+    def prepare_for_sleep(self, _bus, _sender, _path, _interface, _signal, parameters, _user_data=None):
+        self.suspended = parameters.unpack()[0]
+        if self.suspended:
+            self.release_sensor()
+        else:
+            # Give DTX's post-resume state reconciliation time to run.
+            self.suspended = True
+            GLib.timeout_add(750, self.resume)
+
+    def resume(self):
+        self.suspended = False
+        self.sync_base(force=True)
+        return GLib.SOURCE_REMOVE
+
+    def watch_hyprland(self):
+        signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE", "")
+        path = RUNTIME / "hypr" / signature / ".socket2.sock"
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                connection.connect(str(path))
+                with connection.makefile() as stream:
+                    for line in stream:
+                        if line.startswith(("configreloaded>>", "monitoradded>>", "monitoraddedv2>>")):
+                            GLib.idle_add(self.sync_base, True)
+        except OSError as error:
+            log(f"Hyprland event listener: {error}")
+
+    def run(self):
+        bus = Gio.bus_get_sync(Gio.BusType.SYSTEM, None)
+        bus.signal_subscribe(
+            "org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
+            "/org/freedesktop/login1", None, Gio.DBusSignalFlags.NONE,
+            self.prepare_for_sleep,
+        )
+        for signum in (signal.SIGTERM, signal.SIGINT):
+            GLibUnix.signal_add(GLib.PRIORITY_DEFAULT, signum, self.loop.quit)
+        threading.Thread(target=self.watch_hyprland, daemon=True).start()
+        GLib.timeout_add_seconds(2, self.periodic)
+        self.sync_base(force=True)
+        try:
+            self.loop.run()
+        finally:
+            self.release_sensor()
+
+
+def main():
+    if Path("/sys/class/dmi/id/product_name").read_text().strip() != "Surface Book 3":
+        raise SystemExit("This rotation helper is only for Surface Book 3")
+    if sys.argv[1:] == ["--reset"]:
+        apply_transform(0)
+        return
+    if sys.argv[1:]:
+        raise SystemExit("Usage: surface-autorotate [--reset]")
+    ROTATION_DIR.mkdir(mode=0o700, exist_ok=True)
+    with (ROTATION_DIR / "lock").open("w") as lock:
+        try:
+            fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        except BlockingIOError:
+            raise SystemExit("Another rotation helper is already running")
+        AutoRotate().run()
+
+
+if __name__ == "__main__":
+    main()

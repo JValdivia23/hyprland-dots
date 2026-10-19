@@ -20,6 +20,7 @@ Live system snapshot automatically generated for multi-PC environment.
 - **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.
 - **IPTS recovery (2026-10-18)**: `/usr/local/bin/surface-ipts-resume-recover` (with `0.5s` fast-path healthy check) and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`, stopping active `iptsd@*.service` cleanly on `pre/*`).
 - **Touch Gestures (`lisgd`)**: External gesture daemon with session uaccess rule `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` active and automated.
+- **Detached-only rotation (2026-10-19, Surface Book 3 only)**: `iio-sensor-proxy` + user `surface-autorotate.service`, gated by root-owned physical connection status from `surface-base-state.service`. Any attached base (including backwards) locks `eDP-1` to landscape. IPTS touch/pen transforms, lisgd edge directions and touch-resizer coordinates follow display rotation. User confirmed detached rotation, touch/keyboard gestures and landscape restoration on reattachment; both portrait transforms are logged. Pen, backwards attachment and resume remain untested. See `gotchas/screen-rotation.md`.
 - **Idle Power Baseline (2026-10-19)**: Tool `profiles/surface/scripts/surface-idle-power.py` deployed (appends to `~/.local/state/surface-idle-power/log.jsonl`). Verified clean baseline on `7.2.11-1-cachyos`: **5.86 W** median draw (5.91 W mean, 95.5% C3 residency at 25% display brightness; documented in [`gotchas/power-baseline.md`](file:///home/jmvp/.agents/skills/system-personalization/references/gotchas/power-baseline.md)).
 
 ## Multi-PC System Specs & Display
@@ -62,6 +63,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | calf | 0.90.9-2.1 | LV2 Audio Plugins (Bass Enhancer / Virtual Bass, Stereo Tools) |
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | lisgd | 0.4.0-1 | Surface Libinput Synthetic Gesture Daemon |
+| iio-sensor-proxy | 3.9-1.1 | Surface Book 3 detached-only orientation sensing |
 | wvkbd | 0.20-1 | Surface Virtual Touch Keyboard |
 | iptsd | 3.1.1-1 | Surface Precise Touch & Stylus Daemon |
 | surface-dtx-daemon | 0.3.10-1 | Surface Clipboard Detachment Daemon |

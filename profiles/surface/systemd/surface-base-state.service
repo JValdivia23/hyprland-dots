@@ -1,0 +1,30 @@
+[Unit]
+Description=Surface Book 3 read-only physical base connection status
+After=systemd-udev-trigger.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/bin/grep -qx "Surface Book 3" /sys/class/dmi/id/product_name
+ExecStart=/usr/bin/python3 -B /usr/local/libexec/surface-base-state.py
+Restart=on-failure
+RestartSec=2s
+RuntimeDirectory=surface-base-state
+RuntimeDirectoryMode=0755
+UMask=0022
+NoNewPrivileges=yes
+CapabilityBoundingSet=
+ProtectSystem=strict
+ProtectHome=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=AF_UNIX
+RestrictNamespaces=yes
+DevicePolicy=closed
+DeviceAllow=/dev/surface/dtx r
+
+[Install]
+WantedBy=multi-user.target

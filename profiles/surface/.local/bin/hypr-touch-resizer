@@ -27,6 +27,8 @@ import signal
 import atexit
 import math
 import re
+import json
+from pathlib import Path
 
 # Linux input event constants
 EV_SYN = 0x00
@@ -45,9 +47,8 @@ EVIOCGRAB = 0x40044590
 EVENT_FORMAT = "qqHHi"
 EVENT_SIZE = struct.calcsize(EVENT_FORMAT)
 
-# Surface Book 3 touchscreen coordinate scaling: 9600x7200 touch units -> 1500x1000 logical px
-SCALE_X = 1500.0 / 9600.0
-SCALE_Y = 1000.0 / 7200.0
+# Native display dimensions; live rotation/scale comes from surface-autorotate.
+DEFAULT_GEOMETRY = {"width": 3000, "height": 2000, "scale": 2, "transform": 0}
 PIXEL_THRESHOLD = 12.0  # Movement step in pixels before dispatching resizeactive
 IDLE_TIMEOUT = 30.0    # Auto-exit resize mode after 30s of inactivity
 
@@ -57,6 +58,41 @@ LOG_FILE = "/tmp/hypr-touch-resizer.log"
 active_fd = None
 lock_fd = None
 touch_device_path = None
+
+
+def read_geometry():
+    path = Path(os.getenv("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}")) / "surface-autorotate/geometry.json"
+    try:
+        geometry = json.loads(path.read_text())
+        if (geometry["transform"] not in range(4) or geometry["scale"] <= 0
+                or geometry["width"] <= 0 or geometry["height"] <= 0):
+            raise ValueError("Invalid display geometry")
+        return geometry
+    except (OSError, ValueError, KeyError, TypeError):
+        return DEFAULT_GEOMETRY.copy()
+
+
+def touch_ranges(fd):
+    ranges = []
+    for code in (ABS_MT_POSITION_X, ABS_MT_POSITION_Y):
+        # EVIOCGABS returns value, minimum, maximum, fuzz, flat, resolution.
+        info = bytearray(24)
+        fcntl.ioctl(fd, 0x80184540 + code, info, True)
+        _, minimum, maximum, _, _, _ = struct.unpack("=iiiiii", info)
+        if maximum <= minimum:
+            raise ValueError("Touchscreen axis has no usable range")
+        ranges.append(maximum - minimum)
+    return ranges
+
+
+def transform_delta(dx, dy, ranges, geometry):
+    x, y = dx / ranges[0], dy / ranges[1]
+    transform = geometry["transform"]
+    x, y = ((x, y), (-y, x), (-x, -y), (y, -x))[transform]
+    width, height = geometry["width"], geometry["height"]
+    if transform % 2:
+        width, height = height, width
+    return x * width / geometry["scale"], y * height / geometry["scale"]
 
 
 def find_touch_device():
@@ -202,10 +238,14 @@ def main():
     accum_y = 0.0
     total_dist = 0.0
     last_touch_time = time.time()
+    geometry = read_geometry()
+    ranges = [9600, 7200]
+    geometry_check = 0.0
 
     def start_grab():
         nonlocal in_resize, last_touch_time, is_touching
         nonlocal last_x, last_y, curr_x, curr_y, accum_x, accum_y, total_dist
+        nonlocal geometry, ranges
         global active_fd, touch_device_path
 
         if not touch_device_path or not os.access(touch_device_path, os.R_OK):
@@ -215,6 +255,8 @@ def main():
 
         try:
             active_fd = os.open(touch_device_path, os.O_RDONLY | os.O_NONBLOCK)
+            ranges = touch_ranges(active_fd)
+            geometry = read_geometry()
             fcntl.ioctl(active_fd, EVIOCGRAB, 1)
             in_resize = True
             is_touching = False
@@ -259,6 +301,13 @@ def main():
                 buf = b""
 
                 while True:
+                    if in_resize and time.monotonic() - geometry_check >= 0.25:
+                        geometry_check = time.monotonic()
+                        current_geometry = read_geometry()
+                        if current_geometry != geometry:
+                            geometry = current_geometry
+                            last_x = last_y = None
+                            accum_x = accum_y = 0.0
                     read_fds = [event_sock]
                     if in_resize and active_fd is not None:
                         read_fds.append(active_fd)
@@ -336,8 +385,7 @@ def main():
                                         last_x = curr_x
                                         last_y = curr_y
 
-                                        dx_px = dx_raw * SCALE_X
-                                        dy_px = dy_raw * SCALE_Y
+                                        dx_px, dy_px = transform_delta(dx_raw, dy_raw, ranges, geometry)
                                         accum_x += dx_px
                                         accum_y += dy_px
                                         total_dist += math.hypot(dx_px, dy_px)

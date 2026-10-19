@@ -1,7 +1,8 @@
 ^packages\.txt$
 ^pre-install\.sh$
 ^setup\.sh$
-^systemd
+# Ignore top-level system-service sources, not .config/systemd/user/ units.
+^/systemd
 ^scripts
 ^gotchas
 ^\.stow-local-ignore$

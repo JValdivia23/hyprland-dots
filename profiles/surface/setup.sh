@@ -230,5 +230,24 @@ if [ -f "$SCRIPT_DIR/scripts/surface-greeter-session.sh" ] && \
     fi
 fi
 
-echo "==> Microsoft Surface setup finished."
+# 12. Surface Book 3 physical-detachment-only screen rotation.
+# Packages are handled by the master installer; never run the entire setup
+# merely to deploy rotation on an existing machine.
+if [[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) == "Surface Book 3" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-rotation.sh" ]] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying detached-only rotation base status service..."
+    sudo bash "$SCRIPT_DIR/scripts/install-rotation.sh" --no-packages
+    # The master installer has already stowed the user unit at this point.
+    # Enable it without starting a GUI-dependent helper from a fresh-install TTY.
+    if (( EUID != 0 )) && \
+       [[ -f "$HOME/.config/systemd/user/surface-autorotate.service" ]] && \
+       systemctl --user show-environment &>/dev/null; then
+        systemctl --user daemon-reload
+        systemctl --user enable surface-autorotate.service
+    else
+        echo "    Rotation session service will start on the next Hyprland login."
+    fi
+fi
 
+echo "==> Microsoft Surface setup finished."
