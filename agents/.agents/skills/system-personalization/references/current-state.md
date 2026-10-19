@@ -4,7 +4,7 @@ Live system snapshot automatically generated for multi-PC environment.
 
 ## Operating System & Kernel
 - **OS**: CachyOS Linux
-- **Kernel (`surface`)**: `7.2.9-2-cachyos` (default since 2026-10-13; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `6.19.8-arch1-3-surface` (linux-surface, kept installed).
+- **Kernel (`surface`)**: `7.2.11-1-cachyos` (default since 2026-10-13; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.11.arch1-1` (linux-surface, kept installed).
 - **Kernel (`cachyos-cu`)**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (version 4.9.3)
 - **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
@@ -14,12 +14,13 @@ Live system snapshot automatically generated for multi-PC environment.
 - **Bootloader**: Active Limine 12.9.3; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-13).
 - **Boot menu**: Hidden one-second countdown (`quiet: yes`, `timeout: 1`), replacing the visible five-second wait on 2026-10-08. Press Space during that second to reveal the menu.
 - **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
-- **IPTS on CachyOS kernels (2026-10-13)**: DKMS `ipts/2024.04.16` (built for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
+- **IPTS on CachyOS kernels (2026-10-13)**: DKMS `ipts/2024.04.16` (built for `7.2.11-1-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
 - **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
 - **Hibernation compression & image size (2026-10-18)**: **LZ4 selected** (`/sys/module/hibernate/parameters/compressor = lz4`) and `/sys/power/image_size = 4800000000` (`~4.8 GB`, bypassing pre-snapshot `zram0` swap thrashing), applied at boot by `/usr/local/bin/surface-hibernate-compressor` (`surface-hibernate-compressor.service`).
 - **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.
 - **IPTS recovery (2026-10-18)**: `/usr/local/bin/surface-ipts-resume-recover` (with `0.5s` fast-path healthy check) and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`, stopping active `iptsd@*.service` cleanly on `pre/*`).
 - **Touch Gestures (`lisgd`)**: External gesture daemon with session uaccess rule `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` active and automated.
+- **Idle Power Baseline (2026-10-19)**: Tool `profiles/surface/scripts/surface-idle-power.py` deployed (appends to `~/.local/state/surface-idle-power/log.jsonl`). Verified clean baseline on `7.2.11-1-cachyos`: **5.86 W** median draw (5.91 W mean, 95.5% C3 residency at 25% display brightness; documented in [`gotchas/power-baseline.md`](file:///home/jmvp/.agents/skills/system-personalization/references/gotchas/power-baseline.md)).
 
 ## Multi-PC System Specs & Display
 
@@ -44,7 +45,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | Package | Version | Purpose |
 |---------|---------|---------|
 | hyprland | 0.56.2-4.1 | Core Desktop Compositor |
-| noctalia | 5.2.1-1.1 | Wayland Shell & Panels |
+| noctalia | 5.3.0-1.1 | Wayland Shell & Panels |
 | kitty | 0.49.2-1.1 | Primary Terminal Emulator |
 | alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
 | ani-cli | 5.1-1 | Anime Streaming CLI (mpv/fzf) |
@@ -54,7 +55,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | satty | 0.22.0-1.1 | Screenshot Annotation Editor |
 | swayimg | 5.6-2.1 | Image & Quick Look Viewer |
 | dolphin | 26.08.2-1.1 | File Manager |
-| zen-browser-bin | 1.23.1b-1 | Primary Web Browser |
+| zen-browser-bin | 1.23.3b-1 | Primary Web Browser |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
 | easyeffects | 8.3.0-1.1 | Audio Processing Backend (`surface-book-hybrid` DSP preset active with AutoGain volume leveling) |
 | lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
@@ -62,7 +63,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | lisgd | 0.4.0-1 | Surface Libinput Synthetic Gesture Daemon |
 | wvkbd | 0.20-1 | Surface Virtual Touch Keyboard |
-| iptsd | 3-1 | Surface Precise Touch & Stylus Daemon |
+| iptsd | 3.1.1-1 | Surface Precise Touch & Stylus Daemon |
 | surface-dtx-daemon | 0.3.10-1 | Surface Clipboard Detachment Daemon |
 | msr-tools | 1.3-4 | Intel MSR / RAPL Hardware Access |
 | fprintd | 1.94.5-2.1 | Fingerprint Authentication Daemon |

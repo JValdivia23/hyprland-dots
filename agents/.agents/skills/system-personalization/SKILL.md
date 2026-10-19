@@ -77,6 +77,8 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`touchscreen-iptsd.md`](references/gotchas/touchscreen-iptsd.md) | Surface touchscreen & stylus wake race condition (`iptsd` EAGAIN -11) & udev recovery |
 | ├── [`kernel-cachyos-ipts.md`](references/gotchas/kernel-cachyos-ipts.md) | Surface touch/pen (IPTS) DKMS & mei_me runtime binding on Linux CachyOS 7.x |
 | ├── [`touchscreen-hyprgrass.md`](references/gotchas/touchscreen-hyprgrass.md) | Hyprgrass touch plugin & spacebar keybind collision in Hyprland 0.56+ |
+| ├── [`camera-ipu4.md`](references/gotchas/camera-ipu4.md) | Surface Book 3 Intel IPU4 internal camera unsupported status & UVC workaround |
+| ├── [`power-baseline.md`](references/gotchas/power-baseline.md) | Surface Book 3 dual-battery idle power tracking tool & kernel comparison baselines |
 | └── [`virtual-keyboard.md`](references/gotchas/virtual-keyboard.md) | Surface on-screen touch keyboard (`wvkbd`) and compositor execution path |
 | [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
 | [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |

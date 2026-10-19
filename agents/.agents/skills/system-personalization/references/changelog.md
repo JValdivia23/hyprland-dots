@@ -2,6 +2,32 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.68.0] - 2026-10-19
+### Added
+- **Surface Book 3 Dual-Battery Idle Energy Tracking & Linux 7.2.11 Baseline (`profiles/surface`, device-specific)**:
+  - Created unprivileged Python 3 profiling tool [`surface-idle-power.py`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-idle-power.py) in `profiles/surface/scripts/` to measure dual-battery (`BAT1` + `BAT2`) discharge rates with automated quality filters and metadata logging (`~/.local/state/surface-idle-power/log.jsonl`).
+  - **Screen State Consistency & Idle Inhibition**: Integrated automated `systemd-inhibit --what=idle` execution to prevent `hypridle` from stepping down backlight brightness (10% at 150s) or triggering DPMS off (at 300s) mid-measurement, ensuring uniform 25% brightness across 5-minute sampling runs.
+  - **Baseline Established on `7.2.11-1-cachyos`**:
+    - **Median draw**: **5.86 W** (mean: 5.91 W, stdev: 0.14 W, min: 5.75 W, max: 6.47 W).
+    - **CPU & Thermal State**: 99.1% CPU idle, 716 MHz average core clock, 95.5% C3_ACPI state residency under `power-saver`/`powersave`/`power` EPP.
+    - **Energy Counter Cross-Check**: Verified close agreement (5.62 W calculated via `energy_now` delta vs 5.86 W `power_now` median).
+  - Created [`gotchas/power-baseline.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/power-baseline.md) (symlinked to skill gotchas) documenting measurement protocol, comparability gotchas, past run tables, and guidelines for validating the upcoming Linux 7.3 kernel.
+  - Updated `SKILL.md` and `references/current-state.md`.
+
+## [2.67.0] - 2026-10-19
+### Changed
+- **Full System Upgrade (`surface`, device-specific & core)**:
+  - Upgraded system packages via `pacman -Syu`:
+    - **Kernels**: `linux-cachyos` (7.2.9-2 $\rightarrow$ 7.2.11-1), `linux-cachyos-headers` (7.2.9-2 $\rightarrow$ 7.2.11-1), `linux-surface` (6.19.8.arch1-3 $\rightarrow$ 7.2.11.arch1-1), `linux-surface-headers` (6.19.8.arch1-3 $\rightarrow$ 7.2.11.arch1-1).
+    - **Core System & Desktop**: `systemd` (262-1 $\rightarrow$ 262.1-1), `noctalia` (5.2.1-1.1 $\rightarrow$ 5.3.0-1.1), `iptsd` (3.1.0-1 $\rightarrow$ 3.1.1-1), `zen-browser-bin` (1.23.2b-1 $\rightarrow$ 1.23.3b-1), `hyprland-protocols` (0.7.1-1.1 $\rightarrow$ 0.8.0-1.1), `dkms` (3.4.3-1 $\rightarrow$ 3.4.4-2), `clang`/`llvm` (23.1.1 $\rightarrow$ 23.1.3-2).
+  - **DKMS Module Verification**: Automatic DKMS build successfully compiled and installed `ipts/2024.04.16` for `7.2.11-1-cachyos` with Clang/LLVM.
+  - **Bootloader & Snapshots**: Initramfs successfully generated and synced to `/boot` via `limine-snapper-sync` and `limine-mkinitcpio-hook`; Btrfs snapshot #64 created cleanly.
+  - Updated `SKILL.md` to reference `camera-ipu4.md` and updated `references/current-state.md`.
+
+## [2.66.0] - 2026-10-18
+### Documented
+- **Internal camera diagnosis (`surface` profile, device-specific)**: Confirmed no `/dev/video*`; ISP `8086:8a19` (Intel IPU4) has no bound driver on kernel `7.2.9-2-cachyos`, and IPU4 is unsupported upstream and in `linux-surface`. No fix; use an external USB UVC webcam. No system changes made. Added `references/gotchas/camera-ipu4.md`.
+
 ## [2.65.0] - 2026-10-18
 ### Added & Fixed
 - **Minimized Window Tray Drawer UX, Full-Bleed Dynamic Badge Icons & State Sync (`core/`, universal)**:
