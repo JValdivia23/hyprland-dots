@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.73.0] - 2026-10-25
+### Fixed: `SUPER + 1` Targeting 2nd Workspace Indicator (`core/`, universal)
+- **Root Cause**: `core/.config/hypr/config/workspaces.lua` declared `hl.workspace_rule({ workspace = "name:gaming", monitor = PRIMARY_MONITOR, default = true })` before Workspace `1` (and set `default = true` on Workspaces `1`, `2`, and `3`), while `core/.config/hypr/config/windowrules.lua` redirected `content = "game"` and `steam_app.*` windows to `name:gaming`. Because Hyprland assigns named workspaces negative IDs (`-1337`), Noctalia sorted `gaming (-1337)` into the **1st (leftmost)** workspace bar pill and shifted numbered Workspaces `1`, `2`, and `3` into the **2nd, 3rd, and 4th** positions.
+- **Fix**:
+  - Removed the `name:gaming` rule from `core/.config/hypr/config/workspaces.lua` and kept `default = true` exclusively on Workspace `1` (`persistent = true` on `1`, `2`, and `3`).
+  - Removed the `workspace = "name:gaming"` redirects from `core/.config/hypr/config/windowrules.lua` so games remain on regular numbered workspaces.
+  - Migrated active windows from `-1337 (gaming)` onto Workspace `1` and reloaded Hyprland (`hyprctl configerrors` clean).
+  - Documented in `references/gotchas/hyprland.md` (Section 18).
+
+
 ## [2.69.1] - 2026-10-19
 ### Reinstall Persistence
 - Audited detached-only rotation through a fresh temporary HOME rather than rerunning the live Surface boot/driver setup.

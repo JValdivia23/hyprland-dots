@@ -227,4 +227,16 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   ```
   *(Note: When triggering from a floating launcher window such as `hypr-keybinds-menu`, spawn a detached helper and exit the launcher window first so Hyprland restores focus to the underlying target window before `fn()` executes).*
 
+---
+
+## 18. Named Workspaces (`name:gaming`) Shifting `SUPER + 1` to the 2nd Bar Position
+
+- **Symptom**: Pressing `SUPER + 1` jumps to the **second** workspace indicator in the Noctalia top bar instead of the leftmost (first) workspace.
+- **Root Cause**:
+  1. In Hyprland, named workspaces (`name:gaming`) are assigned negative workspace IDs (`-1337`). Because Noctalia's workspace pill bar sorts workspaces by ID (`-1337`, `1`, `2`, `3`), any active named workspace appears at the **far-left (1st) position**, pushing numbered Workspace `1` to the **2nd position**.
+  2. `core/.config/hypr/config/workspaces.lua` previously declared `hl.workspace_rule({ workspace = "name:gaming", monitor = PRIMARY_MONITOR, default = true })` before workspace `1` (and also set `default = true` on workspaces `2` and `3`), while `windowrules.lua` redirected `content = "game"` and `steam_app.*` windows to `name:gaming`.
+- **Fix**:
+  1. Remove `name:gaming` from `core/.config/hypr/config/workspaces.lua` and `core/.config/hypr/config/windowrules.lua`.
+  2. Only set `default = true` on a single workspace per monitor (Workspace `1` on `MONITOR1`), keeping `persistent = true` on Workspaces `1`, `2`, and `3`.
+
 
