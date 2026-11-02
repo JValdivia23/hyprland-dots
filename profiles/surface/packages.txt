@@ -16,3 +16,4 @@ libcamera
 libcamera-ipa
 libcamera-tools
 pipewire-libcamera
+snapshot
