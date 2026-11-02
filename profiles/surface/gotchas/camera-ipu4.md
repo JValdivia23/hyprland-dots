@@ -16,7 +16,9 @@
 - Kernel >= 7.4 adds a `v4l2_subdev_client_info *ci` pad-op arg; DKMS sources guard with `LINUX_VERSION_CODE`.
 - DKMS rebuilds automatically per kernel (`BUILD_EXCLUSIVE_KERNEL=-cachyos`); on linux-surface kernel no DKMS needed? Not tested.
 
-## 3. Known issues / TODO
-- `dw9719` VCM: `Error writing reg 0x0003: -121` at probe; libcamera `cam` logs "Lens initialisation failed" -> no rear autofocus.
-- While WirePlumber runs, libcamera keeps the rear lens subdev open, so `ov8865`/VCM and `INT3472:01-avdd` stay powered (stopping WirePlumber suspends everything). Idle-power cost unmeasured.
+## 3. Resolved / remaining
+- **Idle power (fixed):** stock `dw9719` takes a runtime-PM ref on every subdev open; libcamera in WirePlumber keeps the lens node open, pinning VCM + `ov8865` (device link) + `INT3472:01-avdd`. DKMS now ships a patched `dw9719` (power only while writing a control). Verified all sensors/regulators suspended while WirePlumber runs.
+- `dw9719` `Error writing reg 0x0003: -121` at probe is the intentional SCL "jiggle" write; harmless.
+- **No autofocus:** libcamera 0.7.2 simple IPA has no AF algorithm; lens stays at rest position. Manual `V4L2_CID_FOCUS_ABSOLUTE` works but the VCM ramps to 0 on suspend.
+- Live reload pitfall: WirePlumber pins camera modules (open subdevs); `install-cameras.sh` stops/starts it around `modprobe -r`.
 - IR (`ov7251`) has no libcamera sensor helper (works with defaults).

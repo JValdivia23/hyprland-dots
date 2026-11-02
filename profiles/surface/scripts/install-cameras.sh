@@ -131,6 +131,13 @@ depmod -a "$KVER"
 # 4. Live hot-load on running CachyOS kernel (no reboot required)
 if [[ "$KVER" == *-cachyos* && -d /sys/bus/pci/devices/0000:00:05.0 ]]; then
     echo "--> Reloading IPU4P & sensor kernel modules on live kernel ($KVER)..."
+    # libcamera inside the user's WirePlumber keeps the camera subdevs open,
+    # which pins the modules; stop it for the reload and restart it afterwards.
+    USER_CTL=()
+    if [[ -n "${SUDO_USER:-}" ]] && id "$SUDO_USER" &>/dev/null; then
+        USER_CTL=(sudo -u "$SUDO_USER" env "XDG_RUNTIME_DIR=/run/user/$(id -u "$SUDO_USER")" systemctl --user)
+        "${USER_CTL[@]}" stop wireplumber.service 2>/dev/null || true
+    fi
     modprobe -r intel_ipu6_isys intel_ipu6 2>/dev/null || true
     modprobe -r ov7251 ov5693 ov8865 dw9719 2>/dev/null || true
 
@@ -140,6 +147,9 @@ if [[ "$KVER" == *-cachyos* && -d /sys/bus/pci/devices/0000:00:05.0 ]]; then
     modprobe ov8865 || true
     modprobe dw9719 || true
     modprobe ov7251 || true
+    if [[ ${#USER_CTL[@]} -gt 0 ]]; then
+        "${USER_CTL[@]}" start wireplumber.service 2>/dev/null || true
+    fi
 fi
 
 echo "==> Surface IPU4P native camera stack installed successfully."

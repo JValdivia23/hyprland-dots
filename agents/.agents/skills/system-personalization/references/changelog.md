@@ -6,7 +6,7 @@ A dated log of all package changes, configurations, script modifications, and ha
 ### Added: Native Surface Book 3 internal cameras (Intel IPU4P) (`profiles/surface`, device-specific)
 - Reverse engineered Windows `iacamera64.sys` with Craft Anything (missing CSI-2 PHY building block 8, 16 ticks/ns D-PHY counter, 2-lane vs 4-lane RX register layout) and built on `ruslanbay/ipu4-drivers` RFC v2 + linux-surface PR #2289.
 - Installed `libcamera`, `libcamera-ipa`, `libcamera-tools`, `pipewire-libcamera`; DKMS `surface-ipu4p/0.2.0`; `ipu4p_fw.bin`; IPA yaml (OV8865 CCM from SB3 `.aiqb`); WirePlumber `52-surface-ipu4p.conf`. Files: `profiles/surface/{dkms/ipu4p,camera,scripts/install-cameras.sh}`, `packages.txt`, `setup.sh` step 13.
-- Verified 3/3 sensors capture via `cam`; no CSI errors. Open: DW9719 autofocus, rear sensor stays powered while WirePlumber runs. See `gotchas/camera-ipu4.md`.
+- Verified 3/3 sensors capture via `cam`; no CSI errors. Patched dw9719 fixes idle power; no AF (libcamera simple IPA lacks it). See `gotchas/camera-ipu4.md`.
 
 ## [2.74.0] - 2026-10-29
 ### Added: Passphrase-Encrypted Zen Browser Profile Sync (`~/zen-sync`, universal user setting)
