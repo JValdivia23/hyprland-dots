@@ -12,3 +12,7 @@ python-gobject
 easyeffects
 lsp-plugins-lv2
 calf
+libcamera
+libcamera-ipa
+libcamera-tools
+pipewire-libcamera

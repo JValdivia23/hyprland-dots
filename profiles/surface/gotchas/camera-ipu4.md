@@ -1,18 +1,22 @@
-# Surface Book 3 Internal Cameras (Intel IPU4) — Unsupported
+# Surface Book 3 Internal Cameras (Intel IPU4P) — Native support via DKMS + libcamera
 
-**Scope:** device-specific (`profiles/surface`).
+**Scope:** device-specific (`profiles/surface`). Deployed 2026-11-01 on `7.3.0-2-cachyos`.
 
-## 1. Symptom
-- No `/dev/video*` or `/dev/media*` nodes; `v4l2-ctl --list-devices` is empty; apps/browsers see no camera.
-- `lsmod` shows sensor drivers (`ov8865`, `ov5693`, `ov7251`) and `videodev`/`v4l2_async`, and `dmesg` only logs `ov8865 i2c-INT347A:00: supply dvdd/dovdd not found, using dummy regulator`.
-- `lspci -k -s 00:05.0` shows `Intel Image Signal Processor [8086:8a19]` with **no "Kernel driver in use"**.
+## 1. Working state
+- All 3 sensors stream through libcamera (SoftISP/GPU-ISP): Front RGB `OV5693` (~28.7 fps), Rear RGB `OV8865` (~15 fps), Front IR `OV7251` (30 fps, `R10`). `cam --list` shows all three; WirePlumber shows `Surface Front Camera`, `Surface Rear Camera`, `Surface Front IR Camera`.
+- Stack: DKMS `surface-ipu4p` (`dkms/ipu4p/`: `intel-ipu6`, `intel-ipu6-isys`, `ov7251`, `ov5693`) on stock kernel + stock `ipu-bridge`/`ov8865`/`dw9719`; signed firmware `/usr/lib/firmware/intel/ipu/ipu4p_fw.bin` (SHA-256 `ff2c36cc…e5157f`, license in `camera/firmware/`); IPA tuning in `/etc/libcamera/ipa/simple/`; WirePlumber `/etc/wireplumber/wireplumber.conf.d/52-surface-ipu4p.conf`.
+- Deploy: `sudo bash profiles/surface/scripts/install-cameras.sh [--no-packages]` (also Step 13 of `setup.sh`).
+- Upstream-able source: `~/work/surface-ipu4p/surface-ipu4p-dkms` (git), RE report `~/work/surface-ipu4p/CRAFT-ANYTHING-RE-REPORT.md`.
 
-## 2. Root Cause
-- Surface Book 3 (Ice Lake) uses the Intel **IPU4** ISP (`8086:8a19`), not IPU3 or IPU6.
-- `ipu3_cio2` only matches `8086:9d32` (IPU3); `intel-ipu6` only covers newer Tiger Lake+ IDs. Nothing in mainline or `linux-surface` binds IPU4, and Intel never released upstream drivers/firmware for it.
-- The OmniVision sensor modules loading is cosmetic: with no ISP/CSI bridge driver, no video pipeline is created.
+## 2. Gotchas
+- **Never install popos123's `99-surface-ipu6-video.rules`** (`0600`, no `uaccess`) — it blocks user-session libcamera.
+- Do not copy `media-ref/include/media/ipu-bridge.h` into the DKMS tree (struct ABI vs stock `ipu-bridge.ko`).
+- libcamera requires `V4L2_CID_ANALOGUE_GAIN`; stock `ov7251` only had `V4L2_CID_GAIN` (fixed in DKMS copy).
+- V4L2 driver name is `isys`, card `ipu4p` (not `intel-ipu6`); WirePlumber rule matches `device.name ~ v4l2_device.pci-0000_00_05.0.*`.
+- Kernel >= 7.4 adds a `v4l2_subdev_client_info *ci` pad-op arg; DKMS sources guard with `LINUX_VERSION_CODE`.
+- DKMS rebuilds automatically per kernel (`BUILD_EXCLUSIVE_KERNEL=-cachyos`); on linux-surface kernel no DKMS needed? Not tested.
 
-## 3. Verdict
-- **No software fix exists** (checked 2026-10-18 on kernel `7.2.9-2-cachyos`). Do not waste time on `libcamera`, `pipewire-libcamera`, `linux-surface` kernel swaps, or `ipu3-*` modules.
-- Only workaround: an external USB UVC webcam, which works out of the box (`uvcvideo`).
-- Re-check only if `linux-surface`/mainline announces IPU4 support.
+## 3. Known issues / TODO
+- `dw9719` VCM: `Error writing reg 0x0003: -121` at probe; libcamera `cam` logs "Lens initialisation failed" -> no rear autofocus.
+- While WirePlumber runs, libcamera keeps the rear lens subdev open, so `ov8865`/VCM and `INT3472:01-avdd` stay powered (stopping WirePlumber suspends everything). Idle-power cost unmeasured.
+- IR (`ov7251`) has no libcamera sensor helper (works with defaults).

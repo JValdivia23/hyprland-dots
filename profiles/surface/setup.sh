@@ -250,4 +250,14 @@ if [[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) == "Surface Book 3" ]] &
     fi
 fi
 
+# 13. Native Intel IPU4P internal cameras (OV5693 Front, OV8865 Rear, OV7251 IR)
+#     via DKMS + libcamera SoftISP/GPU-ISP + WirePlumber on CachyOS kernels.
+SURFACE_PRODUCT="$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)"
+if [[ "$SURFACE_PRODUCT" == "Surface Book 3" || "$SURFACE_PRODUCT" == "Surface Pro 7" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-cameras.sh" ]] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface Intel IPU4P native camera stack..."
+    sudo bash "$SCRIPT_DIR/scripts/install-cameras.sh" --no-packages
+fi
+
 echo "==> Microsoft Surface setup finished."
