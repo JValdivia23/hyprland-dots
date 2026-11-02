@@ -24,7 +24,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `SHIFT` + `O` | Video PiP & Pin | Small video PiP (560x315) in bottom-right corner & pin across workspaces |
 | `SUPER` + `R` | Window Resize Mode | Interactive resize mode: Drag touchscreen/mouse or use Arrows/HJKL (Esc/Enter to exit) |
 | `SUPER` + `G` | Toggle Group / Stacking | Collapse window into / out of tabbed group slot (`hl.dsp.group.toggle`) |
-| `SUPER` + `ALT` + `G` | Move Out of Group | Remove active window from grouped stack (`hl.dsp.exec_raw("moveoutofgroup")`) |
+| `SUPER` + `ALT` + `G` | Move Out of Group | Remove active window from grouped stack (`hl.dsp.window.move({ out_of_group = true })`) |
 | `SUPER` + `ALT` + `Tab` | Cycle Next in Group | Switch to next window tab within active group (`hl.dsp.group.next`) |
 | `SUPER` + `ALT` + `SHIFT` + `Tab` | Cycle Prev in Group | Switch to previous window tab within active group (`hl.dsp.group.prev`) |
 | `SUPER` + `CONTROL` + `G` | Toggle Group Lock | Lock/unlock active group (`hl.dsp.group.lock_active`) |

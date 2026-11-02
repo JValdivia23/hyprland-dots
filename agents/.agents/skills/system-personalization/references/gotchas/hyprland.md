@@ -154,12 +154,12 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   1. **Tiled vs Floating Resizing**: Hyprland's `resizeactive <X> <Y>` dispatcher was designed for floating windows. On tiled windows in the `dwindle` layout, relative coordinate vectors frequently fail or get rejected with `"Invalid size provided"` when edges hit monitor bounds. In `dwindle`, tiled windows are sized by split ratios (`splitratio`).
   2. **Submap Modifier Masks**: When entering a submap via `SUPER + R`, users often keep holding `SUPER` while tapping arrow keys. If the submap only binds bare keys (`Right`, `modmask = 0`), pressing `SUPER + Right` (`modmask = 64`) does not match and is completely ignored.
 - **Fix**:
-  1. Inspect `win.floating` via `hl.get_active_window()`. If floating, dispatch `resizeactive dx dy`. If tiled, dispatch `hl.dsp.layout("splitratio <ratio>")`:
+  1. Inspect `win.floating` via `hl.get_active_window()`. If floating, dispatch `hl.dsp.window.resize({ x = dx, y = dy, relative = true })`. If tiled, dispatch `hl.dsp.layout("splitratio <ratio>")`:
      ```lua
      local function resize_dir(dx, dy, ratio)
          local win = hl.get_active_window()
          if win and win.floating then
-             hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+             hl.dispatch(hl.dsp.window.resize({ x = dx, y = dy, relative = true }))
          else
              hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
          end
@@ -170,18 +170,19 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
 
 ---
 
-## 14. `hyprctl dispatch` Syntax Error in Lua Mode (`hl.dsp.exec_raw`)
+## 14. `hyprctl dispatch` Syntax Error in Lua Mode & `hl.dsp.exec_raw` Misuse (`0.57.0+`)
 
-- **Symptom**: Calling `hyprctl dispatch <dispatcher> <args>` (e.g. `hyprctl dispatch movetoworkspacesilent special:minimized,address:0x...`) fails with `error: [string "return hl.dispatch(...)"]:1: ')' expected near ... Note: dispatch in lua is a shorthand for hl.dispatch(...)`.
-- **Root Cause**: In Hyprland 0.55+ with Lua configuration, `hyprctl dispatch` directly translates CLI arguments into a raw Lua call `return hl.dispatch(...)`. Complex CLI argument strings containing commas, colons, or whitespace fail Lua syntax parsing.
-- **Fix**: In helper scripts and IPC calls, use `hyprctl eval` wrapping `hl.dsp.exec_raw`:
-  ```bash
-  hyprctl eval 'hl.dispatch(hl.dsp.exec_raw("<dispatcher>", "<args>"))'
-  ```
-  Example:
-  ```bash
-  hyprctl eval 'hl.dispatch(hl.dsp.exec_raw("movetoworkspacesilent", "special:minimized,address:0x55d30d..."))'
-  ```
+- **Symptom**:
+  1. Calling `hyprctl dispatch <dispatcher> <args>` (e.g. `hyprctl dispatch movetoworkspacesilent special:minimized,address:0x...`) fails with `error: [string "return hl.dispatch(...)"]:1: ')' expected near ... Note: dispatch in lua is a shorthand for hl.dispatch(...)`.
+  2. In **Hyprland `0.57.0+`**, calling `hl.dsp.exec_raw("<dispatcher>", "<args>")` with 2 arguments throws `exec_raw: expected at most 1 argument, got 2` (and if passed into `hl.bind`, causes `hl.bind: expected a dispatcher or a lua function`), triggering desktop `.config` error notifications on startup while `hyprctl configerrors` remains empty.
+- **Root Cause**:
+  1. In Hyprland 0.55+ with Lua configuration, `hyprctl dispatch` directly translates CLI arguments into a raw Lua call `return hl.dispatch(...)`.
+  2. `hl.dsp.exec_raw(cmd)` is the Lua binding for `execr` (spawning a raw shell command string without `/bin/sh -c`, accepting at most **1 argument**), **not** a generic wrapper for legacy `.conf` dispatcher names. Hyprland `0.57.0` added strict argument-count validation that rejects 2-argument `hl.dsp.exec_raw(a, b)` calls, and logs Lua errors to `/run/user/$UID/hypr/$HYPRLAND_INSTANCE_SIGNATURE/hyprland.log` under `[Config::Lua::Bindings::Internal::reportError]`.
+- **Fix**: Always use the native structured `hl.dsp.*` tables in Lua configs and `hyprctl eval`:
+  - Toggle pseudo tiling: `hl.dsp.window.pseudo()`
+  - Relative window resize: `hl.dsp.window.resize({ x = dx, y = dy, relative = true })`
+  - Move window out of group: `hl.dsp.window.move({ out_of_group = true })`
+  - Move window to workspace silently: `hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })`
 
 ---
 

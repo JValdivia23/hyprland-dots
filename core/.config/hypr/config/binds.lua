@@ -31,7 +31,7 @@ helpers.bind(mainMod .. " + T",      "Toggle window floating", hl.dsp.window.flo
 helpers.bind(mainMod .. " + D",      "Toggle monocle fullscreen", hl.dsp.window.fullscreen({ mode = 1 }))
 helpers.bind(mainMod .. " + F",      "Toggle fullscreen", hl.dsp.window.fullscreen())
 helpers.bind(mainMod .. " + J",      "Toggle split layout", hl.dsp.layout("togglesplit"))
-helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.exec_raw("pseudo", ""))
+helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.window.pseudo())
 helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_cmd(winPop))
 helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
@@ -41,7 +41,7 @@ helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.d
 local function resize_dir(dx, dy, ratio)
     local win = hl.get_active_window()
     if win and win.floating then
-        hl.dispatch(hl.dsp.exec_raw("resizeactive", dx .. " " .. dy))
+        hl.dispatch(hl.dsp.window.resize({ x = dx, y = dy, relative = true }))
     else
         hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
     end
@@ -119,7 +119,7 @@ helpers.bind(mainMod .. " + r", "Enter window resize mode", enter_resize)
 
 -- Window grouping / stacking
 helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacking", hl.dsp.group.toggle())
-helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.exec_raw("moveoutofgroup", ""))
+helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.window.move({ out_of_group = true }))
 helpers.bind(mainMod .. " + ALT + Tab",         "Cycle next window in group",        hl.dsp.group.next())
 helpers.bind(mainMod .. " + ALT + SHIFT + Tab", "Cycle previous window in group",   hl.dsp.group.prev())
 helpers.bind(mainMod .. " + CONTROL + G",       "Toggle group lock",                 hl.dsp.group.lock_active())
@@ -361,7 +361,7 @@ helpers.bind(mainMod .. " + CONTROL + mouse_down", "Scroll to previous workspace
 
 -- Special workspace (scratchpad)
 helpers.bind(mainMod .. " + S",       "Toggle scratchpad workspace",     hl.dsp.workspace.toggle_special())
-helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
+helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.window.move({ workspace = "special:scratchpad", follow = false }))
 
 -- Display scale stepper (Omarchy-style steps: 1x, 1.25x, 1.6x, 2x, 3x, 4x; runtime only)
 helpers.bind(mainMod .. " + slash",       "Increase monitor scale", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-monitor-scale up"))

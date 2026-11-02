@@ -19,4 +19,4 @@ case "$DIR" in
         DX="$AMOUNT"; DY="0" ;;
 esac
 
-hyprctl dispatch "hl.dsp.exec_raw('resizeactive', '$DX $DY')" >/dev/null 2>&1
+hyprctl dispatch "hl.dsp.window.resize({ x = $DX, y = $DY, relative = true })" >/dev/null 2>&1

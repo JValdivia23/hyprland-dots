@@ -404,7 +404,7 @@ def main():
                                             cmd = (
                                                 f"eval local win = hl.get_active_window(); "
                                                 f"if win and win.floating then "
-                                                f"hl.dispatch(hl.dsp.exec_raw('resizeactive', '{step_x} {step_y}')) "
+                                                f"hl.dispatch(hl.dsp.window.resize({{ x = {step_x}, y = {step_y}, relative = true }})) "
                                                 f"else "
                                                 f"hl.dispatch(hl.dsp.layout('splitratio {ratio}')) "
                                                 f"end"

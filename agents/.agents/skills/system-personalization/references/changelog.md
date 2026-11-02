@@ -2,6 +2,29 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.77.0] - 2026-11-02
+### Updated: System Upgrade (`linux-cachyos 7.3.1-1`, `hyprland 0.57.0`, `noctalia 5.4.1`, `zen-browser 1.24b`) & Hyprland `0.57.0` Native Lua Dispatcher Migration (`core/` & `profiles/surface`)
+- Upgraded 140 repository packages and 1 AUR package (`wvkbd 0.21-1`), moving to kernel `7.3.1-1-cachyos` (with DKMS auto-rebuilds verified for `ipts/2024.04.16`, `surface-ipu4p/0.2.0`, and `surface-usbc/0.1.0`), fallback `linux-surface 7.2.14.arch1-1`, `hyprland 0.57.0-3.1`, `noctalia 5.4.1-1.1`, and `zen-browser-bin 1.24b-1`.
+- Fixed startup `.config` Lua error notifications in Hyprland `0.57.0` caused by 2-argument `hl.dsp.exec_raw("<dispatcher>", "<args>")` calls (`exec_raw: expected at most 1 argument, got 2`):
+  - Replaced `hl.dsp.exec_raw("pseudo", "")` with `hl.dsp.window.pseudo()` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("moveoutofgroup", "")` with `hl.dsp.window.move({ out_of_group = true })` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad")` with `hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("resizeactive", ...)` with `hl.dsp.window.resize({ x = ..., y = ..., relative = true })` in `core/.config/hypr/config/binds.lua`, `profiles/surface/.local/bin/hypr-touch-resizer`, and `profiles/surface/.local/bin/hypr-resize-step`.
+
+## [2.76.0] - 2026-11-02
+### Added: Surface USB-C UCSI-over-HID (`ucsi_surface_hid`) & Charger `Artg` (`surface_charger`) DKMS + Upstream PRs (`profiles/surface`, device-specific)
+- Wrote clean-room `ucsi_surface_hid` kernel driver (`HID\VID_045E&UP:FF00_U:F900`, Feature/Input Report `0x32` + Feature Report `0x33`) and extended `surface_charger` with SSAM `TC=0x02, CID=0x0f` (`Artg` PSU wattage in `mW` $\rightarrow$ `POWER_SUPPLY_PROP_INPUT_POWER_LIMIT` in `uW`) plus a bugfix for `spwr_ac_get_property()` returning `+1` on state transitions.
+- Installed persistently via DKMS (`surface-usbc/0.1.0`, MOK-signed for `7.3.0-2-cachyos`) and integrated into `profiles/surface/{dkms/surface-usbc,scripts/install-usbc.sh}` and `setup.sh` step 14.
+- Verified live on `7.3.0-2-cachyos`: `/sys/class/typec/port0` (Type-C 1.3 / USB PD 3.0), `ucsi-source-psy-0019:045E:09A6.00021` (`[C] PD PD_PPS`), and `/sys/class/power_supply/ADP1/input_power_limit = 60000000` (60 W on magnetic Surface Connect charger), with zero `dmesg` warnings and sibling HID devices (`09A6.0004` Base CFU, `09AE` keyboard, `09AF` touchpad) intact.
+- Opened upstream PRs `linux-surface/kernel#184` (`v7.3-surface-devel`, `checkpatch.pl` 0 errors/0 warnings) and `linux-surface/linux-surface#2354` (`configs/surface-7.3.config`), with protocol writeups posted on `linux-surface/surface-pro-x#35` and `linux-surface/linux-surface#1069`.
+
+## [2026-11-02] - Surface Book 3 USB-C PD Charging Root-Cause Diagnosis via UCSI-over-HID & SSAM
+### Hardware investigation (`profiles/surface`, device-specific; no persistent system config changed)
+- Reverse engineered Windows `SurfaceUcmUcsiHidClient.sys`, `SurfaceBattery.sys`, and `SurfaceHpmi.sys` via Craft Anything (`--deep`), decoding the undocumented Surface UCSI-over-HID PPM transport (`0019:045E:09A6.0002` @ `01:15:02:06:00`, Feature/Input Reports `0x32` & `0x33`) and SSAM `TC=0x02` `CID=0x0F` (`Artg` adapter wattage in mW), `CID=0x50`/`0x51` (HPMI SDB hints), and `CID=0x53` (battery gauge telemetry).
+- Ran user-approved live UCSI + SSAM capture (`/home/jmvp/work/surface-usbc/ucsi_hid_diag.py` $\rightarrow$ `/home/jmvp/work/surface-usbc/diag.log`) with the 60 W USB-C PD charger and tested `UCSI_SET_PDR` and `UCSI_CONNECTOR_RESET` (Soft & Hard).
+- Captured the exact 2.05 s failure loop: at `5 V` attach, CC BMC PD 3.0 negotiation succeeds cleanly (`PDO#1 5V/2.4A`, `PDO#2 9V/3A`, `PDO#3 20V/3A`, negotiated `RDO=0x3304b12c` for `20.00 V @ 3.00 A = 60 W`, SSAM `PSR=1, ARTG=60000 mW`), and **194 ms later** (upon VBUS ramp to 20 V / USB-C Sink FET turn-on) VBUS collapses (`connected=False`, `0 mW` delivered to `BAT1`/`BAT2`) until the charger's ~1.85 s OCP hiccup timer restarts.
+- Definitively isolated a physical hardware fault on the Keyboard Base (`Base V3`) USB-C VBUS Sink stage (damaged 20 V TVS diode / capacitor / Sink MOSFET from the original external-monitor incident), ruling out missing Linux drivers, firmware state, or battery protection locks. Documented in `profiles/surface/gotchas/battery-upower.md` §2. Also opened upstream IPU4P camera PR `ruslanbay/ipu4-drivers#1` earlier in session.
+
 ## [2.75.0] - 2026-11-01
 ### Added: Native Surface Book 3 internal cameras (Intel IPU4P) (`profiles/surface`, device-specific)
 - Reverse engineered Windows `iacamera64.sys` with Craft Anything (missing CSI-2 PHY building block 8, 16 ticks/ns D-PHY counter, 2-lane vs 4-lane RX register layout) and built on `ruslanbay/ipu4-drivers` RFC v2 + linux-surface PR #2289.
