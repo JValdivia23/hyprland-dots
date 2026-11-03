@@ -9,6 +9,8 @@ hl.config({
         repeat_delay = 600,
     },
     cursor = {
+        no_hardware_cursors = true,
+        enable_hyprcursor = true,
         inactive_timeout = 3,
         hide_on_key_press = true,
     },

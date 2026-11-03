@@ -253,5 +253,33 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   ```
   Then reload with `hyprctl reload` and verify with `hyprctl deprecated-config`.
 
+---
+
+## 20. Invisible Mouse Cursor in Hyprland 0.57+ (Aquamarine DRM KMS Hardware Cursor Plane Failure & Theme Resolution)
+
+- **Symptom**: Mouse/trackpad cursor is completely invisible or disappears on Hyprland 0.57+, even though trackpad motion events and clicks are captured by libinput and `hyprctl cursorpos` tracks coordinates.
+- **Root Cause**:
+  1. Hyprland 0.57's Aquamarine backend defaults `cursor:no_hardware_cursors = 2` (auto), attempting to allocate KMS DRM hardware cursor overlay planes (`Cursor buffer imported into KMS`). On Intel UHD 630 / Iris Plus / AMD hybrid GPU architectures, DRM KMS hardware planes fail to scan out or render blank.
+  2. If `XCURSOR_THEME`, `XCURSOR_SIZE`, `HYPRCURSOR_THEME`, and `HYPRCURSOR_SIZE` are not explicitly defined in Hyprland's `hl.env`, Hyprland fails to auto-resolve cursor asset buffers at startup.
+- **Fix**:
+  1. Explicitly export cursor environment variables in `core/.config/hypr/config/environment.lua`:
+     ```lua
+     hl.env("XCURSOR_THEME", "Bibata-Modern-Ice")
+     hl.env("XCURSOR_SIZE", "24")
+     hl.env("HYPRCURSOR_THEME", "Bibata-Modern-Ice")
+     hl.env("HYPRCURSOR_SIZE", "24")
+     ```
+  2. Force software cursor buffer fallback in `core/.config/hypr/config/inputs.lua`:
+     ```lua
+     cursor = {
+         no_hardware_cursors = true,
+         enable_hyprcursor = true,
+         inactive_timeout = 3,
+         hide_on_key_press = true,
+     }
+     ```
+  3. Apply dynamically and reload: `hyprctl reload && hyprctl setcursor Bibata-Modern-Ice 24`.
+
+
 
 

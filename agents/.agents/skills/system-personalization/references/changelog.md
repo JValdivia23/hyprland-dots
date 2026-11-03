@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.82.0] - 2026-11-02
+### Fixed
+- **Invisible Mouse Cursor Restoration (`core` / Hyprland 0.57.0)**:
+  - Resolved invisible cursor issue following reboot into Hyprland 0.57.0.
+  - Root cause: Aquamarine backend defaulted to KMS DRM hardware cursor planes (`no_hardware_cursors = auto`), which fail to scan out on Intel/AMD GPUs, combined with unexported cursor theme environment variables in `hl.env`.
+  - Added explicit cursor environment variables (`XCURSOR_THEME`, `XCURSOR_SIZE`, `HYPRCURSOR_THEME`, `HYPRCURSOR_SIZE` = 24 / `Bibata-Modern-Ice`) to [`core/.config/hypr/config/environment.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/environment.lua).
+  - Enforced `no_hardware_cursors = true` and `enable_hyprcursor = true` in [`core/.config/hypr/config/inputs.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/inputs.lua).
+  - Applied live via `hyprctl reload && hyprctl setcursor Bibata-Modern-Ice 24`. Documented in `references/gotchas/hyprland.md` §20.
+
 ## [2.81.0] - 2026-11-02
 ### Fixed
 - **Hyprland 0.57.0 Deprecated Dispatcher Migration (`hl.dsp.group.lock()`)**:
