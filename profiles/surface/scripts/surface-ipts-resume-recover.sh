@@ -26,7 +26,7 @@ recover_device() {
         fi
     fi
 
-    timeout --kill-after=1s 2s iptsd-check-device --quiet --type touchscreen "$device" || return 1
+    timeout --kill-after=2s 6s iptsd-check-device --quiet --type touchscreen "$device" || return 1
     # The packaged iptsd rule matches ACTION==add, not the default change event.
     timeout --kill-after=1s 2s udevadm trigger --action=add "$sys" || return 1
     udevadm settle --timeout=2 || true
@@ -34,7 +34,7 @@ recover_device() {
     # Re-enumeration can invalidate the node while the add event is processed.
     [[ -r "$sys/device/uevent" ]] || return 1
     grep -q '^HID_NAME=IPTS ' "$sys/device/uevent" || return 1
-    timeout --kill-after=1s 2s iptsd-check-device --quiet --type touchscreen "$device" || return 1
+    timeout --kill-after=2s 6s iptsd-check-device --quiet --type touchscreen "$device" || return 1
     properties="$(udevadm info --query=property --path="$sys")" || return 1
     wants="$(sed -n 's/^SYSTEMD_WANTS=//p' <<< "$properties")"
     [[ " $wants " == *" $unit "* ]] || return 1
@@ -49,6 +49,7 @@ recover_device() {
     sleep 1
     systemctl is-active --quiet "$unit" || return 1
     printf 'Recovered IPTS instance: %s\n' "$unit"
+    pkill -x lisgd 2>/dev/null || true
 }
 
 reset_obsolete_failures() {
@@ -66,11 +67,36 @@ reset_obsolete_failures() {
     done < <(systemctl list-units --state=failed --type=service --no-legend --plain 'iptsd@*.service')
 }
 
+is_device_healthy() {
+    local sys="$1" device escaped unit
+    device="/dev/${sys##*/}"
+    [[ -e "$device" ]] || return 1
+    escaped="$(systemd-escape --path "$device")" || return 1
+    unit="iptsd@${escaped}.service"
+    if systemctl is-active --quiet "$unit"; then
+        sleep 0.5
+        if systemctl is-active --quiet "$unit"; then
+            printf 'IPTS instance already active: %s\n' "$unit"
+            return 0
+        fi
+    fi
+    return 1
+}
+
 main() {
     local attempt sys found=0
-    # Retain the hardware handshake guard, but not in the blocking sleep hook.
-    sleep 1
-    for attempt in 1 2 3 4; do
+    # Fast-path check after brief 0.5s settle when normal udev already started iptsd.
+    sleep 0.5
+    while IFS= read -r sys; do
+        if is_device_healthy "$sys"; then
+            reset_obsolete_failures
+            return 0
+        fi
+    done < <(find_ipts_devices)
+
+    # Retain the full 2s initial hardware handshake guard before active probing.
+    sleep 1.5
+    for attempt in 1 2 3 4 5 6; do
         while IFS= read -r sys; do
             found=1
             if recover_device "$sys"; then
@@ -78,8 +104,8 @@ main() {
                 return 0
             fi
         done < <(find_ipts_devices)
-        printf 'IPTS recovery not ready (attempt %s/4).\n' "$attempt"
-        [[ "$attempt" == 4 ]] || sleep 2
+        printf 'IPTS recovery not ready (attempt %s/6).\n' "$attempt"
+        [[ "$attempt" == 6 ]] || sleep 2
     done
     if [[ "$found" == 0 && ! -d /sys/module/ipts ]]; then
         printf 'No IPTS driver/device present; recovery skipped.\n'

@@ -8,43 +8,106 @@ if ! command -v lisgd &>/dev/null; then
     exit 1
 fi
 
-# Find IPTSD virtual touchscreen event node dynamically
-DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTSD Virtual Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
-if [[ -z "$DEVICE_NODE" ]]; then
-    # Fallback to direct kernel IPTS touchscreen node
-    DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTS .* Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
-fi
+# Wait for Wayland display socket to become available (prevents startup coredump)
+for ((i = 0; i < 30; i++)); do
+    if [[ -n "${WAYLAND_DISPLAY:-}" && -S "${XDG_RUNTIME_DIR:-/run/user/$UID}/${WAYLAND_DISPLAY}" ]]; then
+        break
+    fi
+    sleep 0.1
+done
 
-if [[ -z "$DEVICE_NODE" ]]; then
-    echo "hypr-lisgd: No touchscreen input device found." >&2
-    exit 1
-fi
+# Ensure single supervisor instance runs and clean up child on exit
+pkill -x lisgd 2>/dev/null || true
+LISGD_PID=""
+trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' EXIT
+trap 'exit 0' INT TERM
+# Rotation changes only restart this supervisor's child, never another session.
+trap '[[ -n "$LISGD_PID" ]] && kill "$LISGD_PID" 2>/dev/null || true' USR1
 
-DEVICE_PATH="/dev/input/${DEVICE_NODE}"
+rotation_transform() {
+    local transform=0
+    local state="${XDG_RUNTIME_DIR:-/run/user/$UID}/surface-autorotate/transform"
+    if [[ -r "$state" ]]; then
+        read -r transform < "$state" || transform=0
+    fi
+    case "$transform" in
+        0|1|2|3) printf '%s\n' "$transform" ;;
+        *) printf '0\n' ;;
+    esac
+}
 
-# Ensure no duplicate instance runs
-pkill -x lisgd 2>/dev/null
+# Supervisor loop: auto-reconnects if iptsd reloads, sleeps, or disconnects
+while true; do
+    DEVICE_NODE=""
+    for ((i = 0; i < 30; i++)); do
+        DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTSD Virtual Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
+        if [[ -z "$DEVICE_NODE" ]]; then
+            DEVICE_NODE=$(grep -E -A 5 -B 1 "IPTS .* Touchscreen" /proc/bus/input/devices 2>/dev/null | grep -o 'event[0-9]\+' | head -n1)
+        fi
+        if [[ -n "$DEVICE_NODE" && -r "/dev/input/${DEVICE_NODE}" ]]; then
+            break
+        fi
+        sleep 0.2
+    done
 
-# Tuned parameters:
-# -s 3.5  : Expanded bezel touch grab area (175px) to comfortably clear top Noctalia bar
-# -r 35   : Expanded angle leniency from 15deg to 35deg for multi-finger alignment
-# -t 80   : Lowered distance threshold to 80px for natural 3-finger swipe triggers
-# -m 1500 : Generous 1.5s gesture timeout window
-exec lisgd -d "$DEVICE_PATH" \
-    -s 3.5 \
-    -r 20 \
-    -t 80 \
-    -m 1500 \
-    -g "1,DU,B,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,DU,BL,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,DU,BR,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
-    -g "1,RL,R,*,R,noctalia msg panel-toggle control-center" \
-    -g "1,LR,L,*,R,noctalia msg window-switcher" \
-    -g "1,UD,T,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "1,UD,TL,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "1,UD,TR,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "2,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
-    -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
-    -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
-    -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \
-    -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'"
+    if [[ -z "$DEVICE_NODE" || ! -r "/dev/input/${DEVICE_NODE}" ]]; then
+        echo "hypr-lisgd: Waiting for accessible touchscreen input device..." >&2
+        sleep 2
+        continue
+    fi
+
+    DEVICE_PATH="/dev/input/${DEVICE_NODE}"
+    TRANSFORM=$(rotation_transform)
+    # lisgd rotates bindings into raw sensor space, the inverse of the display.
+    ORIENTATION=$(( (4 - TRANSFORM) % 4 ))
+
+    # Tuned parameters:
+    # -w 3000 / -h 2000 : Explicit Surface Book 3 display geometry (skips wl_display_connect race)
+    # -s 3.5  : Expanded bezel touch grab area (175px) to comfortably clear top Noctalia bar
+    # -r 20   : Expanded angle leniency for multi-finger alignment
+    # -t 80   : Lowered distance threshold to 80px for natural 3-finger swipe triggers
+    # -m 1500 : Generous 1.5s gesture timeout window
+    lisgd -d "$DEVICE_PATH" \
+        -w 3000 \
+        -h 2000 \
+        -o "$ORIENTATION" \
+        -s 3.5 \
+        -r 20 \
+        -t 80 \
+        -m 1500 \
+        -g "1,DU,B,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,DU,BL,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,DU,BR,*,R,$HOME/.local/bin/hypr-virtual-keyboard" \
+        -g "1,RL,R,*,R,noctalia msg panel-toggle control-center" \
+        -g "1,LR,L,*,R,noctalia msg window-switcher" \
+        -g "1,UD,T,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "1,UD,TL,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "1,UD,TR,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "2,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.fullscreen())'" \
+        -g "2,LR,*,*,R,$HOME/.local/bin/hypr-resize-step right 60" \
+        -g "2,RL,*,*,R,$HOME/.local/bin/hypr-resize-step left 60" \
+        -g "3,RL,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e+1\" }))'" \
+        -g "3,LR,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.focus({ workspace = \"e-1\" }))'" \
+        -g "3,UD,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.close())'" \
+        -g "3,DU,*,*,R,hyprctl eval 'hl.dispatch(hl.dsp.window.float({ action = \"toggle\" }))'" &
+    LISGD_PID=$!
+
+    # libinput closes the evdev fd on device removal without exiting lisgd;
+    # verify lisgd still holds an active (non-deleted) fd to DEVICE_PATH.
+    while kill -0 "$LISGD_PID" 2>/dev/null; do
+        sleep 2
+        if [[ "$(rotation_transform)" != "$TRANSFORM" ]]; then
+            echo "hypr-lisgd: Display orientation changed; reconnecting..." >&2
+            kill "$LISGD_PID" 2>/dev/null || true
+            break
+        fi
+        if ! readlink /proc/"$LISGD_PID"/fd/* 2>/dev/null | grep -Fxq "$DEVICE_PATH"; then
+            echo "hypr-lisgd: Device $DEVICE_PATH disconnected; reconnecting..." >&2
+            kill "$LISGD_PID" 2>/dev/null || true
+            break
+        fi
+    done
+    wait "$LISGD_PID" 2>/dev/null || true
+    LISGD_PID=""
+    sleep 1
+done

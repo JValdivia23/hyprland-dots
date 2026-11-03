@@ -1,0 +1,5 @@
+# Surface Book 3: bind stock mei_me to the Ice Lake iTouch MEI (8086:34e4) on
+# non-linux-surface kernels so the DKMS ipts driver can attach (see
+# gotchas/kernel-cachyos-ipts.md). The script is a no-op on linux-surface.
+ACTION=="add", SUBSYSTEM=="pci", ATTR{vendor}=="0x8086", ATTR{device}=="0x34e4", RUN+="/usr/local/bin/surface-ipts-mei-bind"
+ACTION=="add", SUBSYSTEM=="module", KERNEL=="mei_me", RUN+="/usr/local/bin/surface-ipts-mei-bind"

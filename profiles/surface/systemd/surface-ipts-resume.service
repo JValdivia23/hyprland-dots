@@ -8,4 +8,5 @@ Environment=PATH=/usr/bin
 ExecStart=/usr/local/bin/surface-ipts-resume-recover
 TimeoutStartSec=45s
 TimeoutStopSec=3s
+SuccessExitStatus=143 SIGTERM
 NoNewPrivileges=yes

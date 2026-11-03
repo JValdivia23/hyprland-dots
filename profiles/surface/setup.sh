@@ -15,16 +15,25 @@ if systemctl list-unit-files iptsd.service &>/dev/null; then
     echo "    Enabled iptsd.service"
 fi
 
-# 2. Prioritize linux-surface kernel in Limine bootloader if limine-entry-tool is present
+# 2. Limine boot order: linux-cachyos (7.x + DKMS ipts, see step 10) first,
+#    linux-surface kept second as the fully patched fallback.
+SURFACE_BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"
 if [ -d "/etc/limine-entry-tool.d" ]; then
     echo "--> Configuring Limine bootloader default kernel for Surface..."
-    sudo bash -c 'cat > /etc/limine-entry-tool.d/zz-surface-kernel.conf << '\''LIMINE_EOF'\''
-# Prioritize Surface kernel as default boot entry
-BOOT_ORDER="linux-surface*, *, *fallback, Snapshots"
-LIMINE_EOF'
-    if command -v limine-update &>/dev/null; then
-        sudo limine-update 2>/dev/null || true
+    sudo bash -c "cat > /etc/limine-entry-tool.d/zz-surface-kernel.conf << LIMINE_EOF
+# Surface boot order: CachyOS kernel first, linux-surface fallback
+BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"
+LIMINE_EOF"
+elif [ -f "/etc/default/limine" ]; then
+    echo "--> Setting Surface BOOT_ORDER in /etc/default/limine..."
+    if grep -q '^BOOT_ORDER=' /etc/default/limine; then
+        sudo sed -i "s/^BOOT_ORDER=.*/BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"/" /etc/default/limine
+    else
+        echo "BOOT_ORDER=\"$SURFACE_BOOT_ORDER\"" | sudo tee -a /etc/default/limine >/dev/null
     fi
+fi
+if command -v limine-update &>/dev/null; then
+    sudo limine-update 2>/dev/null || true
 fi
 
 # 3. Deploy Surface tiered sleep & Modern Standby hibernate configurations
@@ -54,6 +63,13 @@ if [ -d "$SCRIPT_DIR/systemd" ]; then
             sudo cp -v "$SCRIPT_DIR/systemd/98-surface-unplug-lid.rules" /etc/udev/rules.d/98-surface-unplug-lid.rules
             sudo chmod 644 /etc/udev/rules.d/98-surface-unplug-lid.rules
             sudo udevadm control --reload-rules 2>/dev/null || true
+        fi
+        if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-rtc-sync.sh" ] && [ -f "$SCRIPT_DIR/systemd/19-surface-rtc-hibernate.sh" ]; then
+            echo "--> Deploying Surface hibernation CMOS RTC epoch alignment hook..."
+            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-rtc-sync.sh" /usr/local/bin/surface-hibernate-rtc-sync
+            sudo install -Dm755 "$SCRIPT_DIR/systemd/19-surface-rtc-hibernate.sh" /etc/systemd/system-sleep/19-surface-rtc-hibernate.sh
+            sudo mkdir -p /usr/lib/systemd/system-sleep /var/lib/surface-hibernate-rtc
+            sudo ln -sf /etc/systemd/system-sleep/19-surface-rtc-hibernate.sh /usr/lib/systemd/system-sleep/19-surface-rtc-hibernate.sh
         fi
         sudo systemctl daemon-reload 2>/dev/null || true
     fi
@@ -85,6 +101,8 @@ if [ -f "$SCRIPT_DIR/scripts/surface-battery-watchdog.sh" ]; then
         if [ -f "$SCRIPT_DIR/systemd/20-surface-battery-resume.sh" ]; then
             sudo cp -v "$SCRIPT_DIR/systemd/20-surface-battery-resume.sh" /etc/systemd/system-sleep/20-surface-battery-resume.sh
             sudo chmod 755 /etc/systemd/system-sleep/20-surface-battery-resume.sh
+            sudo mkdir -p /usr/lib/systemd/system-sleep
+            sudo ln -sf /etc/systemd/system-sleep/20-surface-battery-resume.sh /usr/lib/systemd/system-sleep/20-surface-battery-resume.sh
         fi
     fi
 fi
@@ -157,30 +175,8 @@ fi
 if [ -f "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" ] && [ -f "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" ]; then
     if command -v sudo &>/dev/null; then
         echo "--> Deploying Surface LZ4 hibernation compressor selection..."
-        compressor_fragment="$(systemctl show surface-hibernate-compressor.service --value --property=FragmentPath)"
-        if [[ -n "$compressor_fragment" && "$compressor_fragment" != /etc/systemd/system/surface-hibernate-compressor.service ]]; then
-            echo "Refusing to shadow an unexpected compressor unit: $compressor_fragment" >&2
-            exit 1
-        fi
-        for target in /usr/local/bin/surface-hibernate-compressor /etc/systemd/system/surface-hibernate-compressor.service; do
-            if [[ -e "$target" || -L "$target" ]]; then
-                if [[ "$target" == /usr/local/bin/* ]]; then
-                    source="$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh"
-                else
-                    source="$SCRIPT_DIR/systemd/surface-hibernate-compressor.service"
-                fi
-                if [[ -L "$target" ]] || ! cmp -s -- "$source" "$target"; then
-                    echo "Refusing to replace an unexpected compressor file: $target" >&2
-                    exit 1
-                fi
-            fi
-        done
-        if [[ ! -e /usr/local/bin/surface-hibernate-compressor ]]; then
-            sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" /usr/local/bin/surface-hibernate-compressor
-        fi
-        if [[ ! -e /etc/systemd/system/surface-hibernate-compressor.service ]]; then
-            sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" /etc/systemd/system/surface-hibernate-compressor.service
-        fi
+        sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-hibernate-compressor.sh" /usr/local/bin/surface-hibernate-compressor
+        sudo install -Dm644 "$SCRIPT_DIR/systemd/surface-hibernate-compressor.service" /etc/systemd/system/surface-hibernate-compressor.service
         sudo systemctl daemon-reload
         sudo systemctl enable --now surface-hibernate-compressor.service
     fi
@@ -195,6 +191,82 @@ if [ -f "$SCRIPT_DIR/systemd/71-iptsd-touchscreen-uaccess.rules" ]; then
         sudo udevadm control --reload-rules 2>/dev/null || true
         sudo udevadm trigger -s input 2>/dev/null || true
     fi
+fi
+
+# 10. IPTS touch/pen on non-linux-surface kernels (linux-cachyos 7.x):
+#     DKMS-built out-of-tree ipts + udev-triggered mei_me binder for 8086:34e4.
+IPTS_DKMS_SRC="$SCRIPT_DIR/dkms/ipts"
+if [ -f "$IPTS_DKMS_SRC/dkms.conf" ] && command -v dkms &>/dev/null && command -v sudo &>/dev/null; then
+    ipts_ver="$(sed -n 's/^PACKAGE_VERSION="\(.*\)"/\1/p' "$IPTS_DKMS_SRC/dkms.conf")"
+    echo "--> Deploying DKMS ipts/$ipts_ver (CachyOS kernels only)..."
+    sudo rm -rf "/usr/src/ipts-$ipts_ver"
+    sudo cp -r "$IPTS_DKMS_SRC" "/usr/src/ipts-$ipts_ver"
+    dkms status -m ipts -v "$ipts_ver" 2>/dev/null | grep -q . || sudo dkms add -m ipts -v "$ipts_ver"
+    sudo dkms autoinstall || true
+
+    if [ -f "$SCRIPT_DIR/scripts/surface-ipts-mei-bind.sh" ] && [ -f "$SCRIPT_DIR/systemd/72-surface-ipts-mei-bind.rules" ]; then
+        echo "--> Deploying Surface iTouch mei_me binder..."
+        sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-ipts-mei-bind.sh" /usr/local/bin/surface-ipts-mei-bind
+        sudo install -Dm644 "$SCRIPT_DIR/systemd/72-surface-ipts-mei-bind.rules" /etc/udev/rules.d/72-surface-ipts-mei-bind.rules
+        sudo udevadm control --reload-rules 2>/dev/null || true
+        sudo /usr/local/bin/surface-ipts-mei-bind || true
+    fi
+fi
+
+# 11. Deploy Surface pre-login greetd tablet touch keyboard & swipe gesture support
+if [ -f "$SCRIPT_DIR/scripts/surface-greeter-session.sh" ] && \
+   [ -f "$SCRIPT_DIR/scripts/surface-greeter-client.sh" ] && \
+   [ -f "$SCRIPT_DIR/scripts/surface-greeter-hyprland.lua" ] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface pre-login greetd tablet gesture & OSK support..."
+    sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-greeter-session.sh" /usr/local/bin/surface-greeter-session
+    sudo install -Dm755 "$SCRIPT_DIR/scripts/surface-greeter-client.sh" /usr/local/bin/surface-greeter-client
+    sudo install -Dm644 "$SCRIPT_DIR/scripts/surface-greeter-hyprland.lua" /etc/greetd/surface-hyprland.lua
+    if id -u greeter &>/dev/null; then
+        sudo usermod -aG input greeter || true
+    fi
+    if [ -f /etc/greetd/config.toml ] && grep -q '/usr/bin/noctalia-greeter-session' /etc/greetd/config.toml; then
+        sudo sed -i 's|/usr/bin/noctalia-greeter-session|/usr/local/bin/surface-greeter-session|g' /etc/greetd/config.toml
+    fi
+fi
+
+# 12. Surface Book 3 physical-detachment-only screen rotation.
+# Packages are handled by the master installer; never run the entire setup
+# merely to deploy rotation on an existing machine.
+if [[ $(cat /sys/class/dmi/id/product_name 2>/dev/null) == "Surface Book 3" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-rotation.sh" ]] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying detached-only rotation base status service..."
+    sudo bash "$SCRIPT_DIR/scripts/install-rotation.sh" --no-packages
+    # The master installer has already stowed the user unit at this point.
+    # Enable it without starting a GUI-dependent helper from a fresh-install TTY.
+    if (( EUID != 0 )) && \
+       [[ -f "$HOME/.config/systemd/user/surface-autorotate.service" ]] && \
+       systemctl --user show-environment &>/dev/null; then
+        systemctl --user daemon-reload
+        systemctl --user enable surface-autorotate.service
+    else
+        echo "    Rotation session service will start on the next Hyprland login."
+    fi
+fi
+
+# 13. Native Intel IPU4P internal cameras (OV5693 Front, OV8865 Rear, OV7251 IR)
+#     via DKMS + libcamera SoftISP/GPU-ISP + WirePlumber on CachyOS kernels.
+SURFACE_PRODUCT="$(cat /sys/class/dmi/id/product_name 2>/dev/null || true)"
+if [[ "$SURFACE_PRODUCT" == "Surface Book 3" || "$SURFACE_PRODUCT" == "Surface Pro 7" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-cameras.sh" ]] && \
+   command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface Intel IPU4P native camera stack..."
+    sudo bash "$SCRIPT_DIR/scripts/install-cameras.sh" --no-packages
+fi
+
+# 14. Surface USB-C UCSI-over-HID (/sys/class/typec/port0) & SSAM charger Artg
+#     (ADP1/input_power_limit) via DKMS on CachyOS 7.1+ kernels.
+if [[ "$SURFACE_PRODUCT" == "Surface Book 3" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-usbc.sh" ]] && \
+   command -v dkms &>/dev/null && command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface USB-C UCSI-over-HID & charger Artg DKMS stack..."
+    sudo bash "$SCRIPT_DIR/scripts/install-usbc.sh"
 fi
 
 echo "==> Microsoft Surface setup finished."

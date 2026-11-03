@@ -2,7 +2,530 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
-## [2.46.0] - 2026-10-10
+## [2.78.0] - 2026-11-02
+### Updated: `surface-usbc/0.2.0` DKMS & Upstream `linux-surface/kernel#184` Review Refinements (`profiles/surface`, device-specific)
+- Addressed all 5 review items from `@qzed` (Maximilian Luz) on `linux-surface/kernel#184` after his live verification on Surface Pro X (`045E:0922`):
+  - Synthesized `UCSI_CCI_COMMAND_COMPLETE` when SAM sets `UCSI_CCI_NOT_SUPPORTED` or `UCSI_CCI_ERROR` without command completion in `surface_ucsi_hid_fetch_report()`.
+  - Stripped the leading 1-byte entry length (`0x06`) prepended by SAM to `UCSI_GET_ALTERNATE_MODES` responses in `surface_ucsi_hid_read_message_in()`.
+  - Unconditionally returned `UCSI_VERSION_1_1` in `surface_ucsi_hid_read_version()`.
+  - Ensured `UCSI_ENABLE_NTFY_CMD_COMPLETE` is set on empty-mask `UCSI_SET_NOTIFICATION_ENABLE` commands in `surface_ucsi_hid_async_control()`.
+  - Removed redundant `hid_device_io_stop(hdev)` from `surface_ucsi_hid_remove()` and switched `surface_ucsi_hid_log_caps()` to a `kmemdup()` buffer.
+- Bumped DKMS package to `surface-usbc/0.2.0` in `profiles/surface/dkms/surface-usbc/dkms.conf`, rebuilt/MOK-signed and hot-reloaded on `7.3.1-1-cachyos`, force-pushed updated patch series to `linux-surface/kernel#184`, and answered `@ruslanbay`'s 3 technical questions on `linux-surface/linux-surface` Discussion #1353 (`discussioncomment-19365333`).
+
+## [2.77.0] - 2026-11-02
+### Updated: System Upgrade (`linux-cachyos 7.3.1-1`, `hyprland 0.57.0`, `noctalia 5.4.1`, `zen-browser 1.24b`) & Hyprland `0.57.0` Native Lua Dispatcher Migration (`core/` & `profiles/surface`)
+- Upgraded 140 repository packages and 1 AUR package (`wvkbd 0.21-1`), moving to kernel `7.3.1-1-cachyos` (with DKMS auto-rebuilds verified for `ipts/2024.04.16`, `surface-ipu4p/0.2.0`, and `surface-usbc/0.1.0`), fallback `linux-surface 7.2.14.arch1-1`, `hyprland 0.57.0-3.1`, `noctalia 5.4.1-1.1`, and `zen-browser-bin 1.24b-1`.
+- Fixed startup `.config` Lua error notifications in Hyprland `0.57.0` caused by 2-argument `hl.dsp.exec_raw("<dispatcher>", "<args>")` calls (`exec_raw: expected at most 1 argument, got 2`):
+  - Replaced `hl.dsp.exec_raw("pseudo", "")` with `hl.dsp.window.pseudo()` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("moveoutofgroup", "")` with `hl.dsp.window.move({ out_of_group = true })` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad")` with `hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })` in `core/.config/hypr/config/binds.lua`.
+  - Replaced `hl.dsp.exec_raw("resizeactive", ...)` with `hl.dsp.window.resize({ x = ..., y = ..., relative = true })` in `core/.config/hypr/config/binds.lua`, `profiles/surface/.local/bin/hypr-touch-resizer`, and `profiles/surface/.local/bin/hypr-resize-step`.
+
+## [2.76.0] - 2026-11-02
+### Added: Surface USB-C UCSI-over-HID (`ucsi_surface_hid`) & Charger `Artg` (`surface_charger`) DKMS + Upstream PRs (`profiles/surface`, device-specific)
+- Wrote clean-room `ucsi_surface_hid` kernel driver (`HID\VID_045E&UP:FF00_U:F900`, Feature/Input Report `0x32` + Feature Report `0x33`) and extended `surface_charger` with SSAM `TC=0x02, CID=0x0f` (`Artg` PSU wattage in `mW` $\rightarrow$ `POWER_SUPPLY_PROP_INPUT_POWER_LIMIT` in `uW`) plus a bugfix for `spwr_ac_get_property()` returning `+1` on state transitions.
+- Installed persistently via DKMS (`surface-usbc/0.1.0`, MOK-signed for `7.3.0-2-cachyos`) and integrated into `profiles/surface/{dkms/surface-usbc,scripts/install-usbc.sh}` and `setup.sh` step 14.
+- Verified live on `7.3.0-2-cachyos`: `/sys/class/typec/port0` (Type-C 1.3 / USB PD 3.0), `ucsi-source-psy-0019:045E:09A6.00021` (`[C] PD PD_PPS`), and `/sys/class/power_supply/ADP1/input_power_limit = 60000000` (60 W on magnetic Surface Connect charger), with zero `dmesg` warnings and sibling HID devices (`09A6.0004` Base CFU, `09AE` keyboard, `09AF` touchpad) intact.
+- Opened upstream PRs `linux-surface/kernel#184` (`v7.3-surface-devel`, `checkpatch.pl` 0 errors/0 warnings) and `linux-surface/linux-surface#2354` (`configs/surface-7.3.config`), with protocol writeups posted on `linux-surface/surface-pro-x#35` and `linux-surface/linux-surface#1069`.
+
+## [2026-11-02] - Surface Book 3 USB-C PD Charging Root-Cause Diagnosis via UCSI-over-HID & SSAM
+### Hardware investigation (`profiles/surface`, device-specific; no persistent system config changed)
+- Reverse engineered Windows `SurfaceUcmUcsiHidClient.sys`, `SurfaceBattery.sys`, and `SurfaceHpmi.sys` via Craft Anything (`--deep`), decoding the undocumented Surface UCSI-over-HID PPM transport (`0019:045E:09A6.0002` @ `01:15:02:06:00`, Feature/Input Reports `0x32` & `0x33`) and SSAM `TC=0x02` `CID=0x0F` (`Artg` adapter wattage in mW), `CID=0x50`/`0x51` (HPMI SDB hints), and `CID=0x53` (battery gauge telemetry).
+- Ran user-approved live UCSI + SSAM capture (`/home/jmvp/work/surface-usbc/ucsi_hid_diag.py` $\rightarrow$ `/home/jmvp/work/surface-usbc/diag.log`) with the 60 W USB-C PD charger and tested `UCSI_SET_PDR` and `UCSI_CONNECTOR_RESET` (Soft & Hard).
+- Captured the exact 2.05 s failure loop: at `5 V` attach, CC BMC PD 3.0 negotiation succeeds cleanly (`PDO#1 5V/2.4A`, `PDO#2 9V/3A`, `PDO#3 20V/3A`, negotiated `RDO=0x3304b12c` for `20.00 V @ 3.00 A = 60 W`, SSAM `PSR=1, ARTG=60000 mW`), and **194 ms later** (upon VBUS ramp to 20 V / USB-C Sink FET turn-on) VBUS collapses (`connected=False`, `0 mW` delivered to `BAT1`/`BAT2`) until the charger's ~1.85 s OCP hiccup timer restarts.
+- Definitively isolated a physical hardware fault on the Keyboard Base (`Base V3`) USB-C VBUS Sink stage (damaged 20 V TVS diode / capacitor / Sink MOSFET from the original external-monitor incident), ruling out missing Linux drivers, firmware state, or battery protection locks. Documented in `profiles/surface/gotchas/battery-upower.md` §2. Also opened upstream IPU4P camera PR `ruslanbay/ipu4-drivers#1` earlier in session.
+
+## [2.75.0] - 2026-11-01
+### Added: Native Surface Book 3 internal cameras (Intel IPU4P) (`profiles/surface`, device-specific)
+- Reverse engineered Windows `iacamera64.sys` with Craft Anything (missing CSI-2 PHY building block 8, 16 ticks/ns D-PHY counter, 2-lane vs 4-lane RX register layout) and built on `ruslanbay/ipu4-drivers` RFC v2 + linux-surface PR #2289.
+- Installed `libcamera`, `libcamera-ipa`, `libcamera-tools`, `pipewire-libcamera`; DKMS `surface-ipu4p/0.2.0`; `ipu4p_fw.bin`; IPA yaml (OV8865 CCM from SB3 `.aiqb`); WirePlumber `52-surface-ipu4p.conf`. Files: `profiles/surface/{dkms/ipu4p,camera,scripts/install-cameras.sh}`, `packages.txt`, `setup.sh` step 13.
+- Verified 3/3 sensors capture via `cam`; no CSI errors. Patched dw9719 fixes idle power; no AF (libcamera simple IPA lacks it). See `gotchas/camera-ipu4.md`.
+
+## [2.74.0] - 2026-10-29
+### Added: Passphrase-Encrypted Zen Browser Profile Sync (`~/zen-sync`, universal user setting)
+- **User Request**: Create a passphrase-encrypted configuration and state clone of Zen Browser in a new private GitHub repository (`JValdivia23/zen-sync`) with a new-device setup `README.md` so cloning the repo on a new laptop restores all workspaces, tabs, saved logins, active sessions, and extensions.
+- **Profile Size Analysis**: Identified that `~/.config/zen` was 1.4 GB due to disposable website Service Worker caches (`storage/default/*/cache` ~1.0 GB, mostly WhatsApp Web 785 MB and SharePoint 124 MB) and WhatsApp Web offline chat/search IndexedDB (`idb/` 305 MB).
+- **Implementation**:
+  - Created private GitHub repository `JValdivia23/zen-sync` (`~/zen-sync`) with strict `.gitignore` blocking all unencrypted browser files (`*.sqlite*`, `*.db*`, `*.json*`, `*.ini*`, `*.tar*`) and allowing only `zen-profile.tar.zst.gpg`, `zen-sync.sh`, `README.md`, and `.gitignore`.
+  - Created `~/zen-sync/zen-sync.sh` (symlinked to `~/.local/bin/zen-sync`) supporting `backup [--push] [--close]`, `restore [--close]`, `status`, and `clean-cache`.
+  - Uses `zstd -T0 -9` + `gpg --symmetric --cipher-algo AES256 --s2k-digest-algo SHA512 --s2k-mode 3 --s2k-count 65011712` to encrypt all Zen workspaces/tabs (`zen-sessions.jsonlz4`, `sessionstore.jsonlz4`), saved credentials + master key (`logins.json`, `logins.db`, `key4.db`, `cert9.db`), active session cookies (`cookies.sqlite`, site `localStorage`), extensions, and shortcuts while excluding gigabyte cache bloat.
+  - Automatically normalizes `/home/<user>/.config/zen/` paths inside `profiles.ini` and `extensions.json` upon `restore`.
+  - Added step-by-step new laptop setup documentation in `~/zen-sync/README.md` and updated `references/gotchas/zen-browser.md` and `references/config-paths.md`.
+
+## [2026-10-26] - Restored Game-local Touch After Graphics-wrapper Upgrade
+### Per-application user setting (`sidequest`; physically verified on `surface`)
+- After the `dark-wanderer` upgrade, desktop/browser touch remained normal but the game's pointer jumped into a limited region. The old helper still sent native game coordinates; the new wrapper's mouse-message handler unscales client pixels itself. Added a client-coordinate mode to avoid double conversion while preserving the legacy mapping and native-aspect border rejection.
+- The recipe now recognizes the integrated wrapper's binary markers and chooses the correct message space automatically. Explicit `game`/`client` overrides remain available; direct helper callers keep the legacy default. Actual client geometry is read per command rather than hardcoding output resolution. A new versioned handshake verifies coordinate mode and rejects mismatched controller/Windows-helper pairs.
+- Backed up the installed pair and launcher, gracefully replaced only the touch helper, and reattached to the same running game without restarting or launching another copy. Retained held gestures, click ordering, focus/lock guards, heartbeat release, fullscreen command, renderer files, and normal desktop input. No driver, package, service, permission, registry, gesture, compositor, or other-game changes.
+- The user confirmed all checks pass: accurate touches across the picture, held steering, right-button gestures, release, physical mouse, and browser touch after keyboard workspace switching. All 69 tests pass, including actual C coordinate/border/signed-range cases, mode selection/override/protocol and helper environment/authentication checks, existing safety cases, and launcher generation. Build passed with the existing runner SDK and a staging path containing spaces.
+- Normal quit/reopen of the new helper pair, physical rotation, mixed-scale layouts, and gameplay lock/unlock were not physically retested. The separate workspace-swipe mouse issue is not claimed fixed; keep the accepted keyboard-switching workaround. See `references/gotchas/wayland-noctalia.md`, section 14; private paths and backups remain in the encrypted guide.
+
+## [2.73.0] - 2026-10-25
+### Fixed: `SUPER + 1` Targeting 2nd Workspace Indicator (`core/`, universal)
+- **Root Cause**: `core/.config/hypr/config/workspaces.lua` declared `hl.workspace_rule({ workspace = "name:gaming", monitor = PRIMARY_MONITOR, default = true })` before Workspace `1` (and set `default = true` on Workspaces `1`, `2`, and `3`), while `core/.config/hypr/config/windowrules.lua` redirected `content = "game"` and `steam_app.*` windows to `name:gaming`. Because Hyprland assigns named workspaces negative IDs (`-1337`), Noctalia sorted `gaming (-1337)` into the **1st (leftmost)** workspace bar pill and shifted numbered Workspaces `1`, `2`, and `3` into the **2nd, 3rd, and 4th** positions.
+- **Fix**:
+  - Removed the `name:gaming` rule from `core/.config/hypr/config/workspaces.lua` and kept `default = true` exclusively on Workspace `1` (`persistent = true` on `1`, `2`, and `3`).
+  - Removed the `workspace = "name:gaming"` redirects from `core/.config/hypr/config/windowrules.lua` so games remain on regular numbered workspaces.
+  - Migrated active windows from `-1337 (gaming)` onto Workspace `1` and reloaded Hyprland (`hyprctl configerrors` clean).
+  - Documented in `references/gotchas/hyprland.md` (Section 18).
+
+## [2026-10-25] - Native Mouse Click Misalignment After Workspace Return
+### Per-application investigation (`sidequest`, `surface`; no permanent fix applied)
+- The user reported correct hover but misplaced physical mouse clicks after leaving/returning to `dark-wanderer`; touchscreen clicks remained accurate. Checked the live game without restarting it: fullscreen geometry and renderer settings were intact, and the touch helper reported no errors.
+- With approval, detached only the touch helper and released its input FD, preserving the same game/window. Physical clicks remained wrong even after a workspace round trip. Reattached touch to the same game without launching another instance. This excludes active helper messages as a necessary cause of the ongoing failure, not all possible historical interactions.
+- A separate approved test explicitly focused the game via the compositor and refreshed its matching native X11 focus. The user confirmed physical clicks recovered until another workspace switch. This isolates a repeatable focus-return synchronization problem; the exact layer/minimal intervention remains unproven because both focus steps were used together.
+- Follow-up isolated the user's **workspace swipe** as the trigger: after focus recovery, the user confirmed “Keyboard works; swipe breaks.” Installed Hyprland's swipe-completion path explicitly releases pointer constraints; that is a plausible capture-related mechanism, not a complete proof of the failing Wine/renderer layer. A real compositor transition from another window restored clicks temporarily; refreshing an already-focused window did not.
+- Automatic tests failed: same-window native focus, the native take-focus notification, a short native focus cycle, and a same-position pointer-refresh watcher did not repair normal swipe returns. The watcher ran on three returns, was stopped, and was never installed. A separately approved, tagged/focus-only confinement rule made the mouse slow/unresponsive; it was disabled and its tag removed. The user confirmed movement returned, but clicks remained misplaced at that check. Do not enable either failed approach.
+- The user accepted **Super+number instead of swiping** and ended swipe-workaround investigation. Performed one final targeted focus recovery without restarting the game; its result was not separately confirmed. No permanent game/source/launcher, renderer, registry, input-driver, gesture, package, or service changes. Only diagnostic notes were retained. Keep private mappings/session details in the encrypted guide. See `references/gotchas/wayland-noctalia.md`, section 13.
+
+## [2026-10-24] - Held Movement and Two-finger Right-button Touch
+### Per-application user setting (`sidequest`; physically verified on `surface`)
+- With user approval, extended the separate `dark-wanderer` game-local message helper: one finger taps/holds left; two fingers tap/hold right; the first finger steers/aims. A 100 ms recognition window avoids an unwanted left-click before a two-finger gesture. Button switches release the old button first; ending the right gesture waits for all fingers to lift before accepting a new gesture.
+- Uses genuine held state and movement flags, not repeated clicks. Added a Windows-side 600 ms heartbeat lease, independent focus/PID checks, disconnect cleanup, bounded socket writes, and a reset requirement after stale/focus cancellation. Host-side cleanup also releases on focus loss, geometry changes, exit, and failures. Added a versioned handshake to reject mismatched helper pairs.
+- The user confirmed left tap/held walking and steering, right tap/held skills, release/app-switch behavior, normal restart, and unaffected mouse/browser touch. Retained original renderer, scaling/borders, game launcher, and both puzzle-game setups. No package, driver, service, permission, registry, or global desktop configuration changes.
+- `SIDEQUEST_TOUCH_MODE=tap` retains the prior left-tap-only mode; `SIDEQUEST_TOUCH_MOUSE=0` disables touch support. All 57 tests pass, including actual C button-order/watchdog/tick-wrap tests plus gesture, RPC cleanup, and mode-selection regressions. Physical rotation, mixed-scale multi-monitor use, and gameplay lock/unlock remain untested. See `references/gotchas/wayland-noctalia.md`, section 12; detailed backups/protocol notes stay in the private encrypted guide.
+
+## [2026-10-24] - Legacy RPG Tap-to-Walk via Game-local Messages
+### Per-application user setting (`sidequest`; touch verified on `surface`)
+- The user's tap-only idea succeeded where generic virtual-mouse/drag emulation had failed. The private `dark-wanderer` launcher now runs a separate Wine helper that posts one game-local move/down/up sequence per finger contact. It maps the centered native 1024×768 viewport and ignores black borders; desktop cursor warping was removed after an initial offset trial.
+- Runs the helper inside the existing game's Flatpak instance and Wine prefix, rather than opening a separate Windows session. Uses a loopback-only, token-checked connection. Touch capture is restricted to the exact bottle/window PID while focused/unlocked; focus loss, exit, and failure restore native touch. Holding/dragging a finger does not repeat clicks. Regular mouse/keyboard input remains available for unsupported actions.
+- With explicit approval, integrated this into the game launcher and installer, retaining the original renderer, fullscreen proportions, registry settings, and argument forwarding. The user confirmed menu/ground taps after restart, regular mouse input, original borders, and browser touch after switching away. The two native puzzle-game setups remain unchanged. No packages, drivers, permissions, services, or global desktop settings were changed.
+- Built the helper with already-installed clang/lld and the selected Bottles runner's Windows SDK; no process-memory access or game DLL hook is used by the final implementation. Added regression coverage for real C viewport math/border rejection, tap-only gestures, cleanup/failure cases, target/token checks, opt-out, and launcher generation. Rotation/mixed-scale multi-monitor use and gameplay lock/unlock were not physically tested. See `references/gotchas/wayland-noctalia.md`, section 12; private paths and mappings remain in the encrypted SideQuest guide.
+
+## [2026-10-24] - Native Sequel Touch Input via X11
+### Per-application user setting (`sidequest`; touch verified on `surface`)
+- Extended the private SideQuest touch bridge to `goo-architect-2` with user approval, retaining its required X11/XWayland display setup. Its cursor polling did not follow the Wayland virtual pointer: taps activated the old cursor position and dragging failed. A diagnostic X11 movement temporarily helped, but the problem returned after a clean restart.
+- Added an explicit X11/XTest pointer backend for this sequel only. It shares native-PID matching, focused/unlocked touchscreen capture, slot snapshots, first-finger gestures, and cleanup, but sends both movement and buttons through one X11 connection. Refreshes root dimensions and synchronizes motion/press/release ordering. Uses already-present `libX11`/`libXtst`; no package, service, driver, permission, or global configuration changes.
+- The user confirmed finger-positioned taps, dragging, persistence after normal quit/reopen, regular mouse input, and browser touch after switching away. All 25 regression tests passed, including X11 selection, root-coordinate mapping, cleanup/failure cases, and launcher argument/display preservation. Physical rotation, mixed-scale multi-monitor operation, and gameplay lock/unlock were not tested.
+- The first game's installed Wayland bridge and the restored legacy RPG setup were left unchanged. X11 remains opt-in; do not extend native sequel success to Wine/DirectInput. Private paths and detailed reproduction notes stay in the encrypted SideQuest guide. See `references/gotchas/wayland-noctalia.md`, section 11.
+
+## [2026-10-24] - Application-Scoped Touch-to-Mouse Bridge
+### Native game fix (`sidequest`, per-application user setting; tested on `surface`)
+- A coordinated passive touchscreen trace recorded 16 contacts on the IPTSD virtual touchscreen; the user confirmed browser touch worked. An earlier short trace with no contacts was not proof of a driver failure. Left all drivers, services, permissions, and desktop input settings unchanged.
+- Added a launcher-scoped evdev-to-Wayland virtual mouse bridge for `goo-architect` in the separate private SideQuest repository. It matches the native game PID, captures only that game's focused/unlocked touch input, releases touch/buttons on focus loss/exit/failure, and restores native touch in other apps. The user physically confirmed game taps/drags and browser touch after switching away. Supports one-finger left-button input, not right-click gestures. Build uses existing gcc/Wayland tooling; no packages, sudo operations, or global daemon.
+- Legacy RPG tests were not successful: Wayland virtual input was ignored; XTest only moved the cursor with drift/no clicks; alternate rendering regressed normal mouse/display behavior. Removed these experiments and restored its prior launcher, renderer configuration, and registry overrides. The user confirmed mouse control and original side borders returned to normal. Do not generalize the native-game fix to Wine/DirectInput.
+- Added regression coverage for taps/drags/releases, repeated taps and MT slot snapshots, secondary fingers, layout/scale/rotation, fail-closed session-lock checks, and command/exit-code preservation. Physical rotation and lock/unlock during gameplay were not tested. Private title mappings, backup paths, and reproduction details remain in the encrypted SideQuest guide. See `references/gotchas/wayland-noctalia.md`, section 11.
+
+## [2026-10-24] - Legacy Game Fullscreen and Aspect Ratio
+### Per-application fix (`sidequest`, universal user setting; tested on `surface`)
+- With user approval, configured the active legacy Glide renderer for desktop-resolution fullscreen and preserved proportions. The installed renderer reads `HKCU\Software\GLIDE3toOpenGL`, not adjacent INI files belonging to other renderers. Applied registry changes through Bottles rather than editing a live Wine registry file; backed up the original registry locally.
+- Found that the application's `steam_proton` XWayland class was not covered by the existing `steam_app.*|gamescope` gaming rules, leaving it tiled at 361x472 logical pixels. Its private per-game launcher now registers a title-and-class-specific Lua fullscreen rule before launch. Kept global Hyprland configuration, monitor mode, scale 2, and unrelated applications unchanged; no packages installed.
+- Verified all seven registry values, shell syntax, settings/failure-path tests, and an empty `hyprctl configerrors`. Live fullscreen covers 1500x1000 logical / 3000x2000 physical pixels; a main-menu screenshot has matching black side borders and no white strip. Gameplay and next-launch verification are pending. See `references/gotchas/wayland-noctalia.md`, section 10. Real title and game-specific paths remain in the private encrypted SideQuest guide.
+
+## [2.72.0] - 2026-10-22
+### Linux Kernel 7.3 Upgrade (`7.3.0-2-cachyos`) & DKMS IPTS Rebuild (`profiles/surface`, device-specific & universal)
+- **User Request**: User requested a review and upgrade to the newly released Linux 7.3 kernel.
+- **Pre-upgrade Hardware Audit**: Verified upstream Linux 7.3 `drivers/misc/mei/hw-me.h` enum `mei_cfg_idx`. `MEI_ME_PCH12_CFG` remained at index `9`, ensuring the Surface Book 3 iTouch runtime bind script (`/usr/local/bin/surface-ipts-mei-bind`) binds PCI `00:16.4` correctly upon boot.
+- **Interactive Upgrade Execution**: Launched an interactive Kitty terminal via Hyprland IPC (`hyprctl eval 'hl.exec_cmd(...)'`) per Core Rule #8 to execute `sudo pacman -Syu`.
+- **Packages Upgraded**:
+  - Kernel: `linux-cachyos 7.2.11-1 -> 7.3.0-2`, `linux-cachyos-headers 7.2.11-1 -> 7.3.0-2`
+  - Firmware: `linux-firmware 1:20260916-1 -> 1:20261019-1`
+  - Toolchain & Core: `clang`/`llvm` to `23.1.3-5`, `pipewire` to `1.6.10-1`, `zen-browser-bin` to `1.23.4b-1`.
+- **DKMS & Bootloader Verification**:
+  - DKMS hook successfully rebuilt `ipts/2024.04.16` for `7.3.0-2-cachyos`. DKMS status: `ipts/2024.04.16, 7.3.0-2-cachyos, x86_64: installed`.
+  - `mkinitcpio` built compressed initramfs images for `7.3.0-2-cachyos`, `7.2.11-arch1-1-surface`, and `6.18.55-2-cachyos-lts`.
+  - Kernel binary copied to `/boot/5fc77b86d2ec467b971039d4de8f4efa/linux-cachyos/vmlinuz`.
+  - `limine-snapper-sync` updated `/boot/limine.conf` and captured pre/post Snapper snapshots (67/68).
+- **Post-Reboot Verification**:
+  - `uname -r` confirmed running `7.3.0-2-cachyos`.
+  - `surface-ipts-mei-bind` successfully bound `0000:00:16.4` to `mei_me` (cfg 9) at early boot.
+  - IPTS driver loaded and initialized poll mode; `iptsd@dev-hidraw0.service` active and operational.
+  - Virtual touchscreen (`input29`) and virtual stylus (`input30`) fully attached.
+  - Audio (`pipewire 1.6.10`, `easyeffects`), dual batteries (BAT1/BAT2), DTX (`surface-base-state.service` reporting attached state 1 / base ID 527), and user gesture daemons (`hypr-lisgd`, `hypr-touch-resizer`, `surface-autorotate`) running clean with zero Hyprland config errors.
+- **Status**: Verified and fully operational on Linux 7.3.
+
+## [2.71.0] - 2026-10-22
+### Post-Hibernate Keyboard Lag — Diagnostic Probe (`profiles/surface/`, device-specific)
+- **Report**: after resuming from hibernate, keystrokes on the **lock screen** are not displayed for a few seconds, then appear all at once (events queued, not lost).
+- **Findings (no fix applied yet)**: no `surface_hid`/SAM errors in the kernel log across the resume; the built-in keyboard (`Microsoft Surface 045E:09AE Keyboard`, SAM serial HID) is enumerated normally. At resume the platform profile is `low-power`/EPP `power` (CPU ~800–1000 MHz), `vm.swappiness=150`, and zen-browser burned ~15 s CPU in the first 46 s while the hibernation image restore dropped page cache. Suspect: compositor/lock-screen (Hyprland/noctalia) stalled by cold cache + low clocks rather than the keyboard hardware.
+- **Added (diagnostic only, no behavior change)**: `profiles/surface/scripts/surface-resume-latency-probe.py` -> `/usr/local/bin/surface-resume-latency-probe`, started async by `profiles/surface/systemd/22-surface-resume-probe.sh` -> `/etc/systemd/system-sleep/22-surface-resume-probe.sh` (skips lid-closed RTC wakes). For 90 s after resume it logs to the journal (unit `surface-resume-probe`): scheduler jitter, CPU freq, PSI io/mem/cpu, Hyprland+noctalia state/CPU/major faults, and per-keypress `lag_ms` (kernel event timestamp vs read time; key codes are never logged, so passwords are not recorded).
+- **Read results**: `journalctl -u surface-resume-probe -b --no-pager`. `lag_ms ~0` but delayed typing = compositor/lock-screen stall; large `lag_ms` = kernel/HID delay. Next step: pick the mitigation (post-resume EPP boost / cache warm-up / swappiness) from the data.
+
+## [2.72.0] - 2026-10-22
+### Fix: Lock-Screen Password Echo Lag After Hibernate (`profiles/surface/`, device-specific)
+- **A/B result (user-confirmed)**: on battery in `power-saver` (platform_profile `low-power`, EPP `power`, CPU 0.5-1 GHz) the lock-screen password dots appeared only after typing finished. With `powerprofilesctl set performance` the dots appeared **as typed**. Kernel keypress lag was ~0.1 ms in all runs and Hyprland IPC answered in ~1 ms, so the keyboard/compositor loop was never blocked; the lock screen simply rendered too slowly at the throttled clocks right after resume (cold cache made it worse on the first run).
+- **Fix**: `surface-resume-boost` (`profiles/surface/scripts/surface-resume-boost.sh` -> `/usr/local/bin/surface-resume-boost`) run by `surface-resume-boost.service` (`/etc/systemd/system/`), started from `23-surface-resume-boost.sh` (`/etc/systemd/system-sleep/` **plus required symlink in `/usr/lib/systemd/system-sleep/`**). After any resume with the lid open it writes `performance` to `/sys/firmware/acpi/platform_profile` and every CPU's `energy_performance_preference` for 20 s (`BOOST_SECONDS`), then restores the exact saved values — only if they are still `performance` (a manual profile change in the window is respected). Direct sysfs, no D-Bus/power-profiles-daemon. `pre` stop restores immediately if sleeping again. Offline dry-run against fake sysfs passed (boost, restore, manual-change, mid-run stop).
+- Diagnostic probe (`surface-resume-probe`) left installed for verification; it can be removed later (`22-*` hook + unit + `/usr/local/bin/surface-resume-latency-probe`).
+
+## [2.71.2] - 2026-10-22
+### Post-Hibernate Lag — First Real Probe Data (`profiles/surface/`, device-specific)
+- **Data (resume 18:45:49)**: keyboard kernel->userspace `lag_ms` ≈ 0.1 for every key (first 20 ms) => keyboard/HID path is **not** the problem. CPU/IO/memory PSI stayed tiny (no scheduler jitter), but Hyprland+noctalia took ~2,400 major page faults in the first ~7 s (cold cache after image restore) and the CPU sat at 480–1200 MHz (`low-power` profile, EPP `power`). Enter (key#7, 18:45:51.30) reached noctalia in ~0.4 s (PAM `pam_unix` at 51.70); the Hyprland event fired at 53.25 (~2 s later). Noctalia's `login` PAM stack has no fprintd; `fprintd-list` = no devices.
+- Remaining unknown: whether the visible delay is display/frame presentation or compositor main-loop stalls. Extended the probe with a 100 ms Hyprland command-socket round-trip (`hypr-ipc rtt_ms`, `ipcmax` per tick) and timestamped Hyprland event names (no payloads) to catch compositor stalls.
+
+## [2.71.1] - 2026-10-22
+### Resume Probe Fixes + Post-Hibernate Lag Evidence (`profiles/surface/`, device-specific)
+- **Root cause of probe never firing**: systemd-sleep on this system only runs hooks from `/usr/lib/systemd/system-sleep/`; existing hooks are symlinks there pointing at `/etc/systemd/system-sleep/`. The new `22-surface-resume-probe.sh` lacked the symlink. Created `/usr/lib/systemd/system-sleep/22-surface-resume-probe.sh -> /etc/systemd/system-sleep/22-surface-resume-probe.sh`.
+- Replaced `systemd-run` in the hook with a static `surface-resume-probe.service` started via `systemctl --no-block restart` (D-Bus-free, like hook 21); probe also sets `EVIOCSCLOCKID` to CLOCK_MONOTONIC so `lag_ms` is meaningful (default evdev timestamps are CLOCK_REALTIME, which gave nonsense values).
+- **User observation (3rd hibernate test)**: keyboard backlight was on immediately, but the typed password took a few seconds to appear on the lock screen -> keyboard hardware/kernel path is alive; the stall is in rendering/handling input (Hyprland/noctalia lock surface). Probe data for a real resume is still pending.
+
+## [2.70.1] - 2026-10-20
+### Default LazyVim + VS Code Layer
+- **Explicit user request**: make LazyVim the default for plain `nvim`, with the local `lazyvim-vscode` plugin layered over it. This remains a universal user setting in `core/`, not a hardware profile. No previous `~/.config/nvim` existed; created a dedicated symlink without changing the executable, shell aliases, existing history/state, terminal, compositor, or unrelated theme work.
+- Moved the shared configuration to `core/.config/nvim/`; LazyVim imports precede the user plugin specs. The experimental wrapper remains isolated in `lua/plugins/vscode.lua`; version pins and deferred language-tool/parser installation live in `lua/plugins/baseline.lua`. Default preset is Ctrl until Super forwarding is separately configured. All known upstream blockers remain documented.
+- Kept `nvim-vscode` as a separate-data playground using the same canonical configuration, retaining its own state/cache/plugins/lockfile and launcher presets. Preserved shared modules through lazy.nvim's runtimepath reset and removed only empty directories left by the file moves, avoiding an empty `plugins/` import shadow. Plugin source/config edits require restart.
+- Installed the same 33 external plugin revisions in the normal `nvim` data namespace; its lockfile is `~/.local/state/nvim/lazy-lock.json`, separate from the playground's. No OS packages or sudo operations. `nvim --clean` bypasses the configuration; disabling only the wrapper spec leaves LazyVim as the base.
+- **Validation**: Fish plain `nvim` reports LazyVim v16.0.1, Ctrl preset, `~/.config/nvim`, and no startup error. Extended installed-profile smoke checks pass all four default/playground preset cases, including native editing/history, a LazyVim leader mapping, multicursor history/restoration and separate XDG paths. Regression rerun: 38 passes, 0 unexpected failures, 2 XFAIL, 0 skips; strict acceptance remains blocked by the same upstream failures. Physical input, performance, LSP/Tree-sitter interaction and `herdr` remain pending. Updated setup/verification docs, config paths and Neovim gotchas.
+- **TUI lifecycle**: controlled 100x35 PTY startup confirms terminal stdin/stdout, the default Ctrl layer, mini.pairs/which-key and native LazyVim leader mapping load without synthetic `VeryLazy` or startup errors; saved `/tmp/opencode/lazyvim-default-tui/{result.json,terminal.log}`. This is not physical-input/human visual evidence. Installed smoke-test children use `-i NONE` to avoid persisting scratch registers/history.
+
+## [2.70.0] - 2026-10-20
+### Added
+- **Dedicated LazyVim / lazyvim-vscode evaluation profile (`core/`, universal user setting)**, explicitly approved after planning a reversible end-to-end evaluation. Added `core/.config/nvim-vscode/` and executable `core/.local/bin/nvim-vscode`, with two targeted live symlinks; did not restow unrelated files or replace `~/.config/nvim`, shell aliases, themes, Kitty, or compositor bindings.
+- Launcher sets `NVIM_APPNAME=nvim-vscode`, supports `--ctrl`/`--super`, and opens a nofile scratch playground by default. `:VscodePlayground` and `:VscodeGuide` provide fresh test text and the repository's verification guide. Local checkout defaults to `~/work/lazyvim-vscode` (`LAZYVIM_VSCODE_DIR` override); source/config edits take effect after restart.
+- Installed 33 user-local external plugin checkouts, including LazyVim v16.0.1 and pinned lazy.nvim/Blink v1.10.2/mini.pairs/which-key/multicursor revisions. Recorded the complete lockfile under `~/.local/state/nvim-vscode/`; data/cache/state are isolated by app name. No OS packages or sudo operations. Automatic language-server/formatter installation and parser/toolchain builds are deferred for this editing evaluation.
+- **Validation**: dependency sync and scratch startup succeed on Neovim 0.12.6. `tests/installed_profile.lua` in the plugin repository passes both Super and Ctrl decoded-input smoke cases against the installed LazyVim configuration (explicit headless `VeryLazy` event); selection, live history, cursor collapse, pairs state and completion eligibility restore correctly. This is not physical/visual acceptance; the plugin's two known upstream buffered-input failures remain blockers.
+- **Physical safety discovery**: current live bindings intercept Super+D (fullscreen), Super+K (keybindings menu), Super+Z/Shift+Z (compositor history), and **Super+Shift+L (lock and suspend)**. Kept them unchanged and opened the disposable evaluation terminal using the Ctrl preset. `herdr` is not on PATH, so its pass remains pending. Added `gotchas/neovim.md` and updated config paths.
+- **Interactive handoff**: Hyprland confirms a mapped `LazyVim-VSCode-Evaluation` Kitty window; its foreground command is `nvim -c VscodePlayground` with `NVIM_APPNAME=nvim-vscode` and the Ctrl preset. Scoped terminal screen text confirms the scratch buffer and statusline rendered. No physical key/mouse events were sent or recorded as a human pass. Lua formatting, launcher Bash syntax, and scoped whitespace checks pass; unrelated generated theme modifications were preserved.
+
+## [2.69.1] - 2026-10-19
+### Reinstall Persistence
+- Audited detached-only rotation through a fresh temporary HOME rather than rerunning the live Surface boot/driver setup.
+- Fixed the Surface profile's `.stow-local-ignore`: basename rule `^systemd` silently excluded `.config/systemd/user/`. Root-relative `^/systemd` now excludes only system-service source metadata, preserving all three rotation/gesture/resizer session units. The master's package-relative command-line ignore remains unchanged.
+- Surface Book 3 setup now explicitly enables the stowed rotation user service when a user manager is available, without launching a GUI-dependent helper from a fresh-install TTY; the existing Lua startup hook starts it on Hyprland login. Other hardware is excluded.
+- The standalone guarded installer now installs/checks `python-gobject` as well as `iio-sensor-proxy`. README documents `bash ./install.sh --profile surface`, prerequisites, verification, the `--only-stow` limitation, and that no previous `/tmp/opencode` files are needed.
+- Added five reinstall regression checks: real GNU Stow into an empty sandbox HOME, mocked Book 3 setup, missing-user-manager fallback, other-device exclusion, and standalone dependency coverage. **31 total tests pass**; Bash syntax and scoped whitespace checks are clean. No live package installation, service restart, boot/driver setup, or OS reinstall was performed for this audit.
+
+## [2.69.0] - 2026-10-19
+### Added & Fixed
+- **Surface Book 3 Detached-Only Automatic Screen Rotation (`profiles/surface`, device-specific)**:
+  - User explicitly selected **physical detachment only**: any connected base, including backwards/studio mode, must restore landscape and disable auto-rotation. Other devices and external monitors are excluded.
+  - Installed `iio-sensor-proxy 3.9-1.1` and dependencies `libssc 0.4.4-1.1`, `protobuf-c 1.5.2-15.1` through an interactive Kitty/sudo prompt. Existing Python/GObject packages were reused. Package hooks created Snapper snapshots 65/66; no full profile setup, kernel changes, reboot or sleep transition was requested.
+  - Added root-owned `surface-base-state.service` and `/usr/local/libexec/surface-base-state.py`. Opens DTX read-only and publishes initial/base-connection event status to `/run/surface-base-state/state.json`; no latch commands and no user access to `/dev/surface/dtx` (still root-only mode 0600). Systemd sandbox restricts device access and filesystem writes. Runtime status is root-owned mode 0644 inside a 0755 directory.
+  - **Kernel gotcha**: `SW_TABLET_MODE` also includes backwards attachment, so it cannot gate this policy. DTX's SSH driver type-tags even a zero/absent base ID (`0x0200`); accept this alongside plain zero only with detached connection status. Unknown/contradictory status disables rotation.
+  - Added session-bound `surface-autorotate.service` and `surface-autorotate`: 400 ms stable-orientation debounce, attachment recheck before rotation, accelerometer release while attached/before sleep, delayed resume reconciliation, configuration-reload handling and landscape restoration on stop. Uses Lua `hl.monitor` to preserve existing mode/scale and targets only IPTS touch/pen device rules.
+  - Updated `hypr-lisgd` to use inverse display orientation while retaining native 3000x2000 geometry and its wake-safe startup path; `USR1` reconnects only its supervised child. Fixed the existing `SIGTERM` trap to exit rather than continually respawning children during a service stop (the first restart exposed its old stop timeout).
+  - Updated `hypr-touch-resizer` to query actual touch-axis ranges and transform/scale raw deltas into current logical display coordinates; accumulated motion resets if orientation changes during resizing.
+  - Added guarded rotation-only system installer, profile package/autostart integration, regression tests and `gotchas/screen-rotation.md`; updated skill index/current-state/config paths. Unrelated live Noctalia-generated theme changes were preserved.
+  - **Validation**: 26 mocked regression tests pass; Bash/Python syntax and systemd unit checks pass; attached base reports state 1/base ID 527, monitor remains 3000x2000 at scale 2/transform 0, and Hyprland config errors are empty. A bounded `monitor-sensor --accel` diagnostic reports an accelerometer with `normal` orientation and `vertical` tilt, then exits. Actual non-grabbing `EVIOCGABS` reads confirm IPTSD MT ranges of 9600x7200; installed root-owned files match source. After loading the fixed signal trap, the gesture supervisor restarts cleanly (0.08 s, `Result=success`).
+  - **Physical test passed (user confirmed)**: Detached the screen, tried rotation/touch/bottom-edge keyboard swipe, then reattached; reported “Everything works.” Broker logs verify the real detached state `0`/ID `512` followed by attached state `1`/ID `527`; controller logs verify both portrait transforms (`3`, `1`) and return to normal (`0`). Post-test state is attached, landscape 3000x2000 at scale 2, all three user helpers active, both IPTSD inputs present, no failed user units and no Hyprland config errors. Upside-down transform `2` is covered by mocks but was not separately seen in this journal; physical pen, backwards attachment, reboot and resume remain untested. No post-change power benchmark was performed.
+  - **Deployment follow-up**: The package udev reload coincided with the existing iptsd instance stopping. The existing `surface-ipts-resume.service` successfully restored `iptsd@dev-hidraw0.service`, both virtual touch/pen devices returned, and lisgd reattached to the virtual touchscreen. Its helper/unit/hooks were not modified. Evidence: `/tmp/opencode/surface-rotation-jp10ozwy/`.
+
+## [2.68.0] - 2026-10-19
+### Added
+- **Surface Book 3 Dual-Battery Idle Energy Tracking & Linux 7.2.11 Baseline (`profiles/surface`, device-specific)**:
+  - Created unprivileged Python 3 profiling tool [`surface-idle-power.py`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-idle-power.py) in `profiles/surface/scripts/` to measure dual-battery (`BAT1` + `BAT2`) discharge rates with automated quality filters and metadata logging (`~/.local/state/surface-idle-power/log.jsonl`).
+  - **Screen State Consistency & Idle Inhibition**: Integrated automated `systemd-inhibit --what=idle` execution to prevent `hypridle` from stepping down backlight brightness (10% at 150s) or triggering DPMS off (at 300s) mid-measurement, ensuring uniform 25% brightness across 5-minute sampling runs.
+  - **Baseline Established on `7.2.11-1-cachyos`**:
+    - **Median draw**: **5.86 W** (mean: 5.91 W, stdev: 0.14 W, min: 5.75 W, max: 6.47 W).
+    - **CPU & Thermal State**: 99.1% CPU idle, 716 MHz average core clock, 95.5% C3_ACPI state residency under `power-saver`/`powersave`/`power` EPP.
+    - **Energy Counter Cross-Check**: Verified close agreement (5.62 W calculated via `energy_now` delta vs 5.86 W `power_now` median).
+  - Created [`gotchas/power-baseline.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/power-baseline.md) (symlinked to skill gotchas) documenting measurement protocol, comparability gotchas, past run tables, and guidelines for validating the upcoming Linux 7.3 kernel.
+  - Updated `SKILL.md` and `references/current-state.md`.
+
+## [2.67.0] - 2026-10-19
+### Changed
+- **Full System Upgrade (`surface`, device-specific & core)**:
+  - Upgraded system packages via `pacman -Syu`:
+    - **Kernels**: `linux-cachyos` (7.2.9-2 $\rightarrow$ 7.2.11-1), `linux-cachyos-headers` (7.2.9-2 $\rightarrow$ 7.2.11-1), `linux-surface` (6.19.8.arch1-3 $\rightarrow$ 7.2.11.arch1-1), `linux-surface-headers` (6.19.8.arch1-3 $\rightarrow$ 7.2.11.arch1-1).
+    - **Core System & Desktop**: `systemd` (262-1 $\rightarrow$ 262.1-1), `noctalia` (5.2.1-1.1 $\rightarrow$ 5.3.0-1.1), `iptsd` (3.1.0-1 $\rightarrow$ 3.1.1-1), `zen-browser-bin` (1.23.2b-1 $\rightarrow$ 1.23.3b-1), `hyprland-protocols` (0.7.1-1.1 $\rightarrow$ 0.8.0-1.1), `dkms` (3.4.3-1 $\rightarrow$ 3.4.4-2), `clang`/`llvm` (23.1.1 $\rightarrow$ 23.1.3-2).
+  - **DKMS Module Verification**: Automatic DKMS build successfully compiled and installed `ipts/2024.04.16` for `7.2.11-1-cachyos` with Clang/LLVM.
+  - **Bootloader & Snapshots**: Initramfs successfully generated and synced to `/boot` via `limine-snapper-sync` and `limine-mkinitcpio-hook`; Btrfs snapshot #64 created cleanly.
+  - Updated `SKILL.md` to reference `camera-ipu4.md` and updated `references/current-state.md`.
+
+## [2.66.0] - 2026-10-18
+### Documented
+- **Internal camera diagnosis (`surface` profile, device-specific)**: Confirmed no `/dev/video*`; ISP `8086:8a19` (Intel IPU4) has no bound driver on kernel `7.2.9-2-cachyos`, and IPU4 is unsupported upstream and in `linux-surface`. No fix; use an external USB UVC webcam. No system changes made. Added `references/gotchas/camera-ipu4.md`.
+
+## [2.65.0] - 2026-10-18
+### Added & Fixed
+- **Minimized Window Tray Drawer UX, Full-Bleed Dynamic Badge Icons & State Sync (`core/`, universal)**:
+  - **Root Cause of Tiny Tray Icon & Missing Count Badge**:
+    - `/usr/share/icons/Adwaita/symbolic/ui/window-restore-symbolic.svg` uses a `6x6` square inside a `16x16` viewBox (`37.5%` linear size / `14%` area fill, designed for titlebar buttons), rendering as a tiny `~5.7px × 5.7px` speck inside Noctalia's `16px` (`15.2px` at `ui_scale = 0.95`) tray slot.
+    - `AyatanaAppIndicator3.Indicator.set_label()` uses Canonical's `XAyatanaLabel` D-Bus property, which Noctalia's `StatusNotifierHost` does not implement, leaving the window count invisible on the bar.
+    - Disassembly of `/usr/bin/noctalia` (`TrayWidget`, `0x127e140` & `0x12863d2`) showed that Noctalia indexes `IconThemePath` recursively upon SNI registration, invalidates its per-item icon cache when `IconName` changes (`0x127f53f`), and rasterizes `*-symbolic.svg` via `librsvg` (`rsvg_handle_new_from_data`), automatically tinting the SVG foreground to match the active theme's `on_secondary` tray capsule color.
+  - **Full-Bleed `64x64` Dynamic SVG Badge Icons**:
+    - Updated `core/.local/bin/hypr-tray-drawer` (`ensure_tray_icons()`) to pre-generate 11 full-bleed `64x64` vector SVG badge icons (`hypr-tray-drawer-{0..9,9plus}-symbolic.svg`) in `$XDG_RUNTIME_DIR/hypr-tray-drawer-icons/` before registering `self.indicator.set_icon_theme_path(str(ICON_DIR))`.
+    - Fills `x=2..62, y=1..62` (`94%` of the canvas, ~2.5× larger in linear dimensions / >6× larger in area) with a stacked-window frame and a bold geometric vector count digit (`1`–`9`, `9+`) inside the window body.
+  - **Silent Minimize (`follow = false`) & Window State Preservation**:
+    - Disassembly of `/usr/bin/Hyprland` (`0xb816c0`, `tableOptBool(L, 1, "follow")`) proved `hl.dsp.window.move` takes `follow = false` (not `silent = true`) to invoke `movetoworkspacesilent`. Replaced the ignored `silent = true` + `toggle_special` flash workaround with `follow = false`, and preserved `pinned` and `fullscreen` states across minimize/restore cycles.
+  - **Live Hyprland State Reconciliation, Event Sync & Drawer UX**:
+    - Added `sync_with_hyprland()` to reconcile `self.minimized_windows` against `hyprctl clients -j` (`workspace.name == "special:minimized"`) at startup and before opening the drawer, plus `.socket2.sock` handlers for `movewindowv2>>`, `movewindow>>`, and `windowtitlev2>>` alongside `closewindow>>`.
+    - **Window Switcher (`noctalia msg window-switcher`) Overlay Interception & Domino-Focus Fix**: When selecting a minimized window from Noctalia's window switcher (1-finger left-to-right edge swipe), Noctalia dispatches `hl.dsp.focus({window = "address:0x..."})`, which causes Hyprland to activate the entire `special:minimized` workspace as a persistent overlay over all workspaces. Furthermore, moving the selected window out of `special:minimized` *before* closing `special:minimized` causes Hyprland to automatically shift focus to the next remaining window in `special:minimized` and emit a cascading `activewindowv2>>` event for every minimized window. Fixed by: (1) synchronously latching a `650ms` `suppress_intercept_until` debounce in `_run_hypr_listener` on the first `activewindowv2>>` match, and (2) dispatching `hl.dsp.workspace.toggle_special("minimized")` **before** `hl.dsp.window.move(...)` in `build_restore_lua()` so `special:minimized` closes first and only the single selected window is restored to the current normal workspace.
+    - Fixed the duplicate window title dictionary collision in `_interactive_drawer_worker()`, added origin workspace tags (`[class · WS N]`), added a `🧭  Restore All to Origin Workspaces` action alongside `📂  Restore All Here`, and made clicking the tray icon or pressing `SUPER + ALT + M` while the drawer is open toggle-close the launcher (`noctalia msg panel-close launcher`).
+  - **`systemd --user` Supervision & Single-Instance Lock**:
+    - Added an `fcntl.flock` lock (`$XDG_RUNTIME_DIR/hypr-tray-drawer.lock`) to `hypr-tray-drawer daemon`, created and enabled `core/.config/systemd/user/hypr-tray-drawer.service` (`~/.config/systemd/user/hypr-tray-drawer.service`), and updated `core/.config/hypr/config/autostart.lua` to start `systemctl --user start hypr-tray-drawer.service`.
+  - Updated `references/config-paths.md`, `references/gotchas/wayland-noctalia.md` (Section 9), and `references/gotchas/hyprland.md` (Section 15).
+
+## [2.64.0] - 2026-10-18
+### Added & Fixed
+- **Interactive Keybindings Cheatsheet Action Execution (`core/`, universal)**:
+  - Updated `core/.local/bin/hypr-keybinds-menu` (`~/.local/bin/hypr-keybinds-menu`, launched via `SUPER + K`) so pressing `Enter` on any searched/selected keybinding executes its action immediately.
+  - Prefixed submap-specific bindings (such as `[resize]`) in the `fzf` list and updated the header to `ENTER to run · ESC to exit`.
+  - Implemented `trigger_bind_detached(dispatcher, arg)` to fork a detached background helper and immediately exit `hypr-keybinds-menu`, waiting until the floating `Keybindings` terminal window unmaps and focus returns to the previously active window before invoking `hyprctl eval "local fn = debug.getregistry()[<arg>]; if type(fn) == 'function' then fn() end"`.
+  - Documented the Hyprland Lua registry keybind invocation pattern in `references/gotchas/hyprland.md` (Section 17).
+
+## [2.63.0] - 2026-10-18
+### Verification and Gotchas
+- **Latest upstream VLC master retest (`vlcdots`, universal app-development knowledge; not deployed)**:
+  - PR [#14](https://github.com/dsojevic/juxtopposed-vlc/pull/14) is merged. At the user's request, fetched upstream and created detached `/home/jmvp/work/juxtopposed-vlc-master-test` at `56834cb796aa8947f499f3f965fb3df1dad4f617`, with a separate `juxtopposed-vlc-master-test-build`. Qt/QuickTest 6.12.0, GCC 16.2.1, Meson 1.12.1; offscreen/software testing with isolated HOME/XDG directories.
+  - Unmodified master fails Meson configuration with `medialibrary=disabled`: the new `test_src_misc_media_library_startup` registration requires the absent plugin. Applied only a temporary one-line `enabled: medialibrary_dep.found()` registration guard in the scratch checkout; no Qt production code or test assertion changes.
+  - Final complete Qt run: **65 registrations, 63 OK / 2 FAIL**, including one shader-only backdrop skip under the software renderer. Failures: `test_breadcrumbsKeepHiddenAncestorsAvailable` at `tst_RedesignLibrary.qml:521` (`opened=false`) and `test_websiteNeedsAnExplicitClickAndAWebAddress` at `tst_RedesignAddons.qml:148`. Breadcrumb fails independently on both offscreen and minimal platforms, and offscreen without forcing the software backend. The customization-controls click test failed earlier grouped/isolated runs, then passed both consolidated runs without source changes; cause unconfirmed.
+  - Resolved fresh test-only runtime omissions, not application regressions: built the static preparser, JSON preparser serializer, console logger, and modern `https` plugin in the new build. All four initially failing native interface/model tests then pass; subtitle scanner is **11 passed / 0 skipped** with its loopback HTTP fixture.
+  - Evidence and unposted maintainer reply draft: `/tmp/opencode/vlc-master-retest-40h0oe3j/`. Installed alpha, private pin/patch/manifest, private main, and public `linux-installation` working branch remain unchanged. No package installation, deployment, player restart, visible GUI interaction, push, or PR reply. Added reusable cold-build prerequisites and configuration caveat to `gotchas/vlc.md`.
+
+## [2.62.0] - 2026-10-18
+### Added & Fixed
+- **Surface Tablet Touch Keyboard & Bottom-Up Swipe Gesture on Lock Screen and Pre-Login Greeter (`profiles/surface`, device-specific)**:
+  - **Root Cause of Invisible OSK on Post-Suspend Lock Screen (`ext-session-lock-v1`)**:
+    - Disassembly of `/usr/bin/Hyprland` (`0.56.2`) (`Render::IHyprRenderer::renderLayer` and `Desktop::CViewHitTester::layerSurfaceAt`) revealed that while `CSessionLockManager::isSessionLocked()` is active (`noctalia msg session lock` via `ext-session-lock-v1`), Hyprland skips rendering **all** `zwlr_layer_shell_v1` layer surfaces (even `overlay` layer 3) if `m_aboveLock == 0` (the default), and blocks all touch hit-testing on layer surfaces unless `m_aboveLock == 2`.
+    - When waking from suspend/hibernate with the Surface Book 3 base detached (`Oct 18 11:58:14`, `14:38:50`, `14:39:05`), `lisgd` detected the 1-finger bottom-up swipe and toggled `wvkbd-mobintl` via `SIGRTMIN`, but `wvkbd` opened invisibly behind the lock screen and could not receive touch input.
+  - **Post-Suspend Lock Screen Fix (`above_lock = 2`)**:
+    - Added `hl.layer_rule({ name = "surface-wvkbd-above-lock", match = { namespace = "^(wvkbd)$" }, above_lock = 2 })` to `profiles/surface/.config/hypr/config/profile/inputs.lua`, rendering `wvkbd-mobintl` above the Noctalia lock screen and enabling touch interaction while keeping keyboard focus on the password input (`keyboard_interactivity = none`).
+  - **Cold-Boot `lisgd` Startup Segfault Fix (`-w 3000 -h 2000`)**:
+    - Disassembly of `/usr/bin/lisgd` (`0x2155`–`0x2bd9`) showed that without `-w` and `-h`, `lisgd` calls `wl_display_connect(NULL)` when `$WAYLAND_DISPLAY` is set and dereferences the pointer unchecked (`wl_proxy_get_version(NULL)`), causing a `SIGSEGV` in `libwayland-client.so.0` if the Wayland socket is not yet ready.
+    - Updated `profiles/surface/.local/bin/hypr-lisgd` to pass explicit `-w 3000 -h 2000` geometry to `lisgd`, bypassing `wl_display_connect()` completely.
+  - **Cold-Boot Pre-Login `greetd` Tablet OSK & Gesture Support**:
+    - Because `/usr/bin/noctalia-greeter-compositor` lacks `zwlr_layer_shell_v1` and `zwp_virtual_keyboard_v1`, created `profiles/surface/scripts/surface-greeter-session.sh` (`/usr/local/bin/surface-greeter-session`), `profiles/surface/scripts/surface-greeter-client.sh` (`/usr/local/bin/surface-greeter-client`), and `profiles/surface/scripts/surface-greeter-hyprland.lua` (`/etc/greetd/surface-hyprland.lua`), wired into `profiles/surface/setup.sh`.
+    - Runs `noctalia-greeter` (`dev.noctalia.Greeter`) inside a minimal zero-gap/zero-border Hyprland compositor alongside `wvkbd-mobintl -L 320 -H 320 --hidden` and a `lisgd` supervisor for the 1-finger bottom-up swipe (`1,DU,B/BL/BR,*,R`), with automatic fail-safe fallback to `/usr/bin/noctalia-greeter-session` if Hyprland fails to initialize.
+  - Updated `profiles/surface/gotchas/virtual-keyboard.md` (Sections 3E–3G).
+
+## [2.61.0] - 2026-10-18
+### Installed
+- **VLCdots `0.1.0-alpha.1` (`vlcdots`, universal user-local app; explicitly approved)**:
+  - Installed versioned native VLC4/Qt payload and bundled Python backend at `~/.local/opt/vlcdots-alpha/releases/0.1.0-alpha.1`, with relative `current` link, `~/.local/bin/vlcdots-alpha`, and validated `~/.local/share/applications/vlcdots-alpha.desktop` (**VLCdots Alpha**). The launcher creates its own persistent profile at original `$XDG_STATE_HOME/vlcdots-alpha/profile` (default `~/.local/state/vlcdots-alpha/profile`) on use. It does not migrate the development player's temporary settings.
+  - Reused the validated build via fresh `meson install --no-rebuild --strip --destdir` staging, with no compiler or package installation. Native payload is about 67 MB; system dependencies remain required. Full installed inventory has 777 files/links. Original ani-cli history, normal VLC settings, MIME defaults, and all 120 fingerprinted mapped development files remain unchanged. No visible window, desktop control, restart of the user's player, or real provider request performed.
+  - Added installer/runtime tools and documentation: immutable version directories, hashed ownership receipt, collision refusal, separate per-process VLC4 loader/plugin/data/libexec paths, and ownership-checked uninstall that preserves profiles/cache/history. Fixed an actual trial failure caused by protected same-UID systemd/PAM processes: unrelated identifiable opaque processes no longer block installation; possible opaque VLC/helpers still refuse, and known executable/library-map matches still block removal. Opaque custom hosts loading private libraries under unrelated names remain a documented best-effort limitation.
+
+### Verification and Git
+- Full Python/tooling suite **326/326 pass** with installed-CLI offline fixtures; portable run **326 tests, 16 opt-in skips**. Alpha coverage: **22 launcher + 31 installer** checks. Native/Qt result remains **44 pass / 1 unchanged breadcrumb failure**, all Anime tests passing; no new native source change for packaging.
+- Verified relocated candidate and actual installed launcher: offscreen Qt with queue panel, synthetic playback to EOF, no QML errors, bundled bridge history import, unchanged fixture history, and immutable payload inventory after execution. Process mappings and the preparser executable resolve entirely inside the installed release, not the build/source tree. A separate clean scratch install tested real refusal to uninstall a mapped release, followed by successful uninstall preserving fake profile/normal VLC/cache/history. Menu entry passes `desktop-file-validate`.
+- User approved private `main` promotion and publication. Committed alpha source/docs as `378245e`, followed by process-guard fix `81ae9d3`; fast-forwarded private main without checking out an older helper tree while the development player was live. Atomically pushed **main and annotated `v0.1.0-alpha.1`** to private `JValdivia23/vlcdots`. Remote main and peeled tag resolve to `81ae9d305ea75e050c16719f6fb15ec90e96f844`; private checkout is clean. No binaries, profiles, caches, or history committed. Public `juxtopposed-vlc` branch/PR remains untouched and clean.
+
+## [2.60.0] - 2026-10-18
+### Added & Fixed
+- **Surface Hibernation CMOS `rtc0` Epoch Alignment (`profiles/surface`, device-specific)**:
+  - **7-Cycle `suspend-then-hibernate` Verification**: Verified all 7 consecutive `suspend-then-hibernate` cycles since `[2.55.0]` (`Oct 15 22:04` through `Oct 17 19:24` $\rightarrow$ `Oct 18 11:58` on `7.2.9-2-cachyos`) transitioned cleanly at the 30-minute mark into zero-watt `HibernateMode=shutdown` with zero `ipts` freezer aborts.
+  - **Root Cause of Hibernation Clock Freeze (`<7h`) / `-7h` Wake Offset (`>7h`)**: Disassembly of `vmlinux` (`timekeeping_suspend`, `timekeeping_resume`, `read_persistent_clock64`, `mach_get_cmos_time`, `sync_hw_clock`) and inspection of `/sys/class/rtc/rtc0`, `/sys/class/rtc/rtc1` (`acpi-tad` `_GRT` `-EIO`), and `/sys/firmware/efi/efivars/RTC-378d7b65-8da9-4773-b6e4-a47826a833e1` (`0x01a4 = 420 min = 7h`) proved that while Linux's 11-minute `sync_hw_clock` timer writes **UTC** to CMOS `rtc0` (`0x70`/`0x71`), Surface UEFI POST re-initializes `rtc0` from the SAM EC clock at **`UTC - 25,179s` (`~-7h`)** on every S5 hibernation wake. Because `timekeeping_resume()` computes $\Delta = \text{ts\_new} - \text{timekeeping\_suspend\_time} = T_{\text{hibernated}} - 25,179\text{s}$, any hibernation `<7h` produced $\Delta < 0$ (rejected by `timekeeping_resume()`, injecting `0s` and freezing both `CLOCK_REALTIME` and `CLOCK_BOOTTIME`), while any hibernation `>7h` injected $T_{\text{hibernated}} - 25,179\text{s}$ (waking 7 hours behind until `chronyd` stepped `CLOCK_REALTIME` after Wi-Fi reconnected).
+  - **Option B Pre-Hibernate `rtc0` Epoch Alignment Hook**:
+    - Created `/usr/local/bin/surface-hibernate-rtc-sync` (`profiles/surface/scripts/surface-hibernate-rtc-sync.sh`) and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (`profiles/surface/systemd/19-surface-rtc-hibernate.sh`), symlinked in `/usr/lib/systemd/system-sleep/19-surface-rtc-hibernate.sh` and wired into `profiles/surface/setup.sh`.
+    - During `pre/hibernate` (`SYSTEMD_SLEEP_ACTION=hibernate` or direct `hibernate`; no-op during `s2idle`), the helper latches `STA_UNSYNC` (`0x0040`) via `adjtimex()` to prevent `sync_hw_clock` from overwriting `rtc0` during snapshot page allocation, and shifts `rtc0` to `CLOCK_REALTIME + offset_sec` (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) via `ioctl(RTC_SET_TIME)`.
+    - At `syscore_resume()`, `timekeeping_resume()` subtracts `timekeeping_suspend_time` ($t_{\text{sleep}} - 25,179\text{s}$) from POST-initialized `rtc0` ($t_{\text{wake}} - 25,179\text{s}$), natively injecting the exact $+T_{\text{hibernated}}$ into both `CLOCK_REALTIME` and `CLOCK_BOOTTIME` before userspace thaws.
+    - During `post/hibernate`, the helper immediately restores `rtc0` to UTC (`CLOCK_REALTIME`), clears `STA_UNSYNC`, and records the POST sample in `/var/lib/surface-hibernate-rtc/last_wake_sample.json` for bounded (`-25200 ± 300s`) drift auto-calibration on the next NTP-synchronized cycle.
+  - **Snapshot Memory Preallocation & IPTS Transition Polish**:
+    - Updated `/usr/local/bin/surface-hibernate-compressor` (`profiles/surface/scripts/surface-hibernate-compressor.sh`) to set and verify `/sys/power/image_size = 4800000000` alongside `lz4` at boot, allowing `hibernate_preallocate_memory()` to bypass `shrink_all_memory()` (`zram0` swap thrashing) whenever saveable RAM is $\le$ `max_size` ($\approx 3.93\text{ GB}$).
+    - Updated `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (`pre/*`) to cleanly stop active `iptsd@*.service` instances and `reset-failed` stale units before sleep/hibernation entry, eliminating the 3s `stop-sigterm` `SIGKILL` timeout and stale `iptsd@dev-hidraw6.service` restore failure.
+    - Added a `0.5s` fast-path healthy check (`is_device_healthy()`) to `/usr/local/bin/surface-ipts-resume-recover` (`profiles/surface/scripts/surface-ipts-resume-recover.sh`), reducing healthy resume verification from `3.10s` to `1.09s` while preserving the full `6 × 2s` recovery loop if needed.
+  - **Live `suspend-then-hibernate` Cycle Verification (`Oct 18 12:52` $\rightarrow$ `14:34`)**:
+    - Across a `30m` `s2idle` + `1h 11m 36s` (`<7h`) S5 hibernation cycle, `19-surface-rtc-hibernate.sh` shifted `rtc0` by `-25,179s` at `13:22:36`, allowing `timekeeping_resume()` to natively inject **`+4,295.8s`** into both `CLOCK_REALTIME` and `CLOCK_BOOTTIME` at wake (`14:34:12`) instead of freezing at `0s`; `rtc0` was immediately restored to UTC and `last_wake_sample.json` captured for `-25180s` auto-calibration.
+    - Snapshot memory preallocation (`image_size = 4.80 GB`) allocated **`979,012` pages (`3.92 GB`, +27% more RAM) in `5.56s` (`704.32 MB/s`)**, cutting preallocation time in half (`11.96–12.60s` $\rightarrow$ `5.56s`).
+    - Zero `iptsd` `SIGKILL` timeouts, zero failed units (`systemctl --failed` = `0`), and `surface-ipts-resume.service` completed its healthy check on `iptsd@dev-hidraw6.service` **`0.89s`** after `user.slice` thaw.
+  - Documented in [`profiles/surface/gotchas/sleep-hibernate.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/sleep-hibernate.md) (Section 12).
+
+## [2.59.0] - 2026-10-17
+### Added
+- **Private Anime episode transport and browser (`vlcdots`, universal app development; not deployed)**:
+  - Added an **Episodes** tab alongside Queue, Bookmarks, and real in-file Chapters. It shows the playing series' in-memory catalog and actual current episode, with Refresh, keyboard selection, loading/error states, and virtualized rows. Fractional entries remain visible but unsupported for playback.
+  - Redesigned full/mini-player Previous/Next use the same verified catalog order, including gaps and explicit boundaries, while ordinary media keeps its queue controls. No EOF auto-advance, global hotkey/media-key interception, watched-state claims, or persisted episode lists.
+  - Reused ani-cli's existing pinned metadata hook and exact resolver; catalog lookup makes only search + episode-list requests. Original title, Sub/Dub, and quality are captured from the playing request rather than sidebar selection. Held input-item identities restore known queued anime contexts and invalidate stale requests on media changes.
+  - Review corrected navigation-only cache argv, same-series/owned-input cancellation, transport-origin error routing through final playback validation, and busy keyboard activation. Original history, count-cache format, and normal resolver contract remain unchanged.
+  - Reused `/home/jmvp/work/vlcdots-counts-build` incrementally after confirming the user's player was closed; previous `/home/jmvp/work/vlcdots-build` and public Linux contribution remain untouched. No commits, pushes, deployment, package/system changes, desktop input/captures, or real provider requests.
+
+### Verification
+- Final Python/tooling **273/273 pass** with installed-CLI offline checks enabled (portable run: 16 opt-in skips); installed-CLI compatibility **18/18**. Final full Qt suite **44 pass / 1 unchanged baseline breadcrumb failure**. All Anime checks pass: panel/Episodes **41/41**, protocol **20/20**, native bridge/lifecycle **36/36**, plus redesigned player view **59/59**. Incorrect synthetic helper imports/correlation fixtures were corrected without weakening production validation or assertions.
+- Real playlist checks verify the resolver-to-current-item hand-off, a single prefetch for gapped `1 → 3 → 5`, direct selection preserving Dub/720p, ordinary-media clearing, queued-anime restoration, and boundary no-ops. Refused loopback streams exercise identity/queue behavior, not decoding. Restoring a failing queued stream without stopping first let normal VLC error auto-advance invalidate the fixture; it now stops and selects without restart. GDB traced a separate test-only post-Totals crash to KF6 WindowSystem's Qt child surviving libvlc's module unload. Proper outer RAII core ownership now outlives QCoreApplication; no QObject detachment, leaked core, skipped assertion, or production workaround remains.
+- Incremental player compilation and final actual-launcher offscreen Qt/synthetic-playback smoke pass with the play-queue panel instantiated, no QML errors, unchanged fixture history, and temporary-profile cleanup. Live provider playback and visible UI remain user-tested only. Final managed patch: **18 Qt files, 269387 bytes**, SHA256 `41f43c0d79882498179db6bff16ca675ce44df737f1adce1ed723afdad6f16d3`; detached HEAD remains `cebf0a2`, and exact staged-patch verification passes. All builds/tests have finished; the isolated build is ready for manual launch, not deployment.
+
+## [2.58.0] - 2026-10-16
+### Added
+- **Private Anime episode counters (`vlcdots`, universal app development; not deployed)**:
+  - History rows display `Ep 3/12` from ani-cli's available episode list, `Ep 3/?` while unknown, or `Ep 3.5 · 13 eps` for specials/nonsequential numbering. These are last-opened episodes, not completion or planned-season totals.
+  - Added lazy, bounded visible-row lookups and a persistent app-owned count cache (default `~/.cache/vlcdots/episode-totals.json`, original XDG cache base captured before profile isolation). Cache data contains provider IDs/counts/source fingerprint/fetch time, never titles, stream URLs, or watch positions. Six-hour freshness is checked on history Reload.
+  - Metadata capture uses a SHA-guarded temporary copy hook of installed ani-cli 5.1.5, exiting before playback after its own parsed episode list. Full provider-ID verification is required; the installed file and original history remain untouched. No new metadata provider or vendored scraper/script.
+  - Fixed cache integration/lifecycle regressions found during review: explicit PATH resolution before source reads, real-entrypoint cache-roundtrip coverage, source-change/future-timestamp invalidation, dropping stale native totals on Reload, and retrying cancelled lookups when the panel reopens. Metadata updates preserve selection, manual episode edits, audio, quality, and media.
+  - Kept the user's live `/home/jmvp/work/vlcdots-build` untouched; the new counter build is `/home/jmvp/work/vlcdots-counts-build` with a configured-only `/home/jmvp/work/vlcdots-counts-prefix`. Public Linux contribution and pinned source revision remain unchanged; no commits, pushes, deployment, package/system changes, desktop control, or live provider requests.
+
+### Verification
+- Python/tooling **247/247 pass** with installed-CLI offline checks enabled (portable run: 13 opt-in skips), including the actual bridge entrypoint proving search + episode-list only on a miss and no requests on a subsequent cache hit. Full counter-build Qt suite: **44 pass / 1 existing breadcrumb failure**, with Anime panel **29/29**, protocol **15/15**, and native bridge/lifecycle **18/18**. A new counts-error presentation failure was corrected in production code (generic retry notice), leaving its assertion intact. The recorded breadcrumb assertion remains unchanged and failing.
+- Full counter-player compilation and final actual-launcher offscreen Qt/synthetic-playback smoke pass; the cache flag is accepted, fixture history is unchanged, and the temporary profile is cleaned. No visible new-build UI, real audio, live provider count lookup, or live stream was exercised. Final managed patch: 15 Qt files, 159904 bytes, SHA256 `11a5027c181a2550a5d8b5cd73b7a40869f101a5182aa44ae328715fd3999682`; detached source HEAD stays `cebf0a2`. All builds/tests have finished; manual launch is available when the user is ready.
+
+## [2.57.1] - 2026-10-16
+### Verified
+- **Live private VLC Anime UI (`agents`, universal app testing; no deployment/config change)**:
+  - Tested the user's already-running isolated Wayland player using window-targeted Hyprland keyboard events and VLC-only `grim -T` captures. No restart, package installation, new playback request, provider lookup, or playback-cancellation test performed.
+  - Passed live checks: populated history, row selection updating the episode, Reload restoring an edited episode from the import, blank input disabling Play, letter input rejection, valid integer input re-enabling Play, Sub/Dub selection, quality selection, `Ctrl+Shift+L` hide/show, Back to library, and Anime reopening with medialibrary disabled.
+  - Restored original selections. Before/after image regions for the loaded media title, playback-time display, and play/pause control match exactly. Original ani-cli history bytes/size/mtime are unchanged. VLC remains running; all temporary window captures were deleted. No watch titles or media images added to Git.
+
+### Gotchas
+- History-row buttons and Reload activate with **Space**, but **Enter/Return** did not activate them in this build; the sidebar has explicit Enter handlers and does respond. Recorded as a keyboard-consistency issue, not fixed during the test-only task. See [`references/gotchas/vlc.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/vlc.md).
+- On the current Lua Hyprland API, use `hl.dsp.focus({ window = ... })`, not `hl.dsp.window.focus`. Read back the active PID/address before sending input; an IPC `ok` alone is not proof of focus. The client's `stableId` worked as the window-only `grim -T` identifier.
+
+## [2.57.0] - 2026-10-16
+### Added
+- **Private ani-cli integration development (`vlcdots`, universal app development; not deployed)**:
+  - Adopted tested fork revision `cebf0a2868290f99f348f74d9abc60ae426e8bdf` in the private source lock. `linux_validated: true` records the earlier build/headless/Wayland smoke only, not an all-green Qt suite; the known breadcrumb failure remains recorded and unresolved.
+  - Private work is on `feature/ani-cli-integration`, with native source changes in detached `/home/jmvp/work/vlcdots-player` and a separate `/home/jmvp/work/vlcdots-build`. The public Linux PR branch remains untouched. No commits, pushes, package changes, deployment, desktop launchers, or dotfiles consumer added in this integration session.
+  - Captured 15 native Qt source/test files in private `vlcdots/patches/0001-ani-cli-integration.patch`. Only the dedicated source worktree index carries those changes; `player.py prepare` verifies its full index tree equals pinned HEAD plus that patch. Public `linux-installation` stays clean, and detached HEAD is unchanged.
+  - Implemented a bounded, read-only ani-cli history parser and a sandboxed resolver adapter using the installed CLI rather than a copied scraper. Imported episodes mean last opened, not completed or seconds-resumable. Sub/Dub and quality are request selectors, not saved language preferences.
+  - Final private Python/tooling verification: 156/156 tests pass with the installed-CLI offline checks enabled (default portable run: 7 opt-in skips). The ani-cli 5.1.5 compatibility suite passes 8/8 offline checks, including the fractional-episode bug reproduction and refusal guard. Full player build succeeds; the full private Qt suite is 44 passed / 1 failed (only the recorded breadcrumb failure). All three new Anime test registrations pass: 20 panel, 10 protocol, and 10 native bridge/lifecycle checks. The actual launcher's capability probe, offscreen Qt startup, 4-second synthetic FFV1 playback, and temporary-profile cleanup pass; fixture history bytes/mtime stay unchanged. No visible window, real audio, resolver-to-playlist playback, or live provider streams tested. Regular VLC settings and existing ani-cli history remain unchanged.
+
+### Development Gotchas
+- ani-cli can replace a custom menu with rofi/dmenu when stdin is not a terminal. The resolver uses PTY stdin, capture-only player/menu helpers, a temporary `ANI_CLI_HIST_DIR`, and an ID/episode check before accepting a stream. Native cancellation must send TERM and allow cleanup before force-killing the Python bridge; immediate KILL can orphan its CLI process group. See [`references/gotchas/vlc.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/vlc.md).
+- Review identified that ani-cli 5.1.5 treats decimal episode dots as regular-expression wildcards, so sandbox history does not by itself prove fractional episode identity. Fractional imports must remain lossless, but playback must fail closed until safe exact membership verification exists.
+- Built-player capability checks are required: this Meson build compiles out DBus single-instance controls and Qt update checks, so unconditionally passing their negative switches prevents startup. The launcher now queries isolated `--ignore-config --longhelp`, accepts only three fixed allowlisted option names, refuses failed/incomplete probes, and omits unsupported switches. No dependencies or global settings were changed to work around this.
+
+## [2.56.0] - 2026-10-16
+### Added
+- **Juxtopposed VLC Universal Dev Setup Baseline (`agents`, universal scope — NOT a hardware profile)**:
+  - Local projects: public fork `/home/jmvp/work/juxtopposed-vlc` (`https://github.com/JValdivia23/juxtopposed-vlc`, upstream `dsojevic/juxtopposed-vlc`, branch `linux-installation` starts at `097cbdb516452914faffcce719291cf14e2f3760`); private repo `/home/jmvp/work/vlcdots` (`https://github.com/JValdivia23/vlcdots`, still scaffold only — 21 tests PASS, personal Anime NOT implemented, dotfiles consumer NOT yet wired).
+  - User-approved installs completed exit 0: `nasm 3.02-1.1` + `qt6-wayland 6.12.0-1.1`, plus followup `extra/vulkan-headers 1:1.4.363.0-1` (confirmed via `pacman -Q`; universal dev dependency, no GPU driver changes) after the first compile stopped at step 1481/2341 on missing `vulkan/vulkan.h`. No VLC binary installed, no live VLC config changed, system `libvlc 3.0.24` untouched. Deps NOT added to `core/packages.txt` (declared in external project eventual integration; no deployment hook yet).
+  - Juxtopposed fork is native Qt/QML VLC4-dev, not a skin/config overlay for VLC3; current release assets are Windows beta only. Requires isolated binary/plugins plus XDG config+data+cache. `TOP_BUILDDIR` launcher is `build/bin/vlc-static`; normal `bin/vlc` targets the installed prefix. No global plugin path / `LD_LIBRARY_PATH` changes made.
+  - Out-of-tree build `/home/jmvp/work/juxtopposed-vlc-build` configured with Meson>=1.10, `--prefix=/home/jmvp/.local/opt/juxtopposed-vlc`, `debugoptimized`, `wrap-mode=nofallback`, Qt enabled, medialibrary disabled, tests auto. Full `nice 10` ninja `-j2` Linux VLC4 Qt/QML build SUCCEEDED after headers; `build/bin/vlc-static --version` exit 0 (VLC4-dev `1f3b575`, GCC 16.2.1). Prefix still NOT deployed: live `/home/jmvp/.local/opt/juxtopposed-vlc` remains absent; validation used only a `--destdir` stage copy at `/tmp/opencode/vlc-runtime-stage-78nj7tnx`.
+  - Documented universal gotchas in [`references/gotchas/vlc.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/vlc.md).
+
+### Fixed
+- **Juxtopposed Meson Configure Failure With Disabled MediaLibrary (source fix in dev fork, not a system patch)**:
+  - Before patch, configure failed at `test/meson.build:55` because optional ML was disabled yet `test_modules_misc_media_tracks` still hard-depended on the absent plugin.
+  - Minimal fix adds `enabled: medialibrary_dep.found()` to the `media_tracks` + `medialibrary` test entries in `test/modules/meson.build`. Same configure after patch succeeds (800 build targets).
+- **Juxtopposed Qt Test Registration Fix (by other coding agent, source fix in dev fork)**:
+  - First suite run: 42 tests, 40 pass / 2 fail. Fixed `test_qt_subtitle_timeline_scanner` registration in `modules/gui/qt/meson.build`: adds per-test `VLC_PLUGIN_PATH=build/modules`, `module_depends` on `filesystem` + `http` plus original `subtitle`/`subsdec`.
+  - After reconfigure: targeted subtitle test PASS, full suite FINAL 41 passed / 1 failed. Remaining failure is the unchanged QML test `tst_RedesignLibrary/test_breadcrumbs` (`KeepHiddenAncestorsAvailable`, line 426, `opened == false`); reproduces on sequential runs with fresh XDG dirs. Cause unconfirmed — do NOT call it flaky/env-only, do NOT skip it or change UI (out of scope).
+
+### Notes / Limitations
+- Missing external `medialibrary>=0.13` means the initial baseline has reduced library functionality, not full beta parity.
+- Eventual anime resume requires own state: `ani-cli` history records only the last launched episode and `--continue` advances to next, with no seconds-precision position.
+- Keep watch history/tokens/cache out of both git repos (runtime local state only).
+- **Validation results (all isolated, no live install)**:
+  - 2s synthetic FFV1+PCM clip headless-decoded through EOF exit 0 in build tree and stage copy. Does NOT test real PipeWire/speaker output.
+  - `meson install --no-rebuild --destdir /tmp/opencode/vlc-runtime-stage-78nj7tnx/stage` SUCCEEDED. Installed `bin` needs `libvlc.so.12`/`libvlccore.so.9` with no RPATH (`readelf`): raw stage `--version` fails 127; per-process `LD_LIBRARY_PATH=<stage>/lib:<stage>/lib/vlc` succeeds for version + playback — never exported globally. Five Qt plugins `ldd`: no missing.
+  - User-approved 8s silent native GUI test: staged player launched with `QT_QPA_PLATFORM=wayland` and private XDG dirs, exit 0. Hyprland IPC: own window, class `vlc`, `xwayland:false`, `mapped:true`; logs show `qt_wayland`, `avcodec`, `egl_wl`, EOF. Native Wayland display + playback validated; screenshot NOT used (IPC/log evidence only), sources in `/tmp/opencode/vlc-native-wayland-e_2r2og7`. No hw-decode/HDR/real-audio claims.
+- Public fork `linux-installation` branch changes are Linux guide + Meson test-setup fixes, no production UI changes. Upstream DRAFT PR is OPEN: `https://github.com/dsojevic/juxtopposed-vlc/pull/14` ('Document Linux builds and fix optional-dependency test setup'); public `linux-installation` HEAD `cebf0a2`. No git commit/push/PR from this task; no live VLC settings modified; system `libvlc3` untouched; no core package changes or service reloads.
+
+## [2.55.0] - 2026-10-15
+### Fixed
+- **Surface `suspend-then-hibernate` 30-Minute Transition Failure on CachyOS 7.x (`profiles/surface`)**:
+  - Diagnosed and resolved root cause where 30-minute RTC wakes from `s2idle` to `hibernate` aborted after `20.002s` (`Freezing user space processes failed ... task:iptsd-check-dev state:D`) and fell back into indefinite `s2idle` suspend.
+  - Patched [`profiles/surface/dkms/ipts/src/eds2.c`](file:///home/jmvp/dotfiles/profiles/surface/dkms/ipts/src/eds2.c): reduced `GET_FEATURES_TIMEOUT` from `30 * MSEC_PER_SEC` to `5 * MSEC_PER_SEC` (matching `linux-surface`) and replaced uninterruptible `mutex_lock` + `wait_for_completion_timeout` (`state:D`) with `mutex_lock_interruptible` + `wait_for_completion_interruptible_timeout` (`state:S`), allowing the kernel process freezer and `timeout` signals to interrupt an in-flight `GET_FEATURES` ioctl in `<1ms` when the touch panel is powered off (lid closed).
+  - Patched [`profiles/surface/dkms/ipts/src/control.c`](file:///home/jmvp/dotfiles/profiles/surface/dkms/ipts/src/control.c): fixed upstream typo overwriting `cmd.tail_offset_addr_lower` instead of setting `cmd.tail_offset_addr_upper`.
+  - Rebuilt and reloaded `ipts/2024.04.16` via DKMS for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`.
+- **Sleep & Hibernation Subsystem Consistency Hardening (`profiles/surface`)**:
+  - **Reactivated `surface-hibernate-compressor.service` on CachyOS Kernels**: Removed `ConditionKernelVersion=*-surface` from [`surface-hibernate-compressor.service`](file:///home/jmvp/dotfiles/profiles/surface/systemd/surface-hibernate-compressor.service) and the `*-surface` kernel-name filter from [`surface-hibernate-compressor.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-hibernate-compressor.sh) while preserving the `Surface*` DMI hardware check and `/proc/crypto` `lz4` self-test guard. Restored active `lz4` RAM-image compression on `7.2.9-2-cachyos`.
+  - **Guarded `surface-unplug-lid-handler` Against Active Sleep Transitions**: Added `is_sleep_in_progress()` check in [`surface-unplug-lid-handler.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-unplug-lid-handler.sh) so `ADP1` uevents emitted during the 30-minute RTC wake do not call `systemctl suspend-then-hibernate` while `systemd-suspend-then-hibernate.service` is already active.
+  - **Registered Battery Sleep Hook & Guarded Clamshell IPTS Hook**: Symlinked `/usr/lib/systemd/system-sleep/20-surface-battery-resume.sh` $\rightarrow$ `/etc/systemd/system-sleep/20-surface-battery-resume.sh`, updated [`21-surface-ipts-resume.sh`](file:///home/jmvp/dotfiles/profiles/surface/systemd/21-surface-ipts-resume.sh) to skip starting `surface-ipts-resume.service` on `post/*` when the lid is physically closed, and added `SuccessExitStatus=143 SIGTERM` to [`surface-ipts-resume.service`](file:///home/jmvp/dotfiles/profiles/surface/systemd/surface-ipts-resume.service).
+  - **Self-Healing `hypr-lisgd` Evdev FD Monitor**: Updated [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) to monitor `/proc/$LISGD_PID/fd/*` every 2 seconds and automatically restart `lisgd` if `libinput` drops the `/dev/input/event*` descriptor across suspend/resume or `iptsd` restarts.
+  - Synced `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` and [`profiles/surface/setup.sh`](file:///home/jmvp/dotfiles/profiles/surface/setup.sh).
+
+## [2.54.0] - 2026-10-13
+### Added
+- **Surface Touch Daemon Resilience via `systemd --user` Services (`profiles/surface`)**:
+  - Migrated [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) and [`hypr-touch-resizer`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-touch-resizer) from ephemeral subshell/agent background jobs into permanent `systemd --user` units:
+    - [`hypr-lisgd.service`](file:///home/jmvp/dotfiles/profiles/surface/.config/systemd/user/hypr-lisgd.service): Supervises `lisgd` touchscreen gesture daemon, attaching to IPTS virtual touchscreen (`/dev/input/event25`).
+    - [`hypr-touch-resizer.service`](file:///home/jmvp/dotfiles/profiles/surface/.config/systemd/user/hypr-touch-resizer.service): Supervises interactive window resizer daemon with `--foreground`.
+    - Both units configured with `PartOf=graphical-session.target`, `After=graphical-session.target`, `WantedBy=graphical-session.target`, `Restart=always`, and `RestartSec=2s`.
+  - Updated [`profiles/surface/.config/hypr/config/profile/autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua) to trigger `systemctl --user start hypr-lisgd hypr-touch-resizer`.
+  - Verified automatic self-healing restart upon process kill/crash and active event socket listening for `submap>>resize`.
+
+## [2.53.0] - 2026-10-13
+### Added
+- **Unified Minimized Window Tray Drawer (`core`)**:
+  - Developed and deployed [`hypr-tray-drawer`](file:///home/jmvp/dotfiles/core/.local/bin/hypr-tray-drawer) in core dotfiles:
+    - Provides a single, clean StatusNotifierItem (SNI) tray icon for Noctalia to manage minimized application windows, avoiding system bar clutter.
+    - **Dynamic Visibility**: Stays completely hidden (`PASSIVE`) when 0 windows are minimized. When apps are minimized, automatically becomes `ACTIVE`, displaying the `window-restore-symbolic` icon and a numeric count badge.
+    - **Single-Click Tray Activation**: Left-clicking the tray icon triggers the `"activate"` StatusNotifierItem D-Bus signal to instantly open Noctalia's native interactive launcher drawer (`noctalia dmenu`), displaying each minimized app with its icon and title, plus "Restore All" and "Close All" quick actions.
+    - **Context Menu & Secondary Activation**: Right-clicking opens the native GTK/DBusMenu dropdown, and middle-clicking activates "Restore Most Recent".
+    - **Hyprland Socket2 Sync**: Background thread listens to Hyprland's `.socket2.sock` for `closewindow>>` events to auto-prune windows if closed in the background.
+    - **Special Workspace Overlay Fix**: Atomically toggle off `special:minimized` upon moving the window so Hyprland does not display the special workspace as a full-screen overlay over the monitor.
+  - **Keybindings (`binds.lua`)**:
+    - `SUPER + M`: Minimize active window to the tray drawer (`hypr-tray-drawer minimize`).
+    - `SUPER + SHIFT + M`: Restore the most recently minimized window back to active workspace (`hypr-tray-drawer restore`).
+    - `SUPER + ALT + M`: Open the interactive minimized apps drawer menu directly via keyboard (`hypr-tray-drawer menu`).
+  - **Focus-or-Launch Integration (`helpers.lua`)**:
+    - Enhanced `helpers.launch_or_focus` to automatically detect if a target app is currently minimized in `special:minimized`, seamlessly pulling it onto the active workspace and focusing it upon launcher activation.
+  - **Autostart (`autostart.lua`)**:
+    - Added `hypr-tray-drawer daemon` to core Hyprland autostart.
+
+## [2.52.0] - 2026-10-13
+### Added
+- **Interactive Touchscreen Window Resizer Daemon (`profiles/surface`)**:
+  - Developed and deployed [`hypr-touch-resizer`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-touch-resizer) daemon for Microsoft Surface Book 3:
+    - Listens to Hyprland's UNIX event socket (`.socket2.sock`) for `submap>>resize`.
+    - Claims an exclusive `EVIOCGRAB` on the IPTS virtual touchscreen device (`/dev/input/event25`) whenever `SUPER + R` resize mode is active. This prevents Wayland applications from receiving touch inputs or text selections.
+    - Translates 1-finger touchscreen drags into real-time relative window resizing (`resizeactive`) via Hyprland's IPC socket (`.socket.sock`), enabling true 1:1 touchscreen dragging across active window surfaces.
+    - Quick tap (<350ms, <40px displacement) immediately confirms and exits resize mode cleanly.
+    - 30-second inactivity safeguard auto-exits resize mode if left idle.
+    - Double-fork daemonized with single-instance lock file (`/run/user/$UID/hypr-touch-resizer.pid`).
+    - Configured auto-start in [`profiles/surface/.config/hypr/config/profile/autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+- **Universal Window Resizing & Touch Gestures (`core` & `profiles/surface`)**:
+  - Unified keyboard resizing in [`binds.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/binds.lua): replaced layout-dependent `splitratio` with Hyprland's native `resizeactive` dispatcher (40px deltas), providing smooth, continuous resizing across all windows whether tiled or floating.
+  - Added both `SUPER + R` and `SUPER + r` enter bindings and modifier hold-through (`modmask: 64`) for arrows and Vim HJKL keys.
+  - Corrected mouse drag bindings to `{ mouse = true }` across all mouse drag bindings.
+  - Deployed dedicated helper script [`hypr-resize-step`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-resize-step) and connected it to 2-finger horizontal swipe gestures in [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd):
+    - **2 fingers swipe right**: Expands active window width by 60px.
+    - **2 fingers swipe left**: Shrinks active window width by 60px.
+  - Expanded `extend_border_grab_area` from 10 to 24 pixels in [`decorations.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/decorations.lua) (~5mm touch target on high-DPI Surface displays).
+
+## [2.51.0] - 2026-10-13
+### Fixed
+- **Surface IPTS Wake Handshake & Gesture Auto-Reconnect (`profiles/surface`)**:
+  - Hardened `/usr/local/bin/surface-ipts-resume-recover` against wake race conditions after suspend/hibernation.
+  - Increased `iptsd-check-device` timeout from `2s` to `6s` (`timeout --kill-after=2s 6s`) to prevent prematurely SIGKILLing in-flight Intel MEI firmware handshakes (which previously led to 30-second kernel blocks: `GET_FEATURES timed out!`).
+  - Added a 2-second initial wake settle delay and expanded retry attempts from 4 to 6 (spaced by 2s).
+  - Integrated `pkill -x lisgd` upon successful recovery so the `hypr-lisgd` supervisor automatically re-attaches to newly enumerated virtual touchscreen evdev nodes.
+  - Documented complete architecture and failure mode in [`profiles/surface/gotchas/touchscreen-iptsd.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/touchscreen-iptsd.md).
+
+## [2.50.0] - 2026-10-13
+### Added
+- **Surface Book 3 Hybrid Audio Architecture with EBU R128 AutoGain Leveling (`profiles/surface`)**:
+  - Upgraded [`surface-book-hybrid.json`](file:///home/jmvp/dotfiles/profiles/surface/.local/share/easyeffects/output/surface-book-hybrid.json) into a 7-stage unified DSP audio stack, combining Surface Book 3 acoustic chassis correction, JackHack96 Dolby Atmos 3D room impulse, and automatic volume leveling.
+  - **Dynamic Range Normalization (AutoGain)**: Integrated EBU R128 / ITU-R BS.1770 AutoGain normalizer (`target: -14.0 LUFS`) that automatically eliminates wide volume swings, smoothly lifting quiet whispers/dialogue while preventing loud action scenes and music from blasting.
+  - **DSP Efficiency & CPU Optimization**: Pruned 32-band EQ to 11 active acoustic bands (eliminating 21 idle 0 dB biquad filters and 4M+ floating-point ops/sec) and disabled 4x oversampling on the limiter to native lookahead rate, reducing limiter cycle time by 91% (from 620 µs down to 54 µs).
+  - Persisted the complete JackHack96 spatial Impulse Response library (25+ `.irs` files) into `profiles/surface/.local/share/easyeffects/irs/`.
+  - Set `surface-book-hybrid` as the persistent default in `~/.config/easyeffects/db/easyeffectsrc`.
+
+## [2.49.0] - 2026-10-13
+### Fixed
+- **Hybrid Keyboard & Tiled Submap Resizing (`core`)**:
+  - Resolved issue where keyboard Arrow keys and Vim HJKL keys did not resize tiled windows in Hyprland's `dwindle` layout after entering `SUPER + R` resize mode.
+  - Implemented dynamic window state inspection via `hl.get_active_window().floating`: tiled windows now dynamically adjust container split boundaries via native `hl.dsp.layout("splitratio <ratio>")` (`+0.05` / `-0.05`), while floating windows use `resizeactive` (`30px` deltas).
+  - Added support for modifier hold-through (`modmask = 64`): registered `SUPER + Arrow` and `SUPER + HJKL` keybinds alongside bare keys so resizing functions reliably whether `SUPER` is released or kept held.
+  - Registered full touchscreen and mouse drag bindings (`mouse:272` and `mouse:273`, both bare and `SUPER`-held) across active window surfaces.
+  - Added split reset binding via `=` / `SUPER + =` (`splitratio 1.0 exact`) to quickly re-center split containers to 50/50.
+  - Documented root cause and solution in [`references/gotchas/hyprland.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/hyprland.md) and [`references/keybindings.md`](file:///home/jmvp/dotfiles/agents/.agents/skills/system-personalization/references/keybindings.md).
+
+## [2.48.0] - 2026-10-13
+### Added
+- **Interactive Window Resize Mode Submap (`core`)**:
+  - Implemented `SUPER + R` interactive resize mode submap in universal [`core/.config/hypr/config/binds.lua`](file:///home/jmvp/dotfiles/core/.config/hypr/config/binds.lua) using Hyprland's native Lua `hl.define_submap("resize", ...)`.
+  - Enables effortless touchscreen and mouse left-drag resizing (`mouse:272`) anywhere on active windows without requiring millimeter precision on thin 1px window borders.
+  - Enabled keyboard incremental resizing with repeating keys via Arrow keys and Vim HJKL keys (30px step increments).
+  - Configured clean exit bindings via `Escape`, `Return`, or `SUPER + R`, returning to default submap seamlessly.
+  - Added OSD feedback notification on entering resize mode.
+  - Updated universal keyboard shortcut documentation in [`references/keybindings.md`](file:///home/jmvp/.agents/skills/system-personalization/references/keybindings.md).
+
+## [2.47.0] - 2026-10-13
+### Added
+- **Surface Book 3 Psychoacoustic Audio DSP & EasyEffects Engine (`profiles/surface`)**:
+  - Engineered and deployed a tailored 5-stage DSP audio enhancement preset [`surface-book.json`](file:///home/jmvp/dotfiles/profiles/surface/.config/easyeffects/output/surface-book.json) for the Microsoft Surface Book 3 tablet speakers.
+  - **Psychoacoustic Virtual Bass**: Integrated Calf Bass Enhancer generating 2nd and 3rd order harmonics for frequencies up to 145 Hz (+10 dB virtual bass presence), leveraging the "missing fundamental" effect so the human brain perceives deep sub-bass despite physical speaker driver limits.
+  - **Subsonic High-Pass Protection**: Configured a 90 Hz steep 12 dB/oct cut (RLC BT) filter to eliminate destructive sub-bass excursion, preventing speaker distortion, rattling, and voice coil overheating.
+  - **Chassis Acoustic Equalization**: Configured a 32-band parametric EQ providing lower-mid body warmth (156–194 Hz), speech clarity (1.3–1.7 kHz), chassis resonance peak suppression (-3 dB at 3.2 kHz), and air/sparkle (9.5–12 kHz).
+  - **Stereo Widening & Peak Limiting**: Applied Calf Stereo Tools (+15% width, 0.04 ms delay) for immersive soundstage and LSP True Peak Limiter (-1.0 dB ceiling) to guarantee distortion-free playback at maximum volume.
+  - Installed plugin engines `lsp-plugins-lv2` and `calf`, tracking them in [`profiles/surface/packages.txt`](file:///home/jmvp/dotfiles/profiles/surface/packages.txt).
+  - Configured silent background service autostart (`easyeffects --service-mode`) in [`autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+  - Documented complete architecture, plugin engine dependencies, EasyEffects 8.3 preset paths, and A/B testing commands in [`profiles/surface/gotchas/audio-dsp.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/audio-dsp.md).
+
+## [2.46.0] - 2026-10-13
+### Added
+- **Surface Touch & Stylus (IPTS) Support for Linux 7.2 Mainline / CachyOS (`profiles/surface`)**:
+  - Enabled complete Surface touchscreen and stylus functionality on stock `linux-cachyos` (7.2.9+) without requiring `linux-surface` kernel patching.
+  - Vendored IPTS kernel driver source from upstream `intel-precise-touch` (commit `3b88a45`) into `profiles/surface/dkms/ipts/` and deployed to `/usr/src/ipts-2024.04.16/`.
+  - Configured DKMS integration with `BUILD_EXCLUSIVE_KERNEL="-cachyos"` and an LLVM/Clang-aware Makefile wrapper that automatically handles CachyOS Clang-built kernel flags. Successfully built and installed modules for `7.2.9-2-cachyos` and `6.18.55-2-cachyos-lts`.
+  - Created runtime PCI MEI binder script [`surface-ipts-mei-bind.sh`](file:///home/jmvp/dotfiles/profiles/surface/scripts/surface-ipts-mei-bind.sh) (installed to `/usr/local/bin/surface-ipts-mei-bind`) dynamically binding device `8086:34e4` (Ice Lake iTouch MEI function) to `mei_me` using config index 9 (`MEI_ME_PCH12_CFG`).
+  - Added udev rules [`72-surface-ipts-mei-bind.rules`](file:///home/jmvp/dotfiles/profiles/surface/systemd/72-surface-ipts-mei-bind.rules) (installed to `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`) triggering binding on PCI add and `mei_me` module loading. Fully backwards-compatible and acts as a no-op on `linux-surface`.
+  - Updated Limine bootloader configuration in `/etc/default/limine` (`BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"`) making `linux-cachyos` the default boot entry while preserving `linux-surface` as an immediate working fallback.
+  - Updated `profiles/surface/setup.sh` (step 10) and `profiles/surface/packages.txt` to guarantee 100% turnkey deployment on fresh installations.
+  - Documented complete architecture, root causes, gotchas, and verification commands in [`profiles/surface/gotchas/kernel-cachyos-ipts.md`](file:///home/jmvp/dotfiles/profiles/surface/gotchas/kernel-cachyos-ipts.md) and symlinked to active skill references.
+
+### Changed
+- **Full System Upgrade**:
+  - Upgraded 171 packages via `pacman -Syu`, including `linux-cachyos` (7.2.9-1 -> 7.2.9-2), `linux-cachyos-lts` (6.18.55-1 -> 6.18.55-2), `limine` (12.9.0-1 -> 12.9.3-2), `limine-snapper-sync`, and core desktop applications (`zen-browser-bin`, `neovim`).
+  - Installed `dkms` package to automate out-of-tree module builds across future kernel updates.
+
+### Fixed
+- **Surface Touchscreen Gestures (`lisgd`) Boot Race Condition & Auto-Recovery**:
+  - Resolved startup crash where `lisgd` dumped core with `SEGV` (`wl_proxy_get_version`) when spawned before Hyprland had initialized the Wayland display socket.
+  - Wrapped `hl.exec_cmd("~/.local/bin/hypr-lisgd")` inside `hl.on("hyprland.start", ...)` in [`autostart.lua`](file:///home/jmvp/dotfiles/profiles/surface/.config/hypr/config/profile/autostart.lua).
+  - Enhanced [`hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) with polling loops for Wayland socket readiness and dynamic device node access.
+
+## [2.45.1] - 2026-10-10
 ### Fixed
 - **MacBookPro15,1 Suspend & Resume Latency Optimization (18s -> <0.5s Wake)**:
   - **Eliminated 11.6s Wake Freeze**: Masked [`kait2en-dgpu-suspend.service`](file:///etc/systemd/system/kait2en-dgpu-suspend.service). Waking the AMD Radeon dGPU from D3cold without UEFI GOP initialization caused PCI timeout failures (`-110 ETIMEDOUT`), SMC memory copy errors, and a 10-retry UVD reset loop that sequentially blocked kernel resume due to `pm_async=off`. With the service masked, the dGPU remains cleanly in D3cold and is bypassed during `s2idle` resume.
@@ -12,6 +535,7 @@ A dated log of all package changes, configurations, script modifications, and ha
   - **Instant Touch ID Availability**: Deployed `/etc/sysctl.d/99-t2-ncm.conf` (`net.ipv6.conf.t2_ncm.dad_transmits = 0`), disabling Duplicate Address Detection on the internal point-to-point CDC-NCM link. Eliminates 3–4s `os error 99` socket binding delay, making BiometricKit sessions available immediately upon lid open.
   - **Dotfiles Automation**: Tracked all configs in `profiles/macbook-t2/scripts/` and integrated them into [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh).
 
+
 ## [2.45.0] - 2026-10-10
 ### Added
 - **Touch ID Fingerprint Login Integration (`greetd` / Noctalia Greeter)**:
@@ -19,6 +543,10 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Enables biometric login using the MacBook Pro's Apple T2 Touch ID sensor at the Noctalia / greetd login screen, logging in user `java1127` upon resting an enrolled finger on the sensor.
   - Automatically falls back to standard password entry if fingerprint verification times out or is bypassed.
   - Automated deployment in [`profiles/macbook-t2/setup.sh`](file:///home/java1127/dotfiles/profiles/macbook-t2/setup.sh) and updated hardware documentation in [`apple-t2.md`](file:///home/java1127/dotfiles/profiles/macbook-t2/gotchas/apple-t2.md).
+- **ani-cli-mx Spanish Anime & Media Streaming Integration (`core`)**:
+  - Installed terminal streaming helper [`ani-cli-mx`](file:///usr/bin/ani-cli-mx) (v3.0.10-1) from the AUR via `yay`.
+  - Scrapes Spanish-language anime, movies, series, and doramas using providers like AnimeAV1, JKAnime, and PelisPlusHD with automatic fallback mirrors.
+  - Added `ani-cli-mx` to universal package specification [`core/packages.txt`](file:///home/jmvp/dotfiles/core/packages.txt) in alphabetical order to preserve reproducibility across all systems.
 
 ## [2.44.0] - 2026-10-09
 ### Fixed

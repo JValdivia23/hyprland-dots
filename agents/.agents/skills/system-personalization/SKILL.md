@@ -1,11 +1,11 @@
 ---
 name: system-personalization
 description: "Comprehensive system personalization tracker for surface (Surface Book 3) and cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.45.0
+version: 2.52.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
-# System Personalization (`cachyos-cu` - MacBookPro15,1)
+# System Personalization (Multi-PC: `surface` & `cachyos-cu`)
 
 Complete documentation of this machine's configuration and personalization. This is a **self-improving skill** — after any system configuration change, software install, or gotcha discovery, update this skill's modular references (`references/changelog.md` and `references/gotchas/`).
 
@@ -19,8 +19,8 @@ Complete documentation of this machine's configuration and personalization. This
 4. **Fish Shell environment.** The system shell is `fish`. Do not write `bash`/`zsh` syntax to shell scripts without a proper shebang. Keep aliases and commands fish-compatible.
 5. **Self-improving.** After every config change, software install, bug fix, or gotcha discovery, update this skill — specifically `references/changelog.md` and `references/gotchas/` if relevant.
 6. **Explain -> Ask -> Act.** Always explain the situation and ask if the user agrees with the solution before making changes to the system or installing anything.
-7. **Hyprland Error Diagnostics.** When the user reports a desktop error, red banner, or system error after modifying Hyprland configs, `journalctl` does NOT log config validation errors. ALWAYS run `hyprctl configerrors` first to inspect the exact line number and error message.
-8. **Elevated Password & Interactive Prompts (`hyprctl` / `kitty -e`).** When a system command requires user password authentication (such as `sudo pacman` package installations), background agent subshells must export `HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1)` and launch an interactive terminal window via Hyprland's IPC executor: `hyprctl eval 'hl.exec_cmd("kitty --title <Title> -e bash -c \"sudo <command>; echo Done!; read\"")'`. This ensures the terminal maps directly onto the active Wayland workspace so the user can securely enter their password directly.
+7. **Hyprland Error Diagnostics.** When the user reports a desktop error, red banner, or system error after modifying Hyprland configs, `journalctl` does NOT log config validation errors. Run `hyprctl configerrors` AND inspect `/run/user/$UID/hypr/$HYPRLAND_INSTANCE_SIGNATURE/hyprland.log` for `[Config::Lua::Bindings::Internal::reportError]` (Hyprland `0.57.0+` removes `.conf` parsing and reports Lua config errors via notifications + `hyprland.log`).
+8. **Elevated Password & Interactive Prompts (`hyprctl` / `kitty -e`).** When a system command requires user password authentication (such as `sudo pacman` package installations), background agent subshells must export `HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1)` and launch an interactive terminal window via Hyprland's IPC executor: `hyprctl eval 'hl.dispatch(hl.dsp.exec_cmd("kitty --title <Title> -e bash -c \"sudo <command>; echo Done!; read\""))'`. This ensures the terminal maps directly onto the active Wayland workspace so the user can securely enter their password directly.
 9. **Device-Specific vs. Universal Scope Identification.** Whenever installing a new feature, package, script, keybinding, or configuration setting, explicitly identify whether it is a **device-specific setting** (hardware-dependent: touchscreen/stylus, GPU power switching, battery/sleep hooks, machine-specific backlight keys, audio DSP) or a **general user setting** (universal desktop apps, shell aliases, core keybindings, global themes). Place device-specific items into `profiles/<profile>/` and general user items into `core/`. **If it is unclear whether a feature is hardware-dependent or universal, the agent MUST explicitly ask the user for clarification before applying or placing the configuration.**
 
 ---
@@ -38,22 +38,22 @@ Complete documentation of this machine's configuration and personalization. This
 
 ## Quick Reference
 
-| Category | Detail |
-|----------|--------|
-| **Machine** | MacBookPro15,1 |
-| **Hostname** | `cachyos-cu` |
-| **OS** | CachyOS |
-| **Kernel** | `7.2.9-1-cachyos` |
-| **WM** | Hyprland (Lua modular API) |
-| **Wayland Shell** | Noctalia |
-| **Primary Display** | eDP-1 (Default Display) |
-| **GPU** | Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / 02:00.1 Non-VGA unclassified device: Apple Inc. T2 Bridge Controller / 02:00.2 Non-VGA unclassified device: Apple Inc. T2 Secure Enclave Processor |
-| **CPU** | Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz |
-| **RAM & Swap** | 15Gi RAM, 15Gi swap |
-| **Active Profiles** | macbook-t2 |
-| **Shell** | `/bin/fish` |
-| **Terminal** | `kitty` (primary), `alacritty` (installed) |
-| **Package Manager**| `pacman` |
+| Category | Surface Book 3 (`surface`) | MacBook Pro 15,1 (`cachyos-cu`) |
+| :--- | :--- | :--- |
+| **Machine** | Surface Book 3 | MacBookPro15,1 |
+| **Hostname** | `surface` | `cachyos-cu` |
+| **OS** | CachyOS | CachyOS |
+| **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc; fallback `7.2.14.arch1-1`) | `7.2.9-1-cachyos` |
+| **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
+| **Wayland Shell** | Noctalia | Noctalia |
+| **Primary Display** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) |
+| **GPU** | Intel Iris Plus Graphics G7 | Intel UHD 630 / AMD Radeon Pro 560X / Apple T2 |
+| **CPU** | Intel Core i5-1035G7 @ 1.20GHz | Intel Core i9-9880H @ 2.30GHz |
+| **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap |
+| **Active Profiles** | surface | macbook-t2 |
+| **Shell** | `/bin/fish` | `/bin/fish` |
+| **Terminal** | `kitty` (primary) | `kitty` (primary) |
+| **Package Manager**| `pacman` | `pacman` |
 
 ---
 
@@ -71,8 +71,16 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`networking.md`](references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
 | ├── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
 | ├── [`zen-browser.md`](references/gotchas/zen-browser.md) | Zen Browser keybindings, Linux modifier mappings & in-memory overwrite gotchas |
-| ├── [`battery-upower.md`](references/gotchas/battery-upower.md) | Surface dual-battery calculation desync (~300%) & UPower service recovery |
-| └── [`sleep-hibernate.md`](references/gotchas/sleep-hibernate.md) | Surface Modern Standby hibernation failure, ACPI S4 rejection & `HibernateMode=shutdown` |
+| ├── [`opencode.md`](references/gotchas/opencode.md) | OpenCode TUI line navigation, TLS clock-drift recovery, packages keep-out |
+| ├── [`battery-upower.md`](references/gotchas/battery-upower.md) | Surface dual-battery calculation desync (~200%) & UPower service recovery |
+| ├── [`sleep-hibernate.md`](references/gotchas/sleep-hibernate.md) | Surface Modern Standby hibernation failure, ACPI S4 rejection & `HibernateMode=shutdown` |
+| ├── [`touchscreen-iptsd.md`](references/gotchas/touchscreen-iptsd.md) | Surface touchscreen & stylus wake race condition (`iptsd` EAGAIN -11) & udev recovery |
+| ├── [`kernel-cachyos-ipts.md`](references/gotchas/kernel-cachyos-ipts.md) | Surface touch/pen (IPTS) DKMS & mei_me runtime binding on Linux CachyOS 7.x |
+| ├── [`touchscreen-hyprgrass.md`](references/gotchas/touchscreen-hyprgrass.md) | Hyprgrass touch plugin & spacebar keybind collision in Hyprland 0.56+ |
+| ├── [`screen-rotation.md`](references/gotchas/screen-rotation.md) | Surface Book 3 physical-detachment-only rotation, read-only DTX status, touch/pen/gesture alignment |
+| ├── [`camera-ipu4.md`](references/gotchas/camera-ipu4.md) | Surface Book 3 Intel IPU4 internal camera unsupported status & UVC workaround |
+| ├── [`power-baseline.md`](references/gotchas/power-baseline.md) | Surface Book 3 dual-battery idle power tracking tool & kernel comparison baselines |
+| └── [`virtual-keyboard.md`](references/gotchas/virtual-keyboard.md) | Surface on-screen touch keyboard (`wvkbd`) and compositor execution path |
 | [`references/changelog.md`](references/changelog.md) | Dated log of system configuration changes |
 | [`templates/change-entry.md`](templates/change-entry.md) | Template for changelog updates |
 | [`scripts/snapshot.sh`](scripts/snapshot.sh) | Bash script to capture current system state to stdout |

@@ -1,0 +1,16 @@
+[Unit]
+Description=Surface Book 3 detached-only screen rotation
+PartOf=graphical-session.target
+After=graphical-session.target hypr-lisgd.service
+
+[Service]
+Type=simple
+ExecCondition=/usr/bin/grep -qx "Surface Book 3" /sys/class/dmi/id/product_name
+ExecStart=/usr/bin/python3 -B %h/.local/bin/surface-autorotate
+ExecStopPost=/usr/bin/python3 -B %h/.local/bin/surface-autorotate --reset
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=8s
+
+[Install]
+WantedBy=graphical-session.target

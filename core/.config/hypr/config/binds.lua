@@ -14,6 +14,7 @@ local hyprScreenshot = homeDir .. "/.local/bin/hypr-screenshot "
 local hyprOcr = homeDir .. "/.local/bin/hypr-ocr"
 local hyprRecord = homeDir .. "/.local/bin/hypr-record"
 local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
+local trayDrawer = homeDir .. "/.local/bin/hypr-tray-drawer"
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
@@ -23,17 +24,102 @@ local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
 helpers.bind(mainMod .. " + Escape", "Toggle session menu", hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
 helpers.bind(mainMod .. " + Q",      "Close active window", hl.dsp.window.close())
 helpers.bind(mainMod .. " + W",      "Close active window", hl.dsp.window.close())
+helpers.bind(mainMod .. " + M",      "Minimize active window to tray drawer", hl.dsp.exec_cmd(trayDrawer .. " minimize"))
+helpers.bind(mainMod .. " + SHIFT + M", "Restore last minimized window from tray drawer", hl.dsp.exec_cmd(trayDrawer .. " restore"))
+helpers.bind(mainMod .. " + ALT + M",   "Open minimized apps tray drawer", hl.dsp.exec_cmd(trayDrawer .. " menu"))
 helpers.bind(mainMod .. " + T",      "Toggle window floating", hl.dsp.window.float({ action = "toggle" }))
 helpers.bind(mainMod .. " + D",      "Toggle monocle fullscreen", hl.dsp.window.fullscreen({ mode = 1 }))
 helpers.bind(mainMod .. " + F",      "Toggle fullscreen", hl.dsp.window.fullscreen())
 helpers.bind(mainMod .. " + J",      "Toggle split layout", hl.dsp.layout("togglesplit"))
-helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.exec_raw("pseudo", ""))
+helpers.bind(mainMod .. " + P",      "Toggle pseudo tiling", hl.dsp.window.pseudo())
 helpers.bind(mainMod .. " + O",      "Pop window to center float", hl.dsp.exec_cmd(winPop))
 helpers.bind(mainMod .. " + SHIFT + O", "Pop window to Picture-in-Picture", hl.dsp.exec_cmd(winPop .. " pip"))
 
+-- Interactive Window Resize Mode (Keyboard & Touchscreen / Mouse)
+-- Enter with SUPER + R. Drag anywhere on screen with touchscreen or mouse,
+-- or use Arrow keys / HJKL. Exit with Escape, Return, Tap, or SUPER + R.
+local function resize_dir(dx, dy, ratio)
+    local win = hl.get_active_window()
+    if win and win.floating then
+        hl.dispatch(hl.dsp.window.resize({ x = dx, y = dy, relative = true }))
+    else
+        hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
+    end
+end
+
+local function exit_resize()
+    hl.dispatch(hl.dsp.submap("reset"))
+end
+
+hl.define_submap("resize", function()
+    -- Mouse drag resizing across window surface
+    helpers.bind("mouse:272", "Resize window with mouse drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind("mouse:273", "Resize window with right-click drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind(mainMod .. " + mouse:272", "Resize window with mouse drag", hl.dsp.window.resize(), { mouse = true })
+    helpers.bind(mainMod .. " + mouse:273", "Resize window with right-click drag", hl.dsp.window.resize(), { mouse = true })
+
+    -- Keyboard arrow incremental resizing (works seamlessly for tiled & floating windows)
+    local function do_right() resize_dir(40, 0, "+0.05") end
+    local function do_left()  resize_dir(-40, 0, "-0.05") end
+    local function do_up()    resize_dir(0, -40, "-0.05") end
+    local function do_down()  resize_dir(0, 40, "+0.05") end
+
+    -- Bare arrows (modmask 0)
+    helpers.bind("Right", "Expand width right", do_right, { repeating = true })
+    helpers.bind("Left",  "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("Up",    "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("Down",  "Expand height down",  do_down,  { repeating = true })
+
+    -- Super + arrows (modmask 64 - for when user holds Super)
+    helpers.bind(mainMod .. " + Right", "Expand width right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + Left",  "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + Up",    "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + Down",  "Expand height down",  do_down,  { repeating = true })
+
+    -- Vim HJKL keys (lowercase & uppercase, with & without Super)
+    helpers.bind("l", "Expand width right", do_right, { repeating = true })
+    helpers.bind("h", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("k", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("j", "Expand height down",  do_down,  { repeating = true })
+
+    helpers.bind("L", "Expand width right", do_right, { repeating = true })
+    helpers.bind("H", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind("K", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind("J", "Expand height down",  do_down,  { repeating = true })
+
+    helpers.bind(mainMod .. " + l", "Expand width right", do_right, { repeating = true })
+    helpers.bind(mainMod .. " + h", "Shrink width left",  do_left,  { repeating = true })
+    helpers.bind(mainMod .. " + k", "Shrink height up",    do_up,    { repeating = true })
+    helpers.bind(mainMod .. " + j", "Expand height down",  do_down,  { repeating = true })
+
+    -- Reset split ratio to default 50/50 with '='
+    helpers.bind("equal", "Reset split to 50/50", function()
+        hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
+    end)
+    helpers.bind(mainMod .. " + equal", "Reset split to 50/50", function()
+        hl.dispatch(hl.dsp.layout("splitratio 1.0 exact"))
+    end)
+
+    -- Exit submap back to normal mode
+    helpers.bind("Escape", "Exit resize mode", exit_resize)
+    helpers.bind("Return", "Exit resize mode", exit_resize)
+    helpers.bind("r",      "Exit resize mode", exit_resize)
+    helpers.bind("R",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + r",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + R",      "Exit resize mode", exit_resize)
+    helpers.bind(mainMod .. " + Escape", "Exit resize mode", exit_resize)
+end)
+
+local function enter_resize()
+    hl.dispatch(hl.dsp.submap("resize"))
+    hl.dispatch(hl.dsp.exec_cmd("notify-send -t 2500 -a 'Hyprland' 'Resize Mode' 'Active: Drag touch screen or use Arrows/HJKL (Esc or Super+R to exit)'"))
+end
+helpers.bind(mainMod .. " + R", "Enter window resize mode", enter_resize)
+helpers.bind(mainMod .. " + r", "Enter window resize mode", enter_resize)
+
 -- Window grouping / stacking
 helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacking", hl.dsp.group.toggle())
-helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.exec_raw("moveoutofgroup", ""))
+helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.window.move({ out_of_group = true }))
 helpers.bind(mainMod .. " + ALT + Tab",         "Cycle next window in group",        hl.dsp.group.next())
 helpers.bind(mainMod .. " + ALT + SHIFT + Tab", "Cycle previous window in group",   hl.dsp.group.prev())
 helpers.bind(mainMod .. " + CONTROL + G",       "Toggle group lock",                 hl.dsp.group.lock_active())
@@ -74,8 +160,8 @@ for i = 1, NUM_WPM do
 end
 
 -- Move & Resize with mouse
-helpers.bind(mainMod .. " + mouse:272", "Move window with mouse", hl.dsp.window.drag())
-helpers.bind(mainMod .. " + mouse:273", "Resize window with mouse", hl.dsp.window.resize())
+helpers.bind(mainMod .. " + mouse:272", "Move window with mouse", hl.dsp.window.drag(), { mouse = true })
+helpers.bind(mainMod .. " + mouse:273", "Resize window with mouse", hl.dsp.window.resize(), { mouse = true })
 
 -------------------------------
 ---- macOS TEXT & EDITING ----
@@ -275,7 +361,7 @@ helpers.bind(mainMod .. " + CONTROL + mouse_down", "Scroll to previous workspace
 
 -- Special workspace (scratchpad)
 helpers.bind(mainMod .. " + S",       "Toggle scratchpad workspace",     hl.dsp.workspace.toggle_special())
-helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.exec_raw("movetoworkspacesilent", "special:scratchpad"))
+helpers.bind(mainMod .. " + ALT + S", "Move window to scratchpad silently", hl.dsp.window.move({ workspace = "special:scratchpad", follow = false }))
 
 -- Display scale stepper (Omarchy-style steps: 1x, 1.25x, 1.6x, 2x, 3x, 4x; runtime only)
 helpers.bind(mainMod .. " + slash",       "Increase monitor scale", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-monitor-scale up"))

@@ -144,3 +144,100 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   hyprctl eval 'hl.monitor({ output = "eDP-1", mode = "preferred", position = "auto", scale = 1.6 })'
   ```
   Runtime switcher scripts (such as `~/.local/bin/hypr-monitor-scale`) should attempt `hyprctl eval "hl.monitor(...)"` first and fall back to `hyprctl keyword` for backwards compatibility.
+
+---
+
+## 13. Submap Window Resizing: Tiled (`splitratio`) vs Floating (`resizeactive`) & Modifier Masks
+
+- **Symptom**: Pressing `SUPER + R` enters a resize submap, but arrow keys (`Right`, `Left`, `Up`, `Down`) do not resize tiled windows or do nothing when the user keeps holding `SUPER`.
+- **Root Cause**:
+  1. **Tiled vs Floating Resizing**: Hyprland's `resizeactive <X> <Y>` dispatcher was designed for floating windows. On tiled windows in the `dwindle` layout, relative coordinate vectors frequently fail or get rejected with `"Invalid size provided"` when edges hit monitor bounds. In `dwindle`, tiled windows are sized by split ratios (`splitratio`).
+  2. **Submap Modifier Masks**: When entering a submap via `SUPER + R`, users often keep holding `SUPER` while tapping arrow keys. If the submap only binds bare keys (`Right`, `modmask = 0`), pressing `SUPER + Right` (`modmask = 64`) does not match and is completely ignored.
+- **Fix**:
+  1. Inspect `win.floating` via `hl.get_active_window()`. If floating, dispatch `hl.dsp.window.resize({ x = dx, y = dy, relative = true })`. If tiled, dispatch `hl.dsp.layout("splitratio <ratio>")`:
+     ```lua
+     local function resize_dir(dx, dy, ratio)
+         local win = hl.get_active_window()
+         if win and win.floating then
+             hl.dispatch(hl.dsp.window.resize({ x = dx, y = dy, relative = true }))
+         else
+             hl.dispatch(hl.dsp.layout("splitratio " .. ratio))
+         end
+     end
+     ```
+  2. In `hl.define_submap("resize", ...)`, register **both** bare keys (`Right`, `Left`, `Up`, `Down`, `h`, `j`, `k`, `l`) and `SUPER`-modified keys (`mainMod .. " + Right"`, etc.) with `{ repeating = true }`.
+  3. Support `=` (`equal`) to reset the split ratio to 50/50 (`splitratio 1.0 exact`).
+
+---
+
+## 14. `hyprctl dispatch` Syntax Error in Lua Mode & `hl.dsp.exec_raw` Misuse (`0.57.0+`)
+
+- **Symptom**:
+  1. Calling `hyprctl dispatch <dispatcher> <args>` (e.g. `hyprctl dispatch movetoworkspacesilent special:minimized,address:0x...`) fails with `error: [string "return hl.dispatch(...)"]:1: ')' expected near ... Note: dispatch in lua is a shorthand for hl.dispatch(...)`.
+  2. In **Hyprland `0.57.0+`**, calling `hl.dsp.exec_raw("<dispatcher>", "<args>")` with 2 arguments throws `exec_raw: expected at most 1 argument, got 2` (and if passed into `hl.bind`, causes `hl.bind: expected a dispatcher or a lua function`), triggering desktop `.config` error notifications on startup while `hyprctl configerrors` remains empty.
+- **Root Cause**:
+  1. In Hyprland 0.55+ with Lua configuration, `hyprctl dispatch` directly translates CLI arguments into a raw Lua call `return hl.dispatch(...)`.
+  2. `hl.dsp.exec_raw(cmd)` is the Lua binding for `execr` (spawning a raw shell command string without `/bin/sh -c`, accepting at most **1 argument**), **not** a generic wrapper for legacy `.conf` dispatcher names. Hyprland `0.57.0` added strict argument-count validation that rejects 2-argument `hl.dsp.exec_raw(a, b)` calls, and logs Lua errors to `/run/user/$UID/hypr/$HYPRLAND_INSTANCE_SIGNATURE/hyprland.log` under `[Config::Lua::Bindings::Internal::reportError]`.
+- **Fix**: Always use the native structured `hl.dsp.*` tables in Lua configs and `hyprctl eval`:
+  - Toggle pseudo tiling: `hl.dsp.window.pseudo()`
+  - Relative window resize: `hl.dsp.window.resize({ x = dx, y = dy, relative = true })`
+  - Move window out of group: `hl.dsp.window.move({ out_of_group = true })`
+  - Move window to workspace silently: `hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })`
+
+---
+
+## 15. Moving Windows Silently in Lua Mode (`follow = false` vs `silent = true`) & Window Switcher Special Workspace Interception
+
+- **Symptom**:
+  1. Calling `hl.dsp.window.move({ workspace = "special:minimized", window = "address:...", silent = true })` causes the window to activate `special:minimized` as a full-screen overlay on the monitor instead of moving silently into the background.
+  2. Selecting a minimized window from `noctalia msg window-switcher` (e.g. via the 1-finger left-to-right touchscreen swipe) pulls **all** minimized windows onto the screen inside `special:minimized` as a stuck overlay across all workspaces.
+- **Root Cause**:
+  1. Disassembly of `/usr/bin/Hyprland` (`Config::Lua::Bindings::Internal::registerDispatcherBindings` at `0xb816c0`, `tableOptBool(L, 1, "follow")`) shows that `hl.dsp.window.move` does **not** accept a `silent` parameter. Instead, it checks **`follow`** (defaulting to `true`, which dispatches non-silent `movetoworkspace`). Only when **`follow = false`** is passed does Hyprland set `silent = true` in `Config::Actions::moveToWorkspace()`.
+  2. When selecting a window in `noctalia msg window-switcher`, Noctalia sends `dispatch hl.dsp.focus({window = "address:0x..."})`. Because the target window resides in `special:minimized`, Hyprland activates `special:minimized` (`activespecial>>special:minimized,<mon>`) on the monitor, exposing every window in `special:minimized` as an overlay above normal workspaces.
+- **Fix**:
+  1. Pass `follow = false` to `hl.dsp.window.move`:
+     ```lua
+     hl.dispatch(hl.dsp.window.move({ workspace = "special:minimized", window = "address:" .. addr, follow = false }))
+     ```
+  2. In `hypr-tray-drawer`, listen on `.socket2.sock` for `activewindowv2>>`, `activespecial>>`, and `activespecialv2>>`. Whenever a window inside `special:minimized` is focused externally:
+     - **Latch a synchronous debounce (`suppress_intercept_until = now + 0.65`) immediately in the `.socket2.sock` reader** on the first matching `activewindowv2>>` event so cascading focus changes cannot trigger additional restores.
+     - **Close `special:minimized` (`hl.dsp.workspace.toggle_special("minimized")`) BEFORE moving the window (`hl.dsp.window.move(...)`)**: if a window is moved out of `special:minimized` while `special:minimized` is still open on the monitor, Hyprland immediately shifts focus to the next remaining window inside `special:minimized` and emits another `activewindowv2>>` event in a chain reaction. Closing `special:minimized` first and then moving + focusing only the selected window onto `monitors[].activeWorkspace.name` restores only the single chosen window.
+
+---
+
+## 16. Touchscreen & Hardware Gesture Daemon Lifecycle (`systemd --user`)
+
+- **Symptom**: Touchscreen gestures (edge swipes, 3-finger workspace switching) or interactive touch resizing suddenly stop working, leaving only single taps/clicks functional, while `iptsd` itself is active and healthy.
+- **Root Cause**:
+  1. Daemons like `lisgd` (`hypr-lisgd`) and `hypr-touch-resizer` spawned via ad-hoc terminal sessions or agent task jobs are terminated when the subshell, terminal, or agent background supervisor restarts.
+  2. Spawning them exclusively in `hl.on("hyprland.start", ...)` only triggers once during initial compositor startup; it does not restart them if they crash, receive signals, or if the user reloads Hyprland.
+- **Fix**: Supervise all input helper daemons as native `systemd --user` units bound to `graphical-session.target`:
+  - Create units in `profiles/surface/.config/systemd/user/`: `hypr-lisgd.service` and `hypr-touch-resizer.service` with `Restart=always` and `RestartSec=2s`.
+  - Enable and start: `systemctl --user enable --now hypr-lisgd hypr-touch-resizer`.
+  - In `autostart.lua`, simply call `hl.exec_cmd("systemctl --user start hypr-lisgd hypr-touch-resizer")` for idempotent assurance.
+
+---
+
+## 17. Triggering Lua Keybindings Programmatically (`debug.getregistry()[arg]()`)
+
+- **Symptom**: Querying `hyprctl binds -j` in Lua-configured Hyprland returns `"dispatcher": "__lua"` and `"arg": "<id>"` for every keybinding, and running `hyprctl dispatch __lua <id>` fails with `error: [string "return hl.dispatch(__lua <id>)"]:1: ')' expected near '<id>'`.
+- **Root Cause**: When `hl.bind(keys, action, opts)` registers a keybind in Hyprland's Lua runtime, it stores either the compiled `HL.Dispatcher` C closure or the Lua callback function inside Lua's `LUA_REGISTRYINDEX` (`luaL_ref`) and records the integer reference ID as `"arg"`. Meanwhile, `hyprctl dispatch` wraps its CLI string in `return hl.dispatch(...)`, which cannot call `__lua` directly.
+- **Fix**: Invoke the registered keybinding callable directly in Lua via `hyprctl eval`:
+  ```bash
+  hyprctl eval "local fn = debug.getregistry()[<id>]; if type(fn) == 'function' then fn() end"
+  ```
+  *(Note: When triggering from a floating launcher window such as `hypr-keybinds-menu`, spawn a detached helper and exit the launcher window first so Hyprland restores focus to the underlying target window before `fn()` executes).*
+
+---
+
+## 18. Named Workspaces (`name:gaming`) Shifting `SUPER + 1` to the 2nd Bar Position
+
+- **Symptom**: Pressing `SUPER + 1` jumps to the **second** workspace indicator in the Noctalia top bar instead of the leftmost (first) workspace.
+- **Root Cause**:
+  1. In Hyprland, named workspaces (`name:gaming`) are assigned negative workspace IDs (`-1337`). Because Noctalia's workspace pill bar sorts workspaces by ID (`-1337`, `1`, `2`, `3`), any active named workspace appears at the **far-left (1st) position**, pushing numbered Workspace `1` to the **2nd position**.
+  2. `core/.config/hypr/config/workspaces.lua` previously declared `hl.workspace_rule({ workspace = "name:gaming", monitor = PRIMARY_MONITOR, default = true })` before workspace `1` (and also set `default = true` on workspaces `2` and `3`), while `windowrules.lua` redirected `content = "game"` and `steam_app.*` windows to `name:gaming`.
+- **Fix**:
+  1. Remove `name:gaming` from `core/.config/hypr/config/workspaces.lua` and `core/.config/hypr/config/windowrules.lua`.
+  2. Only set `default = true` on a single workspace per monitor (Workspace `1` on `MONITOR1`), keeping `persistent = true` on Workspaces `1`, `2`, and `3`.
+
+

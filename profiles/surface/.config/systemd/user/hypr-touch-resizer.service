@@ -1,0 +1,14 @@
+[Unit]
+Description=Hyprland Interactive Touchscreen Resizer Daemon
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=simple
+Environment="PATH=%h/.local/bin:%h/bin:/usr/local/bin:/usr/bin:/bin"
+ExecStart=/usr/bin/python3 %h/.local/bin/hypr-touch-resizer --foreground
+Restart=always
+RestartSec=2s
+
+[Install]
+WantedBy=graphical-session.target

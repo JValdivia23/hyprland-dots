@@ -10,6 +10,9 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 |----------|--------|-------------|
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `Q` / `W` | Close Window | Close the focused window |
+| `SUPER` + `M` | Minimize to Tray | Minimize active window to the unified tray drawer (keeps alive in background) |
+| `SUPER` + `SHIFT` + `M` | Restore Window | Restore the most recently minimized window back to active workspace |
+| `SUPER` + `ALT` + `M` | Minimized Drawer Menu | Open the interactive minimized apps drawer menu (`noctalia dmenu`) |
 | `SUPER` + `T` | Toggle Floating | Toggle floating/tiling state of active window |
 | `SUPER` + `D` | Fullscreen Mode 1 | Fullscreen window keeping workspace bar |
 | `SUPER` + `C` | macOS Copy | `CTRL` + `C` in GUI apps / `CTRL` + `SHIFT` + `C` in terminals |
@@ -19,8 +22,9 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `P` | Pseudo Split | Toggle pseudo dwindle layout |
 | `SUPER` + `O` | Pop-out & Pin | Float, resize (1100x700), center, & pin window across workspaces |
 | `SUPER` + `SHIFT` + `O` | Video PiP & Pin | Small video PiP (560x315) in bottom-right corner & pin across workspaces |
+| `SUPER` + `R` | Window Resize Mode | Interactive resize mode: Drag touchscreen/mouse or use Arrows/HJKL (Esc/Enter to exit) |
 | `SUPER` + `G` | Toggle Group / Stacking | Collapse window into / out of tabbed group slot (`hl.dsp.group.toggle`) |
-| `SUPER` + `ALT` + `G` | Move Out of Group | Remove active window from grouped stack (`hl.dsp.exec_raw("moveoutofgroup")`) |
+| `SUPER` + `ALT` + `G` | Move Out of Group | Remove active window from grouped stack (`hl.dsp.window.move({ out_of_group = true })`) |
 | `SUPER` + `ALT` + `Tab` | Cycle Next in Group | Switch to next window tab within active group (`hl.dsp.group.next`) |
 | `SUPER` + `ALT` + `SHIFT` + `Tab` | Cycle Prev in Group | Switch to previous window tab within active group (`hl.dsp.group.prev`) |
 | `SUPER` + `CONTROL` + `G` | Toggle Group Lock | Lock/unlock active group (`hl.dsp.group.lock_active`) |
@@ -34,6 +38,20 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `CONTROL` + `Left` / `Right` | Move WS (Relative) | Move active window to next/prev workspace |
 | `SUPER` + Left Click Drag | Drag Move | Move floating window |
 | `SUPER` + Right Click Drag | Drag Resize | Resize floating window |
+
+### Window Resize Submap (`SUPER + R`)
+
+| Action | Bindings | Description |
+|---|---|---|
+| Enter mode | `SUPER + R` / `SUPER + r` | Enters resize submap with notification confirmation |
+| Touchscreen Drag | 1-finger drag on touchscreen | Interactively resizes window in real-time via `hypr-touch-resizer` (exclusive evdev grab) |
+| Mouse Drag | Left / Right mouse drag | Resizes window with mouse pointer |
+| Expand width | `Right` / `SUPER + Right` / `L` / `l` / `SUPER + L` / `SUPER + l` | Expands width by 40px (`resizeactive 40 0`) for tiled or floating |
+| Shrink width | `Left` / `SUPER + Left` / `H` / `h` / `SUPER + H` / `SUPER + h` | Shrinks width by 40px (`resizeactive -40 0`) for tiled or floating |
+| Shrink height | `Up` / `SUPER + Up` / `K` / `k` / `SUPER + K` / `SUPER + k` | Shrinks height by 40px (`resizeactive 0 -40`) for tiled or floating |
+| Expand height | `Down` / `SUPER + Down` / `J` / `j` / `SUPER + J` / `SUPER + j` | Expands height by 40px (`resizeactive 0 40`) for tiled or floating |
+| Reset split | `=` / `SUPER + =` | Resets split ratio to 50/50 center (`splitratio 1.0 exact`) |
+| Exit mode | Touch Tap, `Escape`, `Return`, `R`, `r`, `SUPER + R`, `SUPER + Escape` | Returns to normal mode (auto-exits after 30s idle) |
 
 ## Application Launchers (`SUPER + SHIFT + <key>`)
 
@@ -63,7 +81,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `,` | Noctalia Settings | Toggle Noctalia Settings menu |
 | `SUPER` + `CONTROL` + `V` | Clipboard | Toggle Clipboard history panel |
 | `SUPER` + `ALT` + `K` / `SUPER` + `SHIFT` + `K` | Layout Toggle | Toggle Super/Alt position swap (Mac vs PC layout) |
-| `SUPER` + `K` | Live IPC Cheatsheet | Open instant floating `fzf` cheatsheet querying compositor runtime (`hyprctl binds -j`) |
+| `SUPER` + `K` | Live IPC Cheatsheet | Open instant floating `fzf` cheatsheet querying compositor runtime (`hyprctl binds -j`); press `Enter` to trigger selected action |
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `ALT` + `C` | Force-Kill Window | Turn cursor into crosshair to click & kill any window |
 | `SUPER` + `SHIFT` + `L` / `XF86Sleep` | Lock & Suspend | Lock screen and put system to sleep / suspend |
@@ -135,3 +153,21 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 |----------|--------|-------------|
 | `SUPER` + `ALT` + `D` | Detach Base | Request Surface Book tablet/base detachment (`surface dtx request`) |
 | `SUPER` + `ALT` + `V` | Virtual Keyboard | Toggle on-screen virtual keyboard overlay (`hypr-virtual-keyboard` / `wvkbd`) |
+
+## Touchscreen Gestures (`lisgd`)
+
+Tuned touchscreen gestures configured in [`profiles/surface/.local/bin/hypr-lisgd`](file:///home/jmvp/dotfiles/profiles/surface/.local/bin/hypr-lisgd) for Surface Book 3:
+
+| Gesture | Action | Description |
+|---------|--------|-------------|
+| 1 finger swipe up from bottom edge | Virtual Keyboard | Toggles `wvkbd` on-screen virtual keyboard overlay |
+| 1 finger swipe left from right edge | Control Center | Toggles Noctalia quick settings & control center |
+| 1 finger swipe right from left edge | Window Switcher | Toggles Noctalia app / window switcher |
+| 1 finger swipe down from top edge | Fullscreen Toggle | Toggles active window fullscreen |
+| 2 fingers swipe right | Expand Window Width | Expands width by 60px via `hypr-resize-step right` |
+| 2 fingers swipe left | Shrink Window Width | Shrinks width by 60px via `hypr-resize-step left` |
+| 2 fingers swipe up / down | Fullscreen Toggle | Toggles active window fullscreen |
+| 3 fingers swipe left | Next Workspace | Switches to next workspace (`e+1`) |
+| 3 fingers swipe right | Previous Workspace | Switches to previous workspace (`e-1`) |
+| 3 fingers swipe down | Close Window | Closes active window |
+| 3 fingers swipe up | Toggle Floating | Toggles active window between tiled and floating |

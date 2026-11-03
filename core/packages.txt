@@ -1,6 +1,7 @@
 # Universal Desktop & Shell Packages for CachyOS Hyprland
 alacritty
 ani-cli
+ani-cli-mx
 awesome-terminal-fonts
 brave-origin-bin
 brightnessctl

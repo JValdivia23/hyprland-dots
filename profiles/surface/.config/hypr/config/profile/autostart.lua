@@ -1,5 +1,9 @@
 -- Microsoft Surface Profile Autostart
-local homeDir = os.getenv("HOME") or "/home/user"
+-- Note: Touch gestures (hypr-lisgd) and interactive resizer (hypr-touch-resizer)
+-- are supervised by systemd --user bound to graphical-session.target.
 
--- Start lisgd touchscreen gesture daemon
-hl.exec_cmd(homeDir .. "/.local/bin/hypr-lisgd")
+hl.on("hyprland.start", function ()
+    hl.exec_cmd("systemctl --user start hypr-lisgd hypr-touch-resizer")
+    hl.exec_cmd("systemctl --user start surface-autorotate.service")
+    hl.exec_cmd("easyeffects --service-mode")
+end)

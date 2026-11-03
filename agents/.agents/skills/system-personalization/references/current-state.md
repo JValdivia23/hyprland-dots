@@ -4,21 +4,25 @@ Live system snapshot automatically generated for multi-PC environment.
 
 ## Operating System & Kernel
 - **OS**: CachyOS Linux
-- **Kernel (`surface`)**: `6.19.8-arch1-3-surface`
+- **Kernel (`surface`)**: `7.3.1-1-cachyos` (active running kernel & default in Limine since 2026-10-22; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.14.arch1-1` (linux-surface, kept installed).
 - **Kernel (`cachyos-cu`)**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (version 4.9.3)
-- **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
+- **Compositor**: Hyprland 0.57.0 (package: `0.57.0-3.1`)
 - **Active Profiles**: `surface` (Surface Book 3), `macbook-t2` (MacBookPro15,1)
 
 ## Boot & Sleep (`surface`)
-- **Bootloader**: Active Limine 12.9.0; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-08).
+- **Bootloader**: Active Limine 12.9.3; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-13).
 - **Boot menu**: Hidden one-second countdown (`quiet: yes`, `timeout: 1`), replacing the visible five-second wait on 2026-10-08. Press Space during that second to reveal the menu.
-- **Kernel selection**: `default_entry: 2` selects `linux-surface`; existing `remember_last_entry: yes` remains enabled. Regular CachyOS, LTS, and snapshot recovery entries are preserved.
+- **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
+- **IPTS on CachyOS kernels (2026-10-22)**: DKMS `ipts/2024.04.16` (built for `7.3.1-1-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
+- **IPU4P Cameras & USB-C UCSI/Charger DKMS on CachyOS `7.3+` (2026-11-02)**: DKMS `surface-ipu4p/0.2.0` (`intel-ipu6`, `intel-ipu6-isys`, `ov7251`, `ov5693`, `dw9719`) and DKMS `surface-usbc/0.2.0` (`ucsi_surface_hid` exposing `/sys/class/typec/port0` & `ucsi-source-psy-*`, plus patched `surface_charger` exposing `ADP1/input_power_limit` via SSAM `CID=0x0f` `Artg`).
 - **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
-- **Hibernation compression**: **LZ4 selected**, read-back verified after approved persistence on 2026-10-08.
-- **Persistent LZ4 service verified (2026-10-08)**: `/usr/local/bin/surface-hibernate-compressor` and `/etc/systemd/system/surface-hibernate-compressor.service` enabled for `multi-user.target`.
-- **IPTS recovery (2026-10-08)**: Surface-only asynchronous worker and `/usr/lib/systemd/system-sleep` registration symlink deployed.
+- **Hibernation compression & image size (2026-10-18)**: **LZ4 selected** (`/sys/module/hibernate/parameters/compressor = lz4`) and `/sys/power/image_size = 4800000000` (`~4.8 GB`, bypassing pre-snapshot `zram0` swap thrashing), applied at boot by `/usr/local/bin/surface-hibernate-compressor` (`surface-hibernate-compressor.service`).
+- **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.
+- **IPTS recovery (2026-10-18)**: `/usr/local/bin/surface-ipts-resume-recover` (with `0.5s` fast-path healthy check) and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`, stopping active `iptsd@*.service` cleanly on `pre/*`).
 - **Touch Gestures (`lisgd`)**: External gesture daemon with session uaccess rule `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` active and automated.
+- **Detached-only rotation (2026-10-19, Surface Book 3 only)**: `iio-sensor-proxy` + user `surface-autorotate.service`, gated by root-owned physical connection status from `surface-base-state.service`. Any attached base (including backwards) locks `eDP-1` to landscape. IPTS touch/pen transforms, lisgd edge directions and touch-resizer coordinates follow display rotation. User confirmed detached rotation, touch/keyboard gestures and landscape restoration on reattachment; both portrait transforms are logged. Pen, backwards attachment and resume remain untested. See `gotchas/screen-rotation.md`.
+- **Idle Power Baseline (2026-10-19)**: Tool `profiles/surface/scripts/surface-idle-power.py` deployed (appends to `~/.local/state/surface-idle-power/log.jsonl`). Verified clean baseline on `7.2.11-1-cachyos`: **5.86 W** median draw (5.91 W mean, 95.5% C3 residency at 25% display brightness; documented in [`gotchas/power-baseline.md`](file:///home/jmvp/.agents/skills/system-personalization/references/gotchas/power-baseline.md)).
 
 ## Multi-PC System Specs & Display
 
@@ -43,7 +47,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | Package | Version | Purpose |
 |---------|---------|---------|
 | hyprland | 0.56.2-4.1 | Core Desktop Compositor |
-| noctalia | 5.2.1-1.1 | Wayland Shell & Panels |
+| noctalia | 5.3.0-1.1 | Wayland Shell & Panels |
 | kitty | 0.49.2-1.1 | Primary Terminal Emulator |
 | alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
 | ani-cli | 5.1-1 | Anime Streaming CLI (mpv/fzf) |
@@ -53,13 +57,16 @@ Live system snapshot automatically generated for multi-PC environment.
 | satty | 0.22.0-1.1 | Screenshot Annotation Editor |
 | swayimg | 5.6-2.1 | Image & Quick Look Viewer |
 | dolphin | 26.08.2-1.1 | File Manager |
-| zen-browser-bin | 1.23.1b-1 | Primary Web Browser |
+| zen-browser-bin | 1.23.3b-1 | Primary Web Browser |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
-| easyeffects | 8.3.0-1.1 | Audio Processing Backend |
+| easyeffects | 8.3.0-1.1 | Audio Processing Backend (`surface-book-hybrid` DSP preset active with AutoGain volume leveling) |
+| lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
+| calf | 0.90.9-2.1 | LV2 Audio Plugins (Bass Enhancer / Virtual Bass, Stereo Tools) |
 | localsend | 1.17.0-4 | Local Network File Transfer |
 | lisgd | 0.4.0-1 | Surface Libinput Synthetic Gesture Daemon |
+| iio-sensor-proxy | 3.9-1.1 | Surface Book 3 detached-only orientation sensing |
 | wvkbd | 0.20-1 | Surface Virtual Touch Keyboard |
-| iptsd | 3-1 | Surface Precise Touch & Stylus Daemon |
+| iptsd | 3.1.1-1 | Surface Precise Touch & Stylus Daemon |
 | surface-dtx-daemon | 0.3.10-1 | Surface Clipboard Detachment Daemon |
 | msr-tools | 1.3-4 | Intel MSR / RAPL Hardware Access |
 | fprintd | 1.94.5-2.1 | Fingerprint Authentication Daemon |
@@ -69,6 +76,11 @@ Live system snapshot automatically generated for multi-PC environment.
 | t2-power-tune | 0.02 | Package C-State & PCIe ASPM Power Tuner |
 | t2-power-explorer | 0.1.0 | PCIe Power Management & Lane Diagnostic |
 | apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
+
+## User-local Applications (current account)
+
+- **VLCdots Alpha `0.1.0-alpha.1`**: installed at `~/.local/opt/vlcdots-alpha/current` (versioned release underneath); launch with `vlcdots-alpha` or the **VLCdots Alpha** application-menu entry. Own persistent profile under `~/.local/state/vlcdots-alpha/profile` (original XDG state base respected). System VLC, MIME defaults, and ani-cli history remain separate/unchanged. This is a universal app, not a hardware profile or system package.
+- **Source/release**: private `JValdivia23/vlcdots`, main/tag `v0.1.0-alpha.1` at `81ae9d3`; runtime does not require its build/source checkout. Installer/uninstaller and limitations are documented in `/home/jmvp/work/vlcdots/README.md`. Uninstall preserves profile/count cache/history and refuses known mapped releases or modified owned files.
 
 ## Hardware Drivers & Subsystems (`macbook-t2`)
 - **T2 Driver**: `t2bce_core` actively bound to PCI `02:00.1`

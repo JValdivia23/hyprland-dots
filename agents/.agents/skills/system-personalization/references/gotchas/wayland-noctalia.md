@@ -90,3 +90,35 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
      killall -TERM noctalia; sleep 0.5; export HYPRLAND_INSTANCE_SIGNATURE=$(ls -1 /run/user/$UID/hypr/ 2>/dev/null | head -n1); hyprctl eval 'hl.exec_cmd("noctalia -d")'
      ```
 
+---
+
+## 8. StatusNotifierItem (SNI) Left-Click Activation in `libayatana-appindicator` & Noctalia
+
+- **Symptom**: Left-clicking a tray icon created with `libayatana-appindicator` in Noctalia does nothing, while right-clicking opens the menu. Inspection with `busctl` reveals `Call failed: No handler for Activate`.
+- **Root Cause**:
+  1. Noctalia invokes `org.kde.StatusNotifierItem.Activate(x, y)` on primary click (left-click) and `ContextMenu(x, y)` / DBusMenu on secondary click (right-click).
+  2. By default, `libayatana-appindicator` is designed as menu-only and rejects `Activate` D-Bus calls with `No handler for Activate` unless an explicit `activate` GObject signal handler is connected on the Indicator instance: `indicator.connect("activate", callback)`.
+  3. `set_secondary_activate_target` only binds to middle-click (`SecondaryActivate`), not left-click (`Activate`).
+- **Fix**: Connect the `"activate"` GObject signal directly on the indicator:
+  ```python
+  self.indicator.connect("activate", self._on_indicator_activate)
+  ```
+  This satisfies the D-Bus method call, returns success immediately, and triggers the tray drawer menu (`noctalia dmenu`).
+
+---
+
+## 9. SNI Tray Icon Sizing, `XAyatanaLabel`, and Dynamic Symbolic SVG Badges in Noctalia
+
+- **Symptom**:
+  1. Using Adwaita's `window-restore-symbolic` for a tray icon in Noctalia renders as a minuscule `~5.7px × 5.7px` square on the bar.
+  2. Calling `indicator.set_label(str(count), "minimized")` in `libayatana-appindicator` shows no numeric badge on the Noctalia bar.
+- **Root Cause**:
+  1. `/usr/share/icons/Adwaita/symbolic/ui/window-restore-symbolic.svg` draws a `6×6` titlebar square centered inside a `16×16` viewBox (`5px` empty margin on all four sides — only `37.5%` linear size / `14%` area). Because Noctalia's `TrayWidget` renders bar tray icons at `16.0 * ui_scale` px, the visible square shrinks to `~5.7px`.
+  2. Noctalia's `StatusNotifierHost` does not read Canonical's non-standard `XAyatanaLabel` D-Bus property.
+  3. Disassembly of `/usr/bin/noctalia` (`TrayWidget`, `0x127e140` & `0x12863d2`) shows that Noctalia recursively scans `IconThemePath` **once** when a new `IconThemePath` is first seen, caches the resolved file map per `IconThemePath` (`0x6c8`), invalidates the per-item icon cache when `IconName` changes (`0x127f53f`), and rasterizes any icon whose filename contains `"symbolic"` via `librsvg` (`rsvg_handle_new_from_data`), automatically tinting its RGB to match the active theme's tray capsule foreground color (`on_secondary`).
+- **Fix**:
+  1. Pre-generate full-bleed `64×64` (`viewBox="0 0 64 64"`, spanning `x=2..62, y=1..62`) SVG icons with embedded geometric vector count digits (`hypr-tray-drawer-{0..9,9plus}-symbolic.svg`) into `$XDG_RUNTIME_DIR/hypr-tray-drawer-icons/` **before** setting `self.indicator.set_icon_theme_path(str(ICON_DIR))`.
+  2. Switch `IconName` via `self.indicator.set_icon_full(f"hypr-tray-drawer-{key}-symbolic", ...)` whenever the minimized window count changes so Noctalia invalidates its per-item cache and renders the updated count badge with automatic theme color tinting.
+
+
+

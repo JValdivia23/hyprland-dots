@@ -5,7 +5,7 @@ hl.config({
         gaps_in = 3,
         gaps_out = 8,
         border_size = 2,
-        extend_border_grab_area = 10,
+        extend_border_grab_area = 24,
         resize_on_border = true,
         col = {
             active_border = {
