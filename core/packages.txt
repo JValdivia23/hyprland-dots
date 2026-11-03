@@ -46,6 +46,7 @@ python-pillow
 ripgrep
 satty
 slurp
+snapshot
 stow
 swayimg
 tesseract

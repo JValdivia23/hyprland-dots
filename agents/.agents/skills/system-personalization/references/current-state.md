@@ -89,7 +89,7 @@ Live system snapshot automatically generated for multi-PC environment.
 - **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
 - **Touch Bar**: `kait2en-touchbar.service` active + `appletbdrm` (dark-first OLED, multi-layer & gestures)
 - **Touch ID**: Verified active & operational. 3 macOS fingers auto-bound via BridgeXPC over CDC-NCM (`t2_ncm`) -> `fprintd` -> PAM `sudo` / `hyprlock`
-- **GPU Power**: AMD Radeon Pro 560X in `POWER_SAVING` DPM profile (mode 2) via `amdgpu-power-switch.sh`
+- **GPU Power (2026-11-02)**: Intel UHD 630 drives the internal display; AMD Radeon Pro 560X renders via `dgpu-run` when selected. The Radeon is still powered in `D0` under `POWER_SAVING` DPM profile 2: stock `7.3.1-1-cachyos` reports `Runtime PM not available`, so automatic sleep/wake remains unresolved. EFI-stub boot using the Limine-managed initramfs was verified after reboot, including early Intel microcode; see `gotchas/apple-t2.md` §12.
 - **CPU Limits**: PL1 = 45 W, PL2 = 60 W active via `t2-cpu-control.service` and `/etc/t2-cpu-control.conf`
 - **Power Optimization**: `t2-power-tune` & `t2-power-explorer` deployed with Polkit privilege escalation
 - **Thermals / Fans**: `t2fanrd.service` active with linear curve (45°C–72°C) via `/etc/t2fand.conf`

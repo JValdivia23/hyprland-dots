@@ -2,6 +2,42 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2026-11-02] - MacBookPro15,1 Hybrid GPU Investigation (in progress)
+### Changed and verified
+- **Device-specific `profiles/macbook-t2/`**: selected rEFInd ahead of Limine in EFI boot order, retained Limine as a fallback, disabled the legacy `kait2en-dgpu-off.service`, and installed a runtime-suspend-aware AMD power-policy script. The `gpu-power-prefs` preference was not changed.
+- Added a rEFInd `CachyOS Native Hybrid` EFI-stub entry. On kernel `7.3.1-1-cachyos` this exposes Intel `00:02.0` and AMD `01:00.0`; `apple_gmux` selects Intel and the internal display is connected to i915. The connector name varied between `eDP-1` and `eDP-2` across boots. Unlike the earlier assumptions, rEFInd spoofing followed by Limine's Linux protocol alone did **not** expose Intel on this machine.
+- Added `profiles/macbook-t2/.local/bin/dgpu-run` and fixed its Mesa PCI selector to `pci-0000_01_00_0`. Verified `glxinfo -B` uses Intel by default and AMD with `dgpu-run`; Vulkan lists AMD first with the launcher.
+- **Still unresolved**: the AMD device remains in `D0` with `power/control=on` and `Runtime PM not available`; automatic D3cold/on-demand wake is not working. The MacBookPro15,1 GMUX/AMDGPU/ALSA patch series was submitted upstream but is not installed here. Do not force the dGPU off or on to claim dynamic operation; this machine previously had resume timeouts.
+- Reviewed the submitted v3 patch series against the CachyOS `cachyos-7.3.1-1` source tag (`36ae4c219cfbd02576048c7ca1d366cea5db8034`) in `/tmp/opencode/`, using dry runs only. The GMUX and AMDGPU patches have failed hunks against CachyOS-specific code and require adaptation; the HDA patch dry-ran cleanly. No patched modules were built, installed, or loaded. The current kernel is built with clang/LLD `23.1.4` and Clang LTO; DKMS is not installed.
+- **Boot safety**: the EFI-stub entry originally used a separately constructed `/boot/EFI/refind/native-hybrid-initramfs.img` which would not be updated with the kernel. With user approval, changed only that entry's initrd path to the Limine-managed `/boot/5e288d9ebc0247d4ab3df033fb991847/linux-cachyos/initramfs`. Verified after reboot: `/proc/cmdline` identifies the managed image, Intel microcode updated early, both GPUs and the Touch Bar are available, and Hyprland reports no config errors. Backup: `/boot/EFI/refind/refind.conf.pre-managed-initramfs-20261102-230920`. Limine remains the recovery entry; the manually copied kernel options do not automatically follow future Limine cmdline changes.
+
+## [2.84.0] - 2026-11-03
+### Changed & Synchronized
+- **Universal Core Settings & GNU Stow Harmonization (`core/`, universal)**:
+  - Audited full live filesystem vs upstream dotfiles repository (`4220435` / `origin/main`).
+  - Resolved GNU Stow conflict blockers by converting absolute symlinks in `~/.local/bin/` (`hypr-autoscale`, `hypr-capture-menu`, `hypr-keybinds-menu`, `hypr-monitor-scale`, `hypr-ocr`, `hypr-record`, `hypr-screenshot`, `hypr-text-size`, `kitty-focus-opacity`, `noctalia-precache-wallpapers`, `xh-launch`, `zen-keybinds-sync`) and `~/.config/hypr/helpers.lua` to relative Stow-managed symlinks.
+  - Synchronized and deployed un-stowed core files:
+    - [`core/.config/systemd/user/hypr-tray-drawer.service`](file:///home/java1127/dotfiles/core/.config/systemd/user/hypr-tray-drawer.service) — enabled and started via `systemctl --user enable --now hypr-tray-drawer.service`.
+    - [`core/.local/bin/hypr-tray-drawer`](file:///home/java1127/dotfiles/core/.local/bin/hypr-tray-drawer) — restored minimize/restore drawer keybind actions (`SUPER+M`, `SUPER+SHIFT+M`, `SUPER+ALT+M`).
+    - [`core/.config/environment.d/10-path.conf`](file:///home/java1127/dotfiles/core/.config/environment.d/10-path.conf) — systemd user `$PATH` environment alignment.
+    - [`core/.local/share/zen/zen-keyboard-shortcuts.json`](file:///home/java1127/dotfiles/core/.local/share/zen/zen-keyboard-shortcuts.json) — Zen Browser keyboard mapping.
+    - Webapp desktop entry [`core/.local/share/applications/XH.desktop`](file:///home/java1127/dotfiles/core/.local/share/applications/XH.desktop) & icon.
+  - Synchronized configurations:
+    - [`core/.config/opencode/cli.json`](file:///home/java1127/dotfiles/core/.config/opencode/cli.json): restored navigation keybindings using OpenCode v2 dotted action syntax (`input.line.home`, `input.line.end`, etc.).
+    - [`core/.config/brave-origin-flags.conf`](file:///home/java1127/dotfiles/core/.config/brave-origin-flags.conf): merged universal `--password-store=basic` flag with hardware VA-API / ozone platform flags.
+    - [`core/.config/gtk-3.0/noctalia.css`](file:///home/java1127/dotfiles/core/.config/gtk-3.0/noctalia.css) & [`core/.config/gtk-4.0/noctalia.css`](file:///home/java1127/dotfiles/core/.config/gtk-4.0/noctalia.css): harmonized active Noctalia theme styles.
+  - Cleaned up broken legacy EasyEffects symlinks in `~/.config/easyeffects/` per user direction.
+  - Deployed AI skill modular gotchas: [`opencode.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/opencode.md), [`vlc.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/vlc.md), and [`zen-browser.md`](file:///home/java1127/dotfiles/agents/.agents/skills/system-personalization/references/gotchas/zen-browser.md).
+  - Installed missing core packages via elevated interactive prompt (Rule 8): `wf-recorder`, `tesseract`, `tesseract-data-eng`, `chrony` (official repos), and `ani-cli-mx` (AUR).
+  - Validation: 81/81 core files verified symlinked, 0 missing, 0 mismatches, `hyprctl configerrors` 100% clean, `hypr-tray-drawer.service` active.
+
+## [2.83.0] - 2026-11-03
+### Added
+- **T2 FaceTime HD Camera viewer (`core/`, universal)**:
+  - Verified built-in `05ac:8514` on VHCI bus 7 binds to stock `uvcvideo` (UVC 1.50) on `7.3.1-1-cachyos`: `/dev/video0`, `/dev/video1`, `/dev/media0`, `NV12 1280x720@30`, PipeWire `FaceTime HD Camera [v4l2]` source active. No DKMS/firmware needed (unlike Surface IPU4P).
+  - Installed `snapshot 51.0-1.1` (`/usr/bin/snapshot`, `org.gnome.Snapshot.desktop`) via `sudo pacman -S --needed snapshot` and recorded in `core/packages.txt` (universal, for all machines).
+  - Documented working state in `profiles/macbook-t2/gotchas/apple-t2.md` §13.
+
 ## [2.82.0] - 2026-11-02
 ### Fixed
 - **Invisible Mouse Cursor Restoration (`core` / Hyprland 0.57.0)**:
