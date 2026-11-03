@@ -240,4 +240,18 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   1. Remove `name:gaming` from `core/.config/hypr/config/workspaces.lua` and `core/.config/hypr/config/windowrules.lua`.
   2. Only set `default = true` on a single workspace per monitor (Workspace `1` on `MONITOR1`), keeping `persistent = true` on Workspaces `1`, `2`, and `3`.
 
+---
+
+## 19. Hyprland 0.57 Deprecated Dispatchers (`group.lock_active()` $\rightarrow$ `group.lock()` & `hyprctl deprecated-config`)
+
+- **Symptom**: On booting into or starting Hyprland 0.57+, a yellow deprecation banner or toast notification appears warning: `hl.dsp.group.lock_active(): The group.lock_active() dispatcher is deprecated, use group.lock() instead`.
+- **Diagnostic Command**: Run `hyprctl deprecated-config` (which in 0.57+ inspects all registered Lua dispatchers and flags deprecated ones, outputting `all good!` when clean). Note that `hyprctl configerrors` only checks syntax/parse errors, not deprecation notices.
+- **Root Cause**: Hyprland 0.57 unified group lock toggling into `group.lock()` and deprecated `group.lock_active()`.
+- **Fix**: In `core/.config/hypr/config/binds.lua`, replace `hl.dsp.group.lock_active()` with `hl.dsp.group.lock()`:
+  ```lua
+  helpers.bind(mainMod .. " + CONTROL + G", "Toggle group lock", hl.dsp.group.lock())
+  ```
+  Then reload with `hyprctl reload` and verify with `hyprctl deprecated-config`.
+
+
 

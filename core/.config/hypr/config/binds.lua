@@ -122,7 +122,7 @@ helpers.bind(mainMod .. " + G",                 "Toggle window grouping / stacki
 helpers.bind(mainMod .. " + ALT + G",           "Move window out of group",          hl.dsp.window.move({ out_of_group = true }))
 helpers.bind(mainMod .. " + ALT + Tab",         "Cycle next window in group",        hl.dsp.group.next())
 helpers.bind(mainMod .. " + ALT + SHIFT + Tab", "Cycle previous window in group",   hl.dsp.group.prev())
-helpers.bind(mainMod .. " + CONTROL + G",       "Toggle group lock",                 hl.dsp.group.lock_active())
+helpers.bind(mainMod .. " + CONTROL + G",       "Toggle group lock",                 hl.dsp.group.lock())
 
 -- Change focus (CTRL + Arrows)
 helpers.bind("CONTROL + Left",  "Focus window left",  hl.dsp.focus({ direction = "left" }))

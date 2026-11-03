@@ -2,6 +2,13 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.81.0] - 2026-11-02
+### Fixed
+- **Hyprland 0.57.0 Deprecated Dispatcher Migration (`hl.dsp.group.lock()`)**:
+  - Resolved post-upgrade deprecation toast/banner identified by `hyprctl deprecated-config`: `hl.dsp.group.lock_active(): The group.lock_active() dispatcher is deprecated, use group.lock() instead`.
+  - Migrated `mainMod + CONTROL + G` from `hl.dsp.group.lock_active()` to `hl.dsp.group.lock()` in [`core/.config/hypr/config/binds.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/binds.lua).
+  - Verified `hyprctl deprecated-config` returns `all good!` and `hyprctl configerrors` is clean. Documented in `references/gotchas/hyprland.md` §19 and `references/keybindings.md`.
+
 ## [2.80.0] - 2026-11-02
 ### Changed
 - **Full System Upgrade (`cachyos-cu` / MacBookPro15,1)**:
