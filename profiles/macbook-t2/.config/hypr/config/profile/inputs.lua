@@ -10,6 +10,7 @@ hl.config({
             tap_to_click = true,
             clickfinger_behavior = true,
             middle_button_emulation = true,
+            drag_3fg = 0,
         },
     },
 })

@@ -206,4 +206,25 @@ if [ -f "$SCRIPT_DIR/scripts/t2-touchid.conf" ]; then
     fi
 fi
 
+# 7. Deploy EdgePad Trackpad Edge Controls
+if [ ! -f "$SCRIPT_DIR/.local/bin/edgepad" ]; then
+    echo "    [EdgePad] Downloading edgepad binary from GitHub Releases..."
+    curl -fsSL https://github.com/assembledev/edgepad/releases/latest/download/edgepad-x86_64-unknown-linux-musl -o "$SCRIPT_DIR/.local/bin/edgepad"
+    chmod +x "$SCRIPT_DIR/.local/bin/edgepad"
+fi
+
+if [ -f "$SCRIPT_DIR/scripts/70-edgepad.rules" ] && [ ! -f "/etc/udev/rules.d/70-edgepad.rules" ]; then
+    echo "    [EdgePad] Configuring udev rules for trackpad edge controls..."
+    $SUDO cp -v "$SCRIPT_DIR/scripts/70-edgepad.rules" /etc/udev/rules.d/70-edgepad.rules
+    $SUDO udevadm control --reload-rules 2>/dev/null || true
+    $SUDO udevadm trigger --subsystem-match=input --action=change 2>/dev/null || true
+    $SUDO udevadm trigger --subsystem-match=misc --action=change 2>/dev/null || true
+fi
+
+if command -v systemctl &>/dev/null && [ -f "$HOME/.config/systemd/user/edgepad.service" ]; then
+    echo "    [EdgePad] Enabling and starting edgepad user service..."
+    systemctl --user daemon-reload 2>/dev/null || true
+    systemctl --user enable --now edgepad.service 2>/dev/null || true
+fi
+
 echo "==> Apple MacBook Pro setup finished."

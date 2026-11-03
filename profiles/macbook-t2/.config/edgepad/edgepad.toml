@@ -1,0 +1,31 @@
+# EdgePad configuration for MacBook Pro 15,1 (Apple T2)
+# Touchpad edge gestures: volume (right edge), brightness (left edge)
+
+device = "auto"
+palm_rejection = true
+edge_width = 0.08
+tap_min_duration_ms = 40
+tap_max_duration_ms = 180
+double_tap_timeout_ms = 300
+double_tap_max_distance = 0.04
+swipe_min_distance = 0.02
+
+# Right edge slider: Master Volume (+/- 2% with Noctalia native OSD)
+[[sliders]]
+zone = "right"
+step = 0.04
+up = ["noctalia", "msg", "volume-up", "2"]
+down = ["noctalia", "msg", "volume-down", "2"]
+
+# Right edge tap: Toggle Mute (Noctalia native OSD)
+[[gestures]]
+zone = "right"
+direction = "tap"
+action = ["noctalia", "msg", "volume-mute"]
+
+# Left edge slider: Display Brightness (+/- 2% with Noctalia native OSD)
+[[sliders]]
+zone = "left"
+step = 0.04
+up = ["hypr-screen-brightness", "+2%"]
+down = ["hypr-screen-brightness", "2%-"]

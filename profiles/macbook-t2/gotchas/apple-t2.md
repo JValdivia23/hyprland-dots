@@ -226,7 +226,9 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 >
 > **The dGPU is not dynamically sleeping yet.** With the stock CachyOS `7.3.1-1` kernel, `amdgpu` logs `Runtime PM not available`, the Radeon remains `D0`/`active`, and its `power/control` is `on`. The previously enabled forced-OFF service is now disabled so AMD stays available for PRIME. The active manual `POWER_SAVING` profile lowers clocks but is not D3cold. The [MacBookPro15,1 GMUX/AMDGPU/ALSA patch series](https://patchew.org/linux/20260812122206.193680-1-dev@deq.rocks/) targets automatic wake/suspend but has not been installed or validated here. Do not assume forcing `power/control=auto` supplies the missing driver support.
 >
-> A dry run of the submitted v3 patches against the CachyOS `cachyos-7.3.1-1` source tag found conflicts in the GMUX and AMDGPU patches (the latter uses a different switcheroo registration helper); the HDA patch applied in dry-run. A working port must preserve CachyOS's `force_igd` behavior and be compiled and tested against the exact kernel, with a recovery path and kernel-update maintenance. No custom modules were built, installed, or loaded during this review.
+> An experimental port against CachyOS `cachyos-7.3.1-1` is preserved in the independent research project `/home/java1127/dev/mbp151-hybrid-graphics/` (`workspace/kernel/`, `patches/`, and ignored `artifacts/`), not just temporary storage. It preserves CachyOS's `force_igd` and switcheroo registration helper. GMUX, HDA and AMDGPU modules built successfully; they are unsigned, KUnit was not run, and successful compilation does not establish safe behavior. See that project's `docs/status.md` and `docs/plan.md`. **Do not install or load the artifacts:** switcheroo discards GMUX power-on errors and could continue AMD resume after a failed wake; AUX concurrency and 560X AC/DC replay need review. With the current `amdgpu.runpm=-1` default, the candidate would enable autosuspend at probe (five-second delay), not wait for a manual test. No patched module was installed or loaded. With user approval, a private read-only ACPI capture found the Radeon `PWG1`/`PWG3` link-retraining methods; no method was executed, and the full namespace is not resolved. Craft Anything is set up project-locally for static ELF inspection/evidence but does not decode ACPI AML, and its GMUX function disassembly was incomplete despite a complete-coverage label. A working port still requires hardware validation, a recovery path, and kernel-update maintenance.
+>
+> **Existing AC detection gotcha:** The current profile and installed `amdgpu-power-switch.sh` use uppercase `ADP*`/`AC*`/`ACAD*` globs, which do not match this machine's lowercase `/sys/class/power_supply/macsmc-ac`. Confirmed read-only: `status` reported battery with `macsmc-ac/online=1`. Its `auto` path uses the same globs, including the boot/post-resume calls, but was not run for this test; the udev rules supply explicit `ac`/`battery` arguments for matching change events. The script was not changed during the isolated build.
 >
 > **Boot-image hazard and mitigation:** The EFI-stub entry initially pointed to `/boot/EFI/refind/native-hybrid-initramfs.img`, a one-time copy that would not update with the kernel. It now points to Limine's managed `/boot/5e288d9ebc0247d4ab3df033fb991847/linux-cachyos/initramfs`, which contains early Intel microcode and is updated alongside that kernel. A reboot successfully used the managed image and loaded microcode early. Its manually copied command line will not automatically follow changes to Limine's kernel options. Select the preserved Limine entry to recover if the EFI-stub entry fails. The `gpu-power-prefs` EFI variable remains unchanged.
 
@@ -259,5 +261,25 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 - **Watch**: vendored `t2bce` snapshot lag has caused `Possible desync` after resume before (`CachyOS/linux-cachyos#1008`, fix `a973d53`). Current `t2bce_vhci 0.02 srcversion 8630FA55` shows no desync lines in `journalctl -k -b`.
 - **Verify**: `v4l2-ctl --list-devices`, `wpctl status | grep -A6 Video`, `snapshot`.
 
+---
 
+## 14. Trackpad Edge Controls (`edgepad` on Apple T2 Force Touch Trackpad)
+
+- **Target Hardware**: Apple MacBook Pro 15,1 (`MacBookPro15,1` / `macbook-t2`)
+- **Category**: Input / Gestures
+- **Status (2026-11-03)**: Active and verified operational via `edgepad 0.3.0` and systemd user unit `edgepad.service`.
+- **Hardware Identified**: `Apple Inc. Apple Internal Keyboard / Trackpad` (`/dev/input/event7`, 160×100mm, `slots=0..=15`, `x=-7456..=7976`, `y=-9283..=163`).
+- **Architecture**:
+  - `edgepad` claims touch inputs falling within the outer perimeter bands (`edge_width = 0.08`, approx 12.8mm on the 160mm wide Apple trackpad) while forwarding standard pointing and multi-finger gestures through a virtual `/dev/uinput` touchpad directly to Hyprland.
+  - Right edge vertical slider: Master volume adjust in 2% steps via `noctalia msg volume-up 2` and `noctalia msg volume-down 2` (native Noctalia OSD).
+  - Right edge tap: Audio mute toggle via `noctalia msg volume-mute`.
+  - Left edge vertical slider: Screen backlight adjust in 2% steps via `hypr-screen-brightness +2%` / `2%-` (native Noctalia brightness OSD).
+- **Restart & Finger Contact Gotcha**:
+  - `edgepad daemon` checks for active finger contacts on launch. If the service is restarted while a finger is actively resting on the trackpad, it aborts with `touchpad is already touched on /dev/input/event7; release all fingers and retry live proxy` to prevent corrupting pointer coordinate state.
+  - Mitigated by configuring `RestartSec=2s`, `StartLimitIntervalSec=30s`, `StartLimitBurst=10` in `edgepad.service`, and using `systemctl --user reload edgepad.service` (SIGHUP) for zero-downtime configuration updates without releasing the device grab.
+- **Hyprland Input Tuning**:
+  - `drag_3fg = 0` configured in `profiles/macbook-t2/.config/hypr/config/profile/inputs.lua` so 3-finger workspace and fullscreen gestures respond immediately without drag delay.
+- **Diagnostics & Health**:
+  - Check daemon and hardware binding: `edgepad doctor`
+  - Check service status: `systemctl --user status edgepad.service`
 

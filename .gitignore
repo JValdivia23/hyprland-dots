@@ -5,7 +5,10 @@
 *.swp
 *~
 *.log
+# Compiled binaries & local installations
 core/.local/bin/noctalia-precache-wallpapers
+profiles/*/.local/bin/edgepad
+**/.local/bin/edgepad
 
 # Sensitive credentials and keys
 *.key
