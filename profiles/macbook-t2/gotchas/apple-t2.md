@@ -222,9 +222,17 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ## 12. Dual-GPU Management & Integrated GPU Boot (`apple-gmux` & KAIT2EN `t2-dgpu-control`)
 
+> **Live state / correction, 2026-11-02:** Booting the rEFInd `CachyOS Native Hybrid` entry through the Linux EFI stub exposes both GPUs on this Mac; the existing rEFInd spoof option followed by Limine's Linux protocol did not. Intel drives the internal panel, and `dgpu-run glxinfo -B` selects AMD using Mesa's `DRI_PRIME=pci-0000_01_00_0`. The connected Intel panel appeared as `eDP-1` on one boot and `eDP-2` on another; use `/dev/dri/by-path` and sysfs device links rather than assuming fixed DRM card/connector numbers. Vulkan applications see AMD first but may select a different device themselves. i915 logs `Failed to find VBIOS tables`; despite that warning, the internal panel and accelerated Intel OpenGL were observed working.
+>
+> **The dGPU is not dynamically sleeping yet.** With the stock CachyOS `7.3.1-1` kernel, `amdgpu` logs `Runtime PM not available`, the Radeon remains `D0`/`active`, and its `power/control` is `on`. The previously enabled forced-OFF service is now disabled so AMD stays available for PRIME. The active manual `POWER_SAVING` profile lowers clocks but is not D3cold. The [MacBookPro15,1 GMUX/AMDGPU/ALSA patch series](https://patchew.org/linux/20260812122206.193680-1-dev@deq.rocks/) targets automatic wake/suspend but has not been installed or validated here. Do not assume forcing `power/control=auto` supplies the missing driver support.
+>
+> A dry run of the submitted v3 patches against the CachyOS `cachyos-7.3.1-1` source tag found conflicts in the GMUX and AMDGPU patches (the latter uses a different switcheroo registration helper); the HDA patch applied in dry-run. A working port must preserve CachyOS's `force_igd` behavior and be compiled and tested against the exact kernel, with a recovery path and kernel-update maintenance. No custom modules were built, installed, or loaded during this review.
+>
+> **Boot-image hazard and mitigation:** The EFI-stub entry initially pointed to `/boot/EFI/refind/native-hybrid-initramfs.img`, a one-time copy that would not update with the kernel. It now points to Limine's managed `/boot/5e288d9ebc0247d4ab3df033fb991847/linux-cachyos/initramfs`, which contains early Intel microcode and is updated alongside that kernel. A reboot successfully used the managed image and loaded microcode early. Its manually copied command line will not automatically follow changes to Limine's kernel options. Select the preserved Limine entry to recover if the EFI-stub entry fails. The `gpu-power-prefs` EFI variable remains unchanged.
+
 - **Architecture & Dual GPU Layout**:
   - The MacBookPro15,1 features an Intel UHD Graphics 630 (IGD) and an AMD Radeon Pro 560X (DIS).
-  - Internal Retina display (`eDP-1`) is multiplexed by Apple's custom GMUX hardware chip.
+  - The internal Retina display is multiplexed by Apple's custom GMUX hardware chip; its `eDP-*` connector name can change across boots.
   - If booted via standard third-party bootloaders (like Limine or GRUB without macOS spoofing), Apple EFI firmware cuts power to and hides the Intel UHD 630 (`00:02.0`) from the PCI bus completely.
 - **The apple-set-os Firmware Unhide (`rEFInd` + `spoof_osx_version 10.9`)**:
   - In `/boot/EFI/refind/refind.conf`, `spoof_osx_version 10.9` invokes the `APPLE_SET_OS_PROTOCOL` (`Mac OS X 10.9` / `Apple Inc.`), signaling the firmware ROM to power up and expose `00:02.0` on PCI.
@@ -236,14 +244,20 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
   - **Modprobe Option**: `/etc/modprobe.d/apple-gmux.conf` (`options apple-gmux force_igd=y`) tells the kernel driver to switch the multiplexer to Intel once `00:02.0` is confirmed live.
   - **Kernel Parameter**: `i915.enable_guc=3` in `/etc/default/limine` enables GuC/HuC firmware loading to prevent sleep/resume wake freezes.
   - **Initramfs**: `MODULES+=(i915? ...)` in `/etc/mkinitcpio.conf.d/11-chwd.conf`.
-  - **dGPU Sleep Service (`kait2en-dgpu-off.service`)**: Powers off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), dropping idle draw from ~20W to ~8–9W and cooling thermals to ~52°C. Uses a 15-second loop on boot to wait for asynchronous `vgaswitcheroo` debugfs registration.
+  - **Legacy dGPU Sleep Service (`kait2en-dgpu-off.service`)**: Previously powered off the discrete AMD GPU via `vgaswitcheroo` (`DIS: :Off`), dropping idle draw from ~20W to ~8–9W and cooling thermals to ~52°C. It is currently **disabled** to preserve PRIME access; forced off is not automatic runtime PM and the older wake path is unsafe.
   - **dGPU Suspend Hazard & Masking (`kait2en-dgpu-suspend.service`)**:
     - **Hazard**: An older workaround attempted to restore power (`ON`) before suspend and cut power (`OFF`) after resume. On `MacBookPro15,1`, forcing `ON` from D3cold without UEFI GOP initialization causes immediate PCI accessibility failures, SMC alignment errors, and `ring gfx test failed -110`. On wake, `amdgpu` enters a 10-retry UVD reset loop with `-110 ETIMEDOUT`, freezing kernel resume for 11.6 seconds due to `pm_async=off`.
     - **Resolution**: Mask `kait2en-dgpu-suspend.service`. In modern Linux kernels with `s2idle`, the PCI core sees the dGPU in runtime-suspended D3cold and skips re-initializing it on resume, completely eliminating the 11.6s wake hang.
 
+---
 
+## 13. FaceTime HD Camera (`05ac:8514`, UVC via `t2bce_vhci`)
 
-
+- **Status (2026-11-03, `7.3.1-1-cachyos`)**: Working out of the box. No DKMS, firmware, or libcamera tuning needed (unlike Surface IPU4P).
+- **Stack**: `t2bce_vhci` exposes `Bus 007 Device 05ac:8514` → stock `uvcvideo` (UVC 1.50) → `/dev/video0`, `/dev/video1`, `/dev/media0` (`NV12 1280x720@30`, `640x480@30`) → PipeWire `FaceTime HD Camera [v4l2]`.
+- **Viewer**: `snapshot 51.0-1.1` (`/usr/bin/snapshot`, universal in `core/packages.txt`).
+- **Watch**: vendored `t2bce` snapshot lag has caused `Possible desync` after resume before (`CachyOS/linux-cachyos#1008`, fix `a973d53`). Current `t2bce_vhci 0.02 srcversion 8630FA55` shows no desync lines in `journalctl -k -b`.
+- **Verify**: `v4l2-ctl --list-devices`, `wpctl status | grep -A6 Video`, `snapshot`.
 
 
 

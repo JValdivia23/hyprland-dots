@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Run one application on the MacBookPro15,1 Radeon Pro 560X via native Mesa PRIME.
+set -euo pipefail
+
+readonly IGD_PCI=0000:00:02.0
+readonly DIS_PCI=0000:01:00.0
+
+if (( $# == 0 )); then
+    printf 'Usage: %s <application> [arguments...]\n' "${0##*/}" >&2
+    exit 2
+fi
+
+if [[ ! -e "/sys/bus/pci/devices/$IGD_PCI" || ! -e "/sys/bus/pci/devices/$DIS_PCI" ]]; then
+    printf '%s: both Intel and AMD GPUs must be visible; boot through the configured Linux EFI-stub entry first.\n' "${0##*/}" >&2
+    exit 1
+fi
+
+export DRI_PRIME="pci-${DIS_PCI//[:.]/_}"
+exec "$@"

@@ -26,6 +26,15 @@ done
 
 ACTION="${1:-auto}"
 
+# Automatic AC/battery policy must not wake an unused PRIME render-offload GPU.
+GPU_RUNTIME_SUSPENDED=0
+if [ -n "$CARD_DIR" ] && [ -r "$CARD_DIR/power/runtime_status" ]; then
+    RUNTIME_STATUS=$(cat "$CARD_DIR/power/runtime_status" 2>/dev/null || true)
+    if [ "$RUNTIME_STATUS" = "suspended" ]; then
+        GPU_RUNTIME_SUSPENDED=1
+    fi
+fi
+
 # Handle Explicit Turbo Boost & Performance Controls
 case "$ACTION" in
     turbo-toggle|toggle-turbo|turbo)
@@ -145,10 +154,10 @@ fi
 
 if [ "$STATE" = "battery" ]; then
     # Battery Mode: Enable manual DPM and set POWER_SAVING profile (mode 2)
-    if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/power_dpm_force_performance_level" ]; then
+    if [ "$GPU_RUNTIME_SUSPENDED" -eq 0 ] && [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/power_dpm_force_performance_level" ]; then
         echo "manual" > "$CARD_DIR/power_dpm_force_performance_level" 2>/dev/null || true
     fi
-    if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/pp_power_profile_mode" ]; then
+    if [ "$GPU_RUNTIME_SUSPENDED" -eq 0 ] && [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/pp_power_profile_mode" ]; then
         echo "2" > "$CARD_DIR/pp_power_profile_mode" 2>/dev/null || echo "0" > "$CARD_DIR/pp_power_profile_mode" 2>/dev/null || true
     fi
     # PCIe Active State Power Management (ASPM) powersupersave
@@ -171,10 +180,10 @@ if [ "$STATE" = "battery" ]; then
     fi
 else
     # AC Mode: Keep GPU in POWER_SAVING profile for thermal efficiency, with Intel Turbo Boost active
-    if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/power_dpm_force_performance_level" ]; then
+    if [ "$GPU_RUNTIME_SUSPENDED" -eq 0 ] && [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/power_dpm_force_performance_level" ]; then
         echo "manual" > "$CARD_DIR/power_dpm_force_performance_level" 2>/dev/null || true
     fi
-    if [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/pp_power_profile_mode" ]; then
+    if [ "$GPU_RUNTIME_SUSPENDED" -eq 0 ] && [ -n "$CARD_DIR" ] && [ -w "$CARD_DIR/pp_power_profile_mode" ]; then
         echo "2" > "$CARD_DIR/pp_power_profile_mode" 2>/dev/null || true
     fi
     # PCIe ASPM restore default

@@ -65,12 +65,13 @@ if [ -f "$SCRIPT_DIR/scripts/t2-dgpu-control-status" ]; then
     $SUDO chmod 0755 /usr/local/libexec/t2-dgpu-control-status
 fi
 
-# Systemd services: kait2en-dgpu-off (powers off dGPU; kait2en-dgpu-suspend masked to avoid D3cold wake stall)
+# Keep the forced-OFF service disabled so PRIME workloads can access the dGPU.
+# Automatic sleep still requires working GMUX runtime PM in the kernel.
 if [ -f "$SCRIPT_DIR/scripts/kait2en-dgpu-off.service" ]; then
-    echo "    [GPU] Deploying kait2en-dgpu-off.service and masking kait2en-dgpu-suspend.service..."
+    echo "    [GPU] Installing optional dGPU controls; leaving forced-OFF disabled for PRIME..."
     $SUDO cp -v "$SCRIPT_DIR/scripts/kait2en-dgpu-off.service" /etc/systemd/system/kait2en-dgpu-off.service
     $SUDO systemctl daemon-reload
-    $SUDO systemctl enable kait2en-dgpu-off.service 2>/dev/null || true
+    $SUDO systemctl disable --now kait2en-dgpu-off.service 2>/dev/null || true
     $SUDO systemctl disable --now kait2en-dgpu-suspend.service 2>/dev/null || true
     $SUDO systemctl mask kait2en-dgpu-suspend.service 2>/dev/null || true
 fi
