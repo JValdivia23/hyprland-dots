@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.79.0] - 2026-11-02
+### Changed
+- **OpenCode Upgrade to v2.2.5 (`core`)**:
+  - Reinstalled and upgraded OpenCode from outdated `v0.0.0-next-17430` to latest stable release [`v2.2.5`](file:///home/java1127/.opencode/bin/opencode) using official installer `curl -fsSL https://raw.githubusercontent.com/anomalyco/opencode/v2/install | bash`.
+  - Stopped stale background `opencode2 serve --service` instance prior to installation and restarted background daemon via `opencode service start` (`http://127.0.0.1:49374`).
+  - Created backward-compatibility and non-fish shell symlinks [`~/.local/bin/opencode`](file:///home/java1127/.local/bin/opencode) and [`~/.local/bin/opencode2`](file:///home/java1127/.local/bin/opencode2) pointing to `~/.opencode/bin/opencode`.
+  - Verified `opencode --version` and `opencode2 --version` output `opencode v2.2.5`, and verified `opencode upgrade` recognizes curl installation method.
+
+
 ## [2.78.0] - 2026-11-02
 ### Updated: `surface-usbc/0.2.0` DKMS & Upstream `linux-surface/kernel#184` Review Refinements (`profiles/surface`, device-specific)
 - Addressed all 5 review items from `@qzed` (Maximilian Luz) on `linux-surface/kernel#184` after his live verification on Surface Pro X (`045E:0922`):
