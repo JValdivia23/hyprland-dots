@@ -2,6 +2,13 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.80.0] - 2026-11-02
+### Changed
+- **Full System Upgrade (`cachyos-cu` / MacBookPro15,1)**:
+  - Upgraded 416 packages via interactive `paru -Syu` session, moving to kernel `7.3.1-1-cachyos`, `linux-cachyos-lts 6.18.55-2`, `hyprland 0.57.0-3.1`, `noctalia 5.4.1-1.1`, `zen-browser-bin 1.24b-1`, `systemd 262.1-1`, `mesa 26.2.5-1`, and `pipewire 1.6.10-1`.
+  - Snapper snapshot `#60` generated successfully via `zz-snap-pac-post.hook`.
+  - Zero Hyprland configuration errors reported (`hyprctl configerrors`).
+
 ## [2.79.0] - 2026-11-02
 ### Changed
 - **OpenCode Upgrade to v2.2.5 (`core`)**:

@@ -5,7 +5,7 @@ Live system snapshot automatically generated for multi-PC environment.
 ## Operating System & Kernel
 - **OS**: CachyOS Linux
 - **Kernel (`surface`)**: `7.3.1-1-cachyos` (active running kernel & default in Limine since 2026-10-22; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.14.arch1-1` (linux-surface, kept installed).
-- **Kernel (`cachyos-cu`)**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
+- **Kernel (`cachyos-cu`)**: `7.3.1-1-cachyos` (active upon reboot; `linux-cachyos-lts 6.18.55-2` installed as fallback; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (version 4.9.3)
 - **Compositor**: Hyprland 0.57.0 (package: `0.57.0-3.1`)
 - **Active Profiles**: `surface` (Surface Book 3), `macbook-t2` (MacBookPro15,1)
@@ -46,18 +46,19 @@ Live system snapshot automatically generated for multi-PC environment.
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.56.2-4.1 | Core Desktop Compositor |
-| noctalia | 5.3.0-1.1 | Wayland Shell & Panels |
+| hyprland | 0.57.0-3.1 | Core Desktop Compositor |
+| noctalia | 5.4.1-1.1 | Wayland Shell & Panels |
 | kitty | 0.49.2-1.1 | Primary Terminal Emulator |
 | alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
 | ani-cli | 5.1-1 | Anime Streaming CLI (mpv/fzf) |
-| paru | 2.1.0-3 | AUR Helper (CachyOS Native) |
+| paru | 2.2.0-1 | AUR Helper (CachyOS Native) |
 | fish | 4.9.3-1 | System Interactive Shell |
 | btop | 1.4.7-1.1 | Process & System Monitor |
 | satty | 0.22.0-1.1 | Screenshot Annotation Editor |
-| swayimg | 5.6-2.1 | Image & Quick Look Viewer |
+| swayimg | 5.7-1.1 | Image & Quick Look Viewer |
 | dolphin | 26.08.2-1.1 | File Manager |
-| zen-browser-bin | 1.23.3b-1 | Primary Web Browser |
+| zen-browser-bin | 1.24b-1 | Primary Web Browser |
+| opencode | 2.2.5 | AI Coding CLI & Agent Platform |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
 | easyeffects | 8.3.0-1.1 | Audio Processing Backend (`surface-book-hybrid` DSP preset active with AutoGain volume leveling) |
 | lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
