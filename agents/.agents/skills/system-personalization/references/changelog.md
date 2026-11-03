@@ -2,6 +2,16 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.78.0] - 2026-11-02
+### Updated: `surface-usbc/0.2.0` DKMS & Upstream `linux-surface/kernel#184` Review Refinements (`profiles/surface`, device-specific)
+- Addressed all 5 review items from `@qzed` (Maximilian Luz) on `linux-surface/kernel#184` after his live verification on Surface Pro X (`045E:0922`):
+  - Synthesized `UCSI_CCI_COMMAND_COMPLETE` when SAM sets `UCSI_CCI_NOT_SUPPORTED` or `UCSI_CCI_ERROR` without command completion in `surface_ucsi_hid_fetch_report()`.
+  - Stripped the leading 1-byte entry length (`0x06`) prepended by SAM to `UCSI_GET_ALTERNATE_MODES` responses in `surface_ucsi_hid_read_message_in()`.
+  - Unconditionally returned `UCSI_VERSION_1_1` in `surface_ucsi_hid_read_version()`.
+  - Ensured `UCSI_ENABLE_NTFY_CMD_COMPLETE` is set on empty-mask `UCSI_SET_NOTIFICATION_ENABLE` commands in `surface_ucsi_hid_async_control()`.
+  - Removed redundant `hid_device_io_stop(hdev)` from `surface_ucsi_hid_remove()` and switched `surface_ucsi_hid_log_caps()` to a `kmemdup()` buffer.
+- Bumped DKMS package to `surface-usbc/0.2.0` in `profiles/surface/dkms/surface-usbc/dkms.conf`, rebuilt/MOK-signed and hot-reloaded on `7.3.1-1-cachyos`, force-pushed updated patch series to `linux-surface/kernel#184`, and answered `@ruslanbay`'s 3 technical questions on `linux-surface/linux-surface` Discussion #1353 (`discussioncomment-19365333`).
+
 ## [2.77.0] - 2026-11-02
 ### Updated: System Upgrade (`linux-cachyos 7.3.1-1`, `hyprland 0.57.0`, `noctalia 5.4.1`, `zen-browser 1.24b`) & Hyprland `0.57.0` Native Lua Dispatcher Migration (`core/` & `profiles/surface`)
 - Upgraded 140 repository packages and 1 AUR package (`wvkbd 0.21-1`), moving to kernel `7.3.1-1-cachyos` (with DKMS auto-rebuilds verified for `ipts/2024.04.16`, `surface-ipu4p/0.2.0`, and `surface-usbc/0.1.0`), fallback `linux-surface 7.2.14.arch1-1`, `hyprland 0.57.0-3.1`, `noctalia 5.4.1-1.1`, and `zen-browser-bin 1.24b-1`.

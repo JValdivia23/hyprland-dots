@@ -4,17 +4,18 @@ Live system snapshot automatically generated for multi-PC environment.
 
 ## Operating System & Kernel
 - **OS**: CachyOS Linux
-- **Kernel (`surface`)**: `7.2.11-1-cachyos` (default since 2026-10-13; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.11.arch1-1` (linux-surface, kept installed).
+- **Kernel (`surface`)**: `7.3.1-1-cachyos` (active running kernel & default in Limine since 2026-10-22; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.14.arch1-1` (linux-surface, kept installed).
 - **Kernel (`cachyos-cu`)**: `7.2.9-1-cachyos` (active & verified; unpinned in `/etc/pacman.conf`)
 - **Shell**: `/bin/fish` (version 4.9.3)
-- **Compositor**: Hyprland 0.56.2 (package: `0.56.2-4.1`)
+- **Compositor**: Hyprland 0.57.0 (package: `0.57.0-3.1`)
 - **Active Profiles**: `surface` (Surface Book 3), `macbook-t2` (MacBookPro15,1)
 
 ## Boot & Sleep (`surface`)
 - **Bootloader**: Active Limine 12.9.3; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-13).
 - **Boot menu**: Hidden one-second countdown (`quiet: yes`, `timeout: 1`), replacing the visible five-second wait on 2026-10-08. Press Space during that second to reveal the menu.
 - **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
-- **IPTS on CachyOS kernels (2026-10-13)**: DKMS `ipts/2024.04.16` (built for `7.2.11-1-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
+- **IPTS on CachyOS kernels (2026-10-22)**: DKMS `ipts/2024.04.16` (built for `7.3.1-1-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
+- **IPU4P Cameras & USB-C UCSI/Charger DKMS on CachyOS `7.3+` (2026-11-02)**: DKMS `surface-ipu4p/0.2.0` (`intel-ipu6`, `intel-ipu6-isys`, `ov7251`, `ov5693`, `dw9719`) and DKMS `surface-usbc/0.2.0` (`ucsi_surface_hid` exposing `/sys/class/typec/port0` & `ucsi-source-psy-*`, plus patched `surface_charger` exposing `ADP1/input_power_limit` via SSAM `CID=0x0f` `Artg`).
 - **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
 - **Hibernation compression & image size (2026-10-18)**: **LZ4 selected** (`/sys/module/hibernate/parameters/compressor = lz4`) and `/sys/power/image_size = 4800000000` (`~4.8 GB`, bypassing pre-snapshot `zram0` swap thrashing), applied at boot by `/usr/local/bin/surface-hibernate-compressor` (`surface-hibernate-compressor.service`).
 - **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.

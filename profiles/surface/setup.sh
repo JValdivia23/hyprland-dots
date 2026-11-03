@@ -260,4 +260,13 @@ if [[ "$SURFACE_PRODUCT" == "Surface Book 3" || "$SURFACE_PRODUCT" == "Surface P
     sudo bash "$SCRIPT_DIR/scripts/install-cameras.sh" --no-packages
 fi
 
+# 14. Surface USB-C UCSI-over-HID (/sys/class/typec/port0) & SSAM charger Artg
+#     (ADP1/input_power_limit) via DKMS on CachyOS 7.1+ kernels.
+if [[ "$SURFACE_PRODUCT" == "Surface Book 3" ]] && \
+   [[ -f "$SCRIPT_DIR/scripts/install-usbc.sh" ]] && \
+   command -v dkms &>/dev/null && command -v sudo &>/dev/null; then
+    echo "--> Deploying Surface USB-C UCSI-over-HID & charger Artg DKMS stack..."
+    sudo bash "$SCRIPT_DIR/scripts/install-usbc.sh"
+fi
+
 echo "==> Microsoft Surface setup finished."
