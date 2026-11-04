@@ -16,7 +16,7 @@
 
 ### A. 20-Band Speaker Optimizer Curve (`fs_48000`)
 - **Sub-bass Protection**: `85 Hz` Butterworth highpass (`Q = 0.707`) preventing physical micro-transducer over-excursion and flapping.
-- **Preamp Attenuation**: `-6.0 dB` headroom (`bq_highshelf freq = 0 gain = -6.0`) ensuring no digital clipping from peak boosts.
+- **Preamp Attenuation**: `-1.5 dB` headroom (`bq_highshelf freq = 0 gain = -1.5`) matched to Windows driver `volmax-boost` curve, preventing digital clipping while delivering full acoustic volume.
 - **Factory Acoustic Optimizer**:
   - `47 Hz`: `+5.00 dB` (Q = 0.94)
   - `141 Hz`: `+10.50 dB` (Q = 1.41) — low-end fullness
@@ -47,11 +47,12 @@
 
 ---
 
-## 3. Implementation: Native PipeWire `filter-chain` Drop-In
+## 3. Implementation: WirePlumber 0.5 Smart Filter Architecture
 
-Instead of running an external GUI or user-space daemon (like EasyEffects), the factory DSP is executed natively inside PipeWire using `libpipewire-module-filter-chain` with SPA builtin `param_eq`:
+Instead of running an external GUI or user-space daemon (like EasyEffects) or a detached virtual sink with decoupled volume, the factory DSP is executed natively inside PipeWire using `libpipewire-module-filter-chain` configured as a **WirePlumber 0.5 Smart Filter** (`filter.smart = true`):
 - **Config Path**: `~/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` (managed in dotfiles under `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf`).
-- **Speaker Sink**: `surface_speaker_dsp` (`Audio/Sink`, `priority.session = 1015`), automatically established as default sink and routed directly to `alsa_output.pci-0000_00_1f.3.analog-stereo`.
+- **Unified Hardware Volume**: By declaring `filter.smart = true` and `filter.smart.target = "{ \"node.name\": \"alsa_output.pci-0000_00_1f.3.analog-stereo\" }"`, the physical ALSA device remains `@DEFAULT_AUDIO_SINK@`. Desktop volume keys and Noctalia/Waybar volume controls modulate the Realtek ALC274 DAC hardware mixer directly (0–100% full scale, 0.00 dB).
+- **Automatic Interception**: WirePlumber transparently intercepts all audio streams playing to the laptop speakers and routes them through the 20-band factory Dolby Atmos EQ curve before reaching the physical DAC.
 - **Microphone Source**: `surface_mic_dsp` (`Audio/Source`, `priority.session = 2015`), automatically established as default source and fed from `alsa_input.pci-0000_00_1f.3.analog-stereo`.
 - **Zero Daemon Overhead**: Consumes near-zero CPU, requires no background `easyeffects` process, and persists across sessions.
 
@@ -59,20 +60,21 @@ Instead of running an external GUI or user-space daemon (like EasyEffects), the 
 
 ## 4. Verification & Diagnostics
 
-1. Check that both DSP filters are default:
+1. Check that the physical ALSA sink is the default sink and smart filter is loaded:
    ```bash
    wpctl status
    ```
-   Both `surface_speaker_dsp` and `surface_mic_dsp` should display under `Filters` with an asterisk (`*`).
+   `* Built-in Audio Analog Stereo` is default with current volume (e.g. `[vol: 0.40]`), while `surface_speaker_dsp` is active under `Filters`.
 
 2. Check node interconnection in PipeWire graph:
    ```bash
    pw-link -l
    ```
    Verifies:
-   - `playback.surface_speaker_dsp` -> `alsa_output.pci-0000_00_1f.3.analog-stereo`
-   - `alsa_input.pci-0000_00_1f.3.analog-stereo` -> `capture.surface_mic_dsp`
+   - Client streams (e.g. Brave) -> `surface_speaker_dsp:playback_FL/FR`
+   - `playback.surface_speaker_dsp:output_FL/FR` -> `alsa_output.pci-0000_00_1f.3.analog-stereo:playback_FL/FR`
+   - `alsa_input.pci-0000_00_1f.3.analog-stereo:capture_FL/FR` -> `capture.surface_mic_dsp:input_FL/FR`
 
 3. Headphone Behavior:
    - Plugging in headphones switches the ALSA codec port to `analog-output-headphones`.
-   - If un-EQ'd audio is desired for external headphones or studio monitors, switch the output to `Built-in Audio Analog Stereo` directly via `wpctl set-default <id>` or through the desktop audio menu.
+   - WirePlumber automatically unlinks the speaker smart filter, delivering uncolored, flat audio directly to headphones.

@@ -2,6 +2,19 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.86.1] - 2026-11-03
+### Fixed: Resolved Low Volume via WirePlumber 0.5 Smart Filter (`profiles/surface`, device-specific)
+- Diagnosed root causes for low volume output at 100% on Surface Book 3:
+  - Hardware ALSA sink (`alsa_output.pci-0000_00_1f.3.analog-stereo`) was decoupled from virtual sink volume and clamped at `0.45` (45%).
+  - Realtek ALC274 hardware DAC master mixer was clamped at `60 [69%] [-20.25dB]`.
+  - Filter graph high-shelf preamp had excessive digital attenuation (`-6.0 dB`), compounding to `-26.25 dB` overall reduction.
+- Upgraded `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` to a native **WirePlumber 0.5 Smart Filter**:
+  - Configured `filter.smart = true` and `filter.smart.target = "{ \"node.name\": \"alsa_output.pci-0000_00_1f.3.analog-stereo\" }"`.
+  - The physical ALSA device remains `@DEFAULT_AUDIO_SINK@`, unifying hardware volume control with desktop volume sliders and keys (0–100% full scale, 0.00 dB DAC gain).
+  - Audio streams playing to laptop speakers automatically route through the 20-band Dolby Atmos factory EQ curve; 3.5mm headphone jack automatically bypasses the speaker DSP.
+  - Adjusted preamp high-shelf from `-6.0 dB` to `-1.5 dB` (matching Windows' factory `volmax-boost` curve).
+  - Initial volume safely leveled at 40% (`wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.40`) to prevent sudden blasting.
+
 ## [2.86.0] - 2026-11-03
 ### Added: Native PipeWire Factory Audio DSP (`ViaolaE` / `ALC274`) Replacing EasyEffects (`profiles/surface`, device-specific)
 - Reverse-engineered official Microsoft Windows 11 audio driver package (`SurfaceBook3_Win11_22621_25.013.34389.0.msi`) for `VEN_10EC&DEV_0274&SUBSYS_10EC11F0` (Surface Book 3 13.5", codename **`ViaolaE`**):
