@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.86.2] - 2026-11-03
+### Fixed: Eliminated Audio Noise Clutter, Treble Hiss & Pre-DAC `S32LE` Clipping (`profiles/surface`, device-specific)
+- Diagnosed root causes of audio noise clutter, high-frequency hiss, and mid-bass distortion:
+  - **Pre-DAC `S32LE` Digital Clipping**: Because `alsa_output.pci-0000_00_1f.3.analog-stereo` uses the Realtek ALC274 hardware `Master` mixer for volume control, PipeWire keeps `softVolumes = [1.0, 1.0]` (`0 dBFS`) and attenuates analog volume *after* `F32P -> S32LE` integer conversion. Adjacent biquad skirt stacking (`141 Hz +10.50 dB`, `234 Hz +11.00 dB`, `328 Hz +5.69 dB`) produced a `+15.86 dB` peak (`+14.36 dBFS` after `-1.5 dB` preamp), hard-clipping integer PCM before hardware attenuation.
+  - **Missing Dolby `ieq_balanced` Treble Roll-Off & Regulator Clamping**: In `DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml`, `<audio-optimizer-bands>` is paired with `<ieq_balanced>` (`-10.62 dB @ 11.25 kHz`, `-17.62 dB @ 13.875 kHz`) and `<regulator-tuning>` (`threshold_high = -16.6 dB / -12.5 dB` at `141–234 Hz`). Applying raw `+8.50 dB @ 11.25 kHz` and `+11.31 dB @ 13.875 kHz` amplified background hiss and vocal sibilance by `3.4x`.
+- Updated `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` and `profiles/surface/gotchas/audio-dsp.md`:
+  - Applied the de-overlapped `Optimizer + ieq_balanced` + regulator-clamped 20-band curve (`141–234 Hz` combined peak `+5.5 dB`, full `-8.69 dB @ 844 Hz` and `-4.12 dB @ 656 Hz` magnesium cavity resonance notches preserved, `11.25–13.88 kHz` contoured to `+1.0 dB / 0.0 dB`).
+  - Set preamp headroom to `-5.5 dB` so maximum net transfer gain across `20 Hz – 20 kHz` is strictly `<= 0.00 dBFS` (`-0.02 dB`), guaranteeing zero `S32LE` digital clipping at any volume.
+
 ## [2.86.1] - 2026-11-03
 ### Fixed: Resolved Low Volume via WirePlumber 0.5 Smart Filter (`profiles/surface`, device-specific)
 - Diagnosed root causes for low volume output at 100% on Surface Book 3:

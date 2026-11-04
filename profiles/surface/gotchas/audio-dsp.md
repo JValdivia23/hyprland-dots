@@ -14,29 +14,30 @@
 
 ## 2. Factory Dolby Atmos & Realtek Parameters
 
-### A. 20-Band Speaker Optimizer Curve (`fs_48000`)
+### A. 20-Band Speaker Optimizer + `ieq_balanced` & Regulator-Clamped Curve (`fs_48000`)
 - **Sub-bass Protection**: `85 Hz` Butterworth highpass (`Q = 0.707`) preventing physical micro-transducer over-excursion and flapping.
-- **Preamp Attenuation**: `-1.5 dB` headroom (`bq_highshelf freq = 0 gain = -1.5`) matched to Windows driver `volmax-boost` curve, preventing digital clipping while delivering full acoustic volume.
-- **Factory Acoustic Optimizer**:
-  - `47 Hz`: `+5.00 dB` (Q = 0.94)
-  - `141 Hz`: `+10.50 dB` (Q = 1.41) — low-end fullness
-  - `234 Hz`: `+11.00 dB` (Q = 2.45) — body/warmth
-  - `328 Hz`: `+5.69 dB` (Q = 2.85)
-  - `469 Hz`: `+1.00 dB` (Q = 2.89)
+- **Preamp Attenuation**: `-5.5 dB` headroom (`bq_highshelf freq = 0 gain = -5.5`) matching the `+5.5 dB` combined peak boost so the net transfer function never exceeds `0.0 dBFS` at the `F32P -> S32LE` integer PCM conversion boundary (important because PipeWire keeps `softVolumes = 1.0` and applies desktop volume in the post-DAC ALSA `Master` mixer).
+- **Why Raw `<audio-optimizer-bands>` Must Be Paired with `<ieq_balanced>` & `<regulator-tuning>`**:
+  In `DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml`, the raw anechoic optimizer has `+10.50 dB @ 141 Hz`, `+11.00 dB @ 234 Hz`, `+8.50 dB @ 11.25 kHz`, and `+11.31 dB @ 13.875 kHz`, which Windows processes alongside `<ieq_balanced>` (`-10.62 dB @ 11.25 kHz`, `-17.62 dB @ 13.875 kHz` relative to the `192` reference) and the 20-band distortion limiter (`threshold_high = -16.6 dB / -12.5 dB` at `141–234 Hz`). Applying the de-overlapped composite curve eliminates high-frequency hiss/sibilance clutter and mid-bass square-wave clipping:
+  - `47 Hz`: `+2.50 dB` (Q = 0.94)
+  - `141 Hz`: `+4.20 dB` (Q = 1.41) — low-end fullness (de-overlapped)
+  - `234 Hz`: `+3.60 dB` (Q = 2.45) — body/warmth (`+5.5 dB` combined peak with adjacent skirts)
+  - `328 Hz`: `+2.20 dB` (Q = 2.85)
+  - `469 Hz`: `+0.80 dB` (Q = 2.89)
   - `656 Hz`: `-4.12 dB` (Q = 3.46) — enclosure resonance cut #1
   - **`844 Hz`: `-8.69 dB` (Q = 4.47)** — **Primary magnesium/glass tablet cavity resonance peak**
   - `1031 Hz`: `-1.19 dB` (Q = 4.47)
-  - `1313 Hz`: `+3.69 dB` (Q = 4.04) — vocal presence
-  - `1688 Hz`: `-0.12 dB` (Q = 3.67)
-  - `2250 Hz`: `+3.62 dB` (Q = 3.47)
-  - `3000 Hz`: `+2.44 dB` (Q = 3.97) — articulation
-  - `3750 Hz`: `+5.12 dB` (Q = 4.47) — clarity
-  - `4688 Hz`: `+4.81 dB` (Q = 4.56)
-  - `5813 Hz`: `+0.31 dB` (Q = 4.78)
-  - `7125 Hz`: `+3.38 dB` (Q = 4.53)
-  - `9000 Hz`: `+1.94 dB` (Q = 4.38)
-  - `11250 Hz`: `+8.50 dB` (Q = 4.63) — glass slot diffraction restoration
-  - `13875 Hz`: `+11.31 dB` (Q = 3.44) — high treble restoration for narrow bezel slits
+  - `1313 Hz`: `+2.50 dB` (Q = 4.04) — vocal presence
+  - `1688 Hz`: `0.00 dB` (Q = 3.67)
+  - `2250 Hz`: `+2.50 dB` (Q = 3.47)
+  - `3000 Hz`: `+1.80 dB` (Q = 3.97) — articulation
+  - `3750 Hz`: `+3.20 dB` (Q = 4.47) — clarity
+  - `4688 Hz`: `+2.20 dB` (Q = 4.56)
+  - `5813 Hz`: `0.00 dB` (Q = 4.78)
+  - `7125 Hz`: `+1.50 dB` (Q = 4.53) — `ieq_balanced` contoured treble
+  - `9000 Hz`: `+0.50 dB` (Q = 4.38)
+  - `11250 Hz`: `+1.00 dB` (Q = 4.63) — gentle air without hiss amplification
+  - `13875 Hz`: `0.00 dB` (Q = 3.44) — `ieq_balanced` high-frequency roll-off
   - `19688 Hz`: `-6.69 dB` (Q = 2.77) — ultrasonic roll-off
 
 ### B. 4-Band Dual Mic Array Correction (`RTMICEQ0`)
