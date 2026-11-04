@@ -1,0 +1,10 @@
+[Unit]
+Description=Surface post-resume input latency probe (diagnostic)
+
+[Service]
+Type=simple
+Environment=PATH=/usr/bin
+ExecStart=/usr/local/bin/surface-resume-latency-probe resume
+TimeoutStopSec=3s
+SuccessExitStatus=143 SIGTERM
+Nice=-5

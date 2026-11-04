@@ -38,7 +38,7 @@ kernel's `modules.alias` already contains `34E4`.
 ## 4. Gotchas
 - **Build with clang.** CachyOS kernels are clang-built; gcc dies on `-mllvm`, `-fms-anonymous-structs`.
   The DKMS `Makefile` auto-adds `LLVM=1` when `CONFIG_CC_IS_CLANG=y`.
-- **`driver_data 9` = `MEI_ME_PCH12_CFG`** in `enum mei_cfg_idx` (`drivers/misc/mei/hw-me.h`, verified 7.2.9).
+- **`driver_data 9` = `MEI_ME_PCH12_CFG`** in `enum mei_cfg_idx` (`drivers/misc/mei/hw-me.h`, verified 7.2.9, 7.2.11, and 7.3.0).
   If a future kernel reorders the enum, `mei_me` may fail to probe `00:16.4` → re-check the index.
 - **Harmless:** ~10× `ipts …: Failed to process buffer: -16` right after load (before iptsd attaches),
   and the kernel "taint" message for an unsigned out-of-tree module.

@@ -335,3 +335,26 @@ Detailed troubleshooting for hibernation failures, ACPI S4 platform power-down r
     - When Wi-Fi reconnected 8s later, `chronyd` saw only `1.181535s` of sub-second/crystal rounding (down from `4,296s` / `25,179s`), and `/var/lib/surface-hibernate-rtc/last_wake_sample.json` recorded the wake sample to auto-calibrate `offset_sec` to `-25180s` on the next cycle.
     - Zero `iptsd` `stop-sigterm` `SIGKILL` timeouts, zero failed systemd units (`systemctl --failed` = `0`), and `surface-ipts-resume.service` verified `iptsd@dev-hidraw6.service` active and exited in **`0.89s`** after `user.slice` thaw.
 
+
+---
+
+## 8. Keyboard Input Lag After Hibernate Resume (Under Investigation, 2026-10-22)
+
+- **Symptom**: After resuming from hibernate, typing on the lock screen shows nothing for a few seconds, then all typed characters appear at once (events are queued, not dropped).
+- **Evidence so far**: No `surface_hid`/`ssam` errors around the resume; the keyboard evdev node is present. At wake the platform profile was `low-power` (EPP `power`, CPU ~0.8–1.0 GHz), `vm.swappiness=150`, and apps (zen-browser) competed for CPU while the page cache was cold after image restore. Hyprland/noctalia are single-threaded event loops, so a stall there delays *display* of input that the kernel already delivered.
+- **Diagnostic**: `/usr/local/bin/surface-resume-latency-probe` (started by `/etc/systemd/system-sleep/22-surface-resume-probe.sh`) logs 90 s of jitter/freq/PSI/Hyprland+noctalia faults and per-keypress kernel→userspace `lag_ms` (no key codes). Read with `journalctl -u surface-resume-probe -b --no-pager`.
+- **Decision rule**: `lag_ms` ~0 => compositor/lock-screen stall (consider post-resume EPP boost, cache warm-up of Hyprland/noctalia, lower swappiness). Large `lag_ms` => kernel/SAM HID resume delay.
+- **Status**: Mitigation pending probe data from the next hibernate cycle.
+
+### 8a. `system-sleep` hooks must be symlinked into `/usr/lib/systemd/system-sleep/` (2026-10-22)
+
+- A hook placed only in `/etc/systemd/system-sleep/` is **never executed** on this system. Every working Surface hook (19/20/21) is a symlink in `/usr/lib/systemd/system-sleep/` pointing to its `/etc/systemd/system-sleep/` file. Always create the symlink when adding a hook (`sudo ln -s /etc/systemd/system-sleep/NN-name.sh /usr/lib/systemd/system-sleep/NN-name.sh`).
+- Do not use `systemd-run` from a sleep hook (needs D-Bus, failed silently); use a static unit + `systemctl --no-block`.
+- **Observation**: after hibernate resume the keyboard backlight is on at once but the lock-screen password echo is delayed a few seconds -> stall is in Hyprland/noctalia, not the keyboard hardware (probe data pending).
+
+### 8b. Resolved: lock-screen echo lag after hibernate = power-saver clocks (2026-10-22)
+
+- **Cause**: on battery, power-profiles-daemon `power-saver` -> `platform_profile=low-power`, EPP `power`, CPU ~0.5–1 GHz (iGPU also capped). Right after resume noctalia's lock screen rendered too slowly, so typed password dots only appeared when typing was done. Kernel input latency (~0.1 ms) and Hyprland IPC (~1 ms) were fine.
+- **Proof**: same test with `performance` profile -> dots appear as typed.
+- **Fix**: temporary 20 s performance boost after resume (`surface-resume-boost`, section in changelog 2.72.0). Tunables: `BOOST_SECONDS` in `/etc/systemd/system/surface-resume-boost.service` (add `Environment=BOOST_SECONDS=30`).
+- **If lag returns**: check `journalctl -u surface-resume-boost -b` (should show "boosted for 20s" / "restored previous profile") and that the symlink `/usr/lib/systemd/system-sleep/23-surface-resume-boost.sh` exists. A restore only happens if the profile is still `performance`.

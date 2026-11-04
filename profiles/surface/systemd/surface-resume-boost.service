@@ -1,0 +1,10 @@
+[Unit]
+Description=Surface temporary performance boost after resume (lock-screen input lag fix)
+
+[Service]
+Type=simple
+Environment=PATH=/usr/bin
+ExecStart=/usr/local/bin/surface-resume-boost run
+ExecStopPost=/usr/local/bin/surface-resume-boost restore
+TimeoutStopSec=5s
+SuccessExitStatus=143 SIGTERM
