@@ -23,6 +23,8 @@ hl.config({
             border_locked_inactive = CACHYGRAY,
         },
         groupbar = {
+            font_size = 11,
+            height = 20,
             col = {
                 active = CACHYLGREEN,
                 inactive = CACHYGRAY,

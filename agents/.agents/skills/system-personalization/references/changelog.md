@@ -2,6 +2,15 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.86.3] - 2026-11-04
+### Configured: Increased Window Groupbar Title Font & Bar Height (`core`, universal)
+- Diagnosed small, difficult-to-read window group tab titles: default unconfigured Hyprland `group:groupbar:font_size` was `8` and `height` was `14`. On high-DPI displays (Surface Book 3 @ scale 2 and MacBook Pro @ scale 1.6), this resulted in tiny 8pt font inside narrow 14px bars.
+- Updated `dotfiles/core/.config/hypr/config/decorations.lua` under `group.groupbar`:
+  - Set `font_size = 11` (comfortably readable title text).
+  - Set `height = 20` (proportional bar height preventing text clipping).
+- Universal scope: affects all profiles via core Hyprland decorations configuration.
+- Reloaded live via `hyprctl reload`; verified clean diagnostics via `hyprctl configerrors`.
+
 ## [2.86.2] - 2026-11-03
 ### Fixed: Eliminated Audio Noise Clutter, Treble Hiss & Pre-DAC `S32LE` Clipping (`profiles/surface`, device-specific)
 - Diagnosed root causes of audio noise clutter, high-frequency hiss, and mid-bass distortion:

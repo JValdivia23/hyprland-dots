@@ -280,6 +280,24 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
      ```
   3. Apply dynamically and reload: `hyprctl reload && hyprctl setcursor Bibata-Modern-Ice 24`.
 
+---
 
+## 21. Window Group Title Bar Font & Height Scaling (`group:groupbar`)
 
+- **Symptom**: Window group (tabbed windows) titles are tiny and difficult to read on HiDPI displays.
+- **Root Cause**: Hyprland defaults `group:groupbar:font_size = 8` and `group:groupbar:height = 14`. On high-DPI displays (scale 1.6–2.0), this renders extremely small. Furthermore, increasing `font_size` without proportionally increasing `height` causes title text to clip against bar edges.
+- **Fix**: In `core/.config/hypr/config/decorations.lua`, configure both `font_size` and `height` together under `group.groupbar`:
+  ```lua
+  groupbar = {
+      font_size = 11,
+      height = 20,
+      col = {
+          active = CACHYLGREEN,
+          inactive = CACHYGRAY,
+          locked_active = CACHYDBLUE,
+          locked_inactive = CACHYGRAY,
+      },
+  },
+  ```
+  Apply with `hyprctl reload` and verify with `hyprctl getoption group:groupbar:font_size`.
 
