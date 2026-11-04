@@ -9,7 +9,7 @@ wvkbd
 lisgd
 iio-sensor-proxy
 python-gobject
-easyeffects
+# easyeffects (Replaced by native PipeWire filter-chain: 50-surface-audio-dsp.conf)
 lsp-plugins-lv2
 calf
 libcamera

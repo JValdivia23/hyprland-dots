@@ -2,6 +2,19 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.86.0] - 2026-11-03
+### Added: Native PipeWire Factory Audio DSP (`ViaolaE` / `ALC274`) Replacing EasyEffects (`profiles/surface`, device-specific)
+- Reverse-engineered official Microsoft Windows 11 audio driver package (`SurfaceBook3_Win11_22621_25.013.34389.0.msi`) for `VEN_10EC&DEV_0274&SUBSYS_10EC11F0` (Surface Book 3 13.5", codename **`ViaolaE`**):
+  - **Speaker Factory Optimizer Curve**: Extracted 20-band inverse EQ from `dax3extdolbyatmos_13/DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml` (`47 Hz` to `19.7 kHz`, discovering the massive `-8.69 dB` magnesium/glass cavity resonance notch at `844 Hz` and `-4.12 dB` at `656 Hz`, as well as `+10.5 dB @ 141 Hz`, `+11.0 dB @ 234 Hz`, and `+11.3 dB @ 13.9 kHz` bezel-slot treble compensation).
+  - **Microphone Array Calibration EQ**: Extracted 4-band parametric EQ (`RTMICEQ0` in `hdxsstmd3a/RTAIODAT.DAT` offset `0x024506`) removing bezel aperture resonances (`1250 Hz +3dB`, `2100 Hz -2dB`, `3500 Hz -3dB`, `4000 Hz -2dB`, all `Q = 3.0`).
+- Implemented native zero-overhead PipeWire filter-chain drop-in at `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf`:
+  - `surface_speaker_dsp` (`Audio/Sink`, `priority.session = 1015` default sink): 85 Hz Butterworth high-pass transducer protection + -6.0 dB headroom attenuation + exact 20-band factory Dolby Atmos curve, outputting to `alsa_output.pci-0000_00_1f.3.analog-stereo`.
+  - `surface_mic_dsp` (`Audio/Source`, `priority.session = 2015` default source): 4-band `RTMICEQ0` dual-mic correction, fed from `alsa_input.pci-0000_00_1f.3.analog-stereo`.
+- Retired EasyEffects background daemon:
+  - Removed `easyeffects --service-mode` from `profiles/surface/.config/hypr/config/profile/autostart.lua`.
+  - Commented out `easyeffects` in `profiles/surface/packages.txt`.
+  - Documented complete reverse-engineering and diagnostics in `profiles/surface/gotchas/audio-dsp.md`.
+
 ## [2.85.0] - 2026-11-03
 ### Added & Configured
 - **Trackpad Edge Controls via EdgePad (`profiles/macbook-t2/`, device-specific)**:
@@ -91,7 +104,6 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Stopped stale background `opencode2 serve --service` instance prior to installation and restarted background daemon via `opencode service start` (`http://127.0.0.1:49374`).
   - Created backward-compatibility and non-fish shell symlinks [`~/.local/bin/opencode`](file:///home/java1127/.local/bin/opencode) and [`~/.local/bin/opencode2`](file:///home/java1127/.local/bin/opencode2) pointing to `~/.opencode/bin/opencode`.
   - Verified `opencode --version` and `opencode2 --version` output `opencode v2.2.5`, and verified `opencode upgrade` recognizes curl installation method.
-
 
 ## [2.78.0] - 2026-11-02
 ### Updated: `surface-usbc/0.2.0` DKMS & Upstream `linux-surface/kernel#184` Review Refinements (`profiles/surface`, device-specific)

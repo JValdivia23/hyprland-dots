@@ -1,86 +1,78 @@
-# Surface Book 3 Audio DSP & EasyEffects Tuning Gotchas
+# Surface Book 3 Native PipeWire Factory Audio DSP Gotchas
 
-## 1. Hardware Architecture & Acoustic Quirks
+## 1. Hardware Architecture & Acoustic Measurements
 
-- **Host & Hardware**: Microsoft Surface Book 3 (`surface`), Intel Ice Lake-LP Smart Sound Technology Audio Controller (`8086:34c8`, `snd_hda_intel`), Realtek ALC274 codec (`10ec0274`), PipeWire 1.6.9 + WirePlumber 0.5.18.
-- **Physical Transducers**: Dual stereo micro-speakers (~15-18mm) embedded inside the magnesium tablet glass bezel.
-- **The Raw ALSA Quirk**: On Windows, Microsoft bundles a proprietary Dolby Audio / Dolby Atmos APO hardware-tuned DSP profile. On Linux, the standard ALSA/PipeWire driver outputs an unprocessed, flat stereo signal. Without DSP:
-  - Frequencies below ~140 Hz cannot physically be reproduced by the tiny cones, causing voice-coil overheating, cone turbulence, and clipping distortion.
-  - The magnesium/glass tablet cavity creates harsh resonance spikes in the 2.8 kHz – 4 kHz band ("tinny" or "glare" sound).
-  - Stereo perception is narrow due to tablet dimensions.
-
----
-
-## 2. DSP Pipeline Solution (`surface-book.json`)
-
-To artificially recreate missing bass and correct chassis acoustics, a tailored 5-stage DSP chain runs via EasyEffects:
-1. **High-Pass Filter (`filter#0`)**: 90 Hz steep 12 dB/oct cut (RLC BT) to strip inaudible sub-bass and protect the speakers from distortion.
-2. **Harmonic Bass Enhancer (`bass_enhancer#0` via Calf)**: Exploits the psychoacoustic **"Missing Fundamental"** effect. Detects low frequencies (up to 145 Hz) and generates 2nd and 3rd order harmonics (in the 150 Hz – 350 Hz audible range) with +10 dB virtual bass presence, tricking the brain into perceiving deep sub-bass that the physical cones cannot produce.
-3. **Parametric Equalizer (`equalizer#0` via LSP)**: 32-band EQ providing +2.5 dB warm lower-mid body (156–194 Hz), +1.5–2.0 dB vocal presence (1.3–1.7 kHz), -3.0 dB suppression of harsh chassis resonance (3.2 kHz), and +1.5–2.0 dB airy clarity (9.5–12 kHz).
-4. **Stereo Tools (`stereo_tools#0` via Calf)**: +15% stereo expansion and 0.04 ms Haas effect delay to broaden the soundstage past the physical tablet screen.
-5. **Lookahead Peak Limiter (`limiter#0` via LSP)**: Transparent fast limiter (ceiling at -1.0 dB) to completely eliminate clipping and distortion even at 100% volume.
+- **Host & Hardware**: Microsoft Surface Book 3 (`surface`), Intel Ice Lake-LP Smart Sound Technology Audio Controller (`8086:34c8`, `snd_hda_intel`), Realtek ALC274 codec (`10ec0274`, subsys `0x10ec11f0`, codename **`ViaolaE`** for 13.5", **`ViaolaF`** `0x10ec11f2` for 15"), PipeWire 1.6.10 + WirePlumber 0.5.18.
+- **Physical Transducers**: Dual stereo micro-speakers embedded inside the magnesium tablet glass bezel slits, plus a dual-microphone beamforming array with 30mm spacing.
+- **Why Heuristic Tuning Was Replaced**:
+  Previously, an EasyEffects preset (`surface-book.json`) guessed acoustic parameters by ear (-3.0 dB at 3.2 kHz and +2.5 dB at 156–194 Hz).
+  By reverse-engineering Microsoft's official Windows 11 driver package (`SurfaceBook3_Win11_22621_25.013.34389.0.msi`), we extracted the actual factory-measured acoustic profiles:
+  1. **Speaker Inverse EQ**: Stored in `dax3extdolbyatmos_13/DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml` (`<audio-optimizer-bands>` in 1/16 dB units).
+  2. **Microphone Array EQ**: Stored in `hdxsstmd3a/RTAIODAT.DAT` under entry `ViaolaE` (`RTMICEQ0` 4-band parametric EQ).
 
 ---
 
-## 3. Plugin Engine Gotcha (`calf` vs `lsp-plugins-lv2`)
+## 2. Factory Dolby Atmos & Realtek Parameters
 
-In EasyEffects 8.3+:
-- **`calf` (Calf Studio Gear LV2)** is strictly required for `BassEnhancer` and `StereoTools`. If `calf` is not installed, EasyEffects throws `Could not find the plugin: http://calf.sourceforge.net/plugins/BassEnhancer`.
-- **`lsp-plugins-lv2` (Linux Studio Plugins)** is strictly required for `Equalizer`, `Limiter`, and `Filter`.
-- Both must be listed in `profiles/surface/packages.txt`.
+### A. 20-Band Speaker Optimizer Curve (`fs_48000`)
+- **Sub-bass Protection**: `85 Hz` Butterworth highpass (`Q = 0.707`) preventing physical micro-transducer over-excursion and flapping.
+- **Preamp Attenuation**: `-6.0 dB` headroom (`bq_highshelf freq = 0 gain = -6.0`) ensuring no digital clipping from peak boosts.
+- **Factory Acoustic Optimizer**:
+  - `47 Hz`: `+5.00 dB` (Q = 0.94)
+  - `141 Hz`: `+10.50 dB` (Q = 1.41) — low-end fullness
+  - `234 Hz`: `+11.00 dB` (Q = 2.45) — body/warmth
+  - `328 Hz`: `+5.69 dB` (Q = 2.85)
+  - `469 Hz`: `+1.00 dB` (Q = 2.89)
+  - `656 Hz`: `-4.12 dB` (Q = 3.46) — enclosure resonance cut #1
+  - **`844 Hz`: `-8.69 dB` (Q = 4.47)** — **Primary magnesium/glass tablet cavity resonance peak**
+  - `1031 Hz`: `-1.19 dB` (Q = 4.47)
+  - `1313 Hz`: `+3.69 dB` (Q = 4.04) — vocal presence
+  - `1688 Hz`: `-0.12 dB` (Q = 3.67)
+  - `2250 Hz`: `+3.62 dB` (Q = 3.47)
+  - `3000 Hz`: `+2.44 dB` (Q = 3.97) — articulation
+  - `3750 Hz`: `+5.12 dB` (Q = 4.47) — clarity
+  - `4688 Hz`: `+4.81 dB` (Q = 4.56)
+  - `5813 Hz`: `+0.31 dB` (Q = 4.78)
+  - `7125 Hz`: `+3.38 dB` (Q = 4.53)
+  - `9000 Hz`: `+1.94 dB` (Q = 4.38)
+  - `11250 Hz`: `+8.50 dB` (Q = 4.63) — glass slot diffraction restoration
+  - `13875 Hz`: `+11.31 dB` (Q = 3.44) — high treble restoration for narrow bezel slits
+  - `19688 Hz`: `-6.69 dB` (Q = 2.77) — ultrasonic roll-off
 
----
-
-## 4. EasyEffects 8.3 Preset Storage Path Migration
-
-- **Old Path**: `~/.config/easyeffects/output/<preset>.json`
-- **New Path (8.3+)**: `~/.local/share/easyeffects/output/<preset>.json`
-- **Gotcha**: On startup, EasyEffects 8.3 migrates JSON presets from `~/.config/easyeffects/output/` into `~/.local/share/easyeffects/output/`. Dotfiles stores the master copy in `profiles/surface/.local/share/easyeffects/output/surface-book.json` and symlinks it to ensure persistence.
-- Live state and last loaded presets are stored in QSettings INI files at `~/.config/easyeffects/db/easyeffectsrc`.
-
----
-
-## 5. Background Autostart & Control Commands
-
-- **Autostart**: Configured in `profiles/surface/.config/hypr/config/profile/autostart.lua`:
-  ```lua
-  hl.on("hyprland.start", function ()
-      hl.exec_cmd(homeDir .. "/.local/bin/hypr-lisgd")
-      hl.exec_cmd("easyeffects --service-mode")
-  end)
-  ```
-- **A/B Comparison (Toggle Bypass)**:
-  ```bash
-  easyeffects --bypass-toggle
-  ```
-  *(Toggles the DSP on/off instantly so you can hear the raw vs. enhanced difference).*
-- **Force Reload Preset**:
-  ```bash
-  easyeffects -l surface-book
-  ```
-- **Switch to Community Presets (JackHack96)**:
-  ```bash
-  easyeffects -l "Bass Enhancing + Perfect EQ"
-  easyeffects -l "Laptop"
-  easyeffects -l "Dolby Atmos"
-  easyeffects -l "Advanced Auto Gain"
-  ```
-- **Hybrid Presets (Combining Surface acoustic tuning + Spatial Convolver)**:
-  ```bash
-  easyeffects -l surface-book-hybrid   # Dolby Atmos 3D impulse + Surface acoustic method
-  easyeffects -l surface-book-razor    # Razor +20 Bass impulse + Surface acoustic method
-  ```
-- **Emergency Clean Audio Pipeline Reset**:
-  ```bash
-  pkill -x easyeffects
-  systemctl --user restart pipewire wireplumber
-  wpctl set-volume @DEFAULT_AUDIO_SINK@ 40%
-  easyeffects --service-mode &
-  ```
+### B. 4-Band Dual Mic Array Correction (`RTMICEQ0`)
+- **Band 1**: `1250 Hz`, `+3.00 dB`, `Q = 3.00` (vocal intelligibility boost)
+- **Band 2**: `2100 Hz`, `-2.00 dB`, `Q = 3.00` (nasal cavity attenuation)
+- **Band 3**: `3500 Hz`, `-3.00 dB`, `Q = 3.00` (bezel aperture resonance notch)
+- **Band 4**: `4000 Hz`, `-2.00 dB`, `Q = 3.00` (high-frequency glare reduction)
 
 ---
 
-## 6. JackHack96 Community Presets & Calf Range Gotchas
+## 3. Implementation: Native PipeWire `filter-chain` Drop-In
 
-- **IRS Convolver Directory**: Impulse responses for `Bass Enhancing + Perfect EQ` and `Dolby Atmos` must reside in `~/.local/share/easyeffects/irs/`.
-- **Parameter Range Validation Gotcha (`dry: -100.0`)**: In older community presets (like `Dolby Atmos.json`), `stereo_tools` or compressors may contain `dry: -100.0`. In EasyEffects 8.x with Calf LV2 plugins, values below `-80.0` fail parameter validation and cause EasyEffects to silently drop filter nodes from the PipeWire graph. Clamping `dry` to `-80.0` resolves the validation failure.
+Instead of running an external GUI or user-space daemon (like EasyEffects), the factory DSP is executed natively inside PipeWire using `libpipewire-module-filter-chain` with SPA builtin `param_eq`:
+- **Config Path**: `~/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` (managed in dotfiles under `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf`).
+- **Speaker Sink**: `surface_speaker_dsp` (`Audio/Sink`, `priority.session = 1015`), automatically established as default sink and routed directly to `alsa_output.pci-0000_00_1f.3.analog-stereo`.
+- **Microphone Source**: `surface_mic_dsp` (`Audio/Source`, `priority.session = 2015`), automatically established as default source and fed from `alsa_input.pci-0000_00_1f.3.analog-stereo`.
+- **Zero Daemon Overhead**: Consumes near-zero CPU, requires no background `easyeffects` process, and persists across sessions.
+
+---
+
+## 4. Verification & Diagnostics
+
+1. Check that both DSP filters are default:
+   ```bash
+   wpctl status
+   ```
+   Both `surface_speaker_dsp` and `surface_mic_dsp` should display under `Filters` with an asterisk (`*`).
+
+2. Check node interconnection in PipeWire graph:
+   ```bash
+   pw-link -l
+   ```
+   Verifies:
+   - `playback.surface_speaker_dsp` -> `alsa_output.pci-0000_00_1f.3.analog-stereo`
+   - `alsa_input.pci-0000_00_1f.3.analog-stereo` -> `capture.surface_mic_dsp`
+
+3. Headphone Behavior:
+   - Plugging in headphones switches the ALSA codec port to `analog-output-headphones`.
+   - If un-EQ'd audio is desired for external headphones or studio monitors, switch the output to `Built-in Audio Analog Stereo` directly via `wpctl set-default <id>` or through the desktop audio menu.

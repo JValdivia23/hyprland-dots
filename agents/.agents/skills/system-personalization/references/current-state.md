@@ -60,7 +60,8 @@ Live system snapshot automatically generated for multi-PC environment.
 | zen-browser-bin | 1.24b-1 | Primary Web Browser |
 | opencode | 2.2.5 | AI Coding CLI & Agent Platform |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |
-| easyeffects | 8.3.0-1.1 | Audio Processing Backend (`surface-book-hybrid` DSP preset active with AutoGain volume leveling) |
+| pipewire | 1.6.10-1.1 | Audio & Video Pipeline (Native Factory Audio DSP active via `50-surface-audio-dsp.conf`: `surface_speaker_dsp` & `surface_mic_dsp`) |
+| easyeffects | 8.3.0-1.1 | Audio Processing Backend (Retired on `surface`; replaced by zero-daemon native PipeWire filter-chain) |
 | lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
 | calf | 0.90.9-2.1 | LV2 Audio Plugins (Bass Enhancer / Virtual Bass, Stereo Tools) |
 | localsend | 1.17.0-4 | Local Network File Transfer |
