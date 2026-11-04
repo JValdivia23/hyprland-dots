@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+export NVIM_APPNAME=nvim-vscode
+export LAZYVIM_VSCODE_PRESET="${LAZYVIM_VSCODE_PRESET:-super}"
+case "${1:-}" in
+  --ctrl) export LAZYVIM_VSCODE_PRESET=ctrl; shift ;;
+  --super) export LAZYVIM_VSCODE_PRESET=super; shift ;;
+esac
+
+if [[ $# -eq 0 ]]; then
+  exec "${NVIM_BIN:-nvim}" -c VscodePlayground
+fi
+exec "${NVIM_BIN:-nvim}" "$@"

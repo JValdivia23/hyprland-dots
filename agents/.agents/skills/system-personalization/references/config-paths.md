@@ -81,6 +81,8 @@ hl.gesture({ fingers = <N>, direction = "<dir>", action = "<action>" })
 |------|---------|-----------|
 | `alacritty/alacritty.toml` | Alacritty terminal emulator profile | Patch TOML values. |
 | `kitty/kitty.conf` | Kitty terminal emulator configuration | Patch values; imports custom theme. |
+| `nvim/` | Default LazyVim + local lazyvim-vscode layer (`core/`, universal) | Plain `nvim` loads this config. Edit `lua/plugins/vscode.lua` for layer options and `lua/plugins/baseline.lua` for pins/tools, then restart. Ctrl preset initially; `nvim --clean` bypasses it. |
+| `nvim-vscode/` | Separate-data playground reusing `nvim/` (`core/`, universal) | Shared options live in `nvim/lua/plugins/vscode.lua`; launcher supports `--ctrl`/`--super`. Keep `nvim/` installed. |
 
 ---
 
@@ -108,6 +110,7 @@ Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-tray-drawer` | Minimized Window Tray Drawer Daemon & CLI | Manages minimized windows in `special:minimized` with full-bleed `64x64` dynamic SVG count-badge SNI icons and `noctalia dmenu` integration; supervised by `~/.config/systemd/user/hypr-tray-drawer.service`. |
 | `kitty-focus-opacity` | Terminal Focus Opacity Daemon | Modulates Kitty opacity between `0.60` (unfocused) and `0.75` (focused) via Hyprland IPC. |
 | `mac-key-helper` | macOS Text Navigation Helper | Dispatches context-aware line and word cursor navigation shortcuts. |
+| `nvim-vscode` | Isolated Neovim Evaluation Launcher | Sets `NVIM_APPNAME=nvim-vscode`; defaults to a disposable playground. `--ctrl`/`--super` choose the plugin preset. Source is `core/.local/bin/nvim-vscode`. |
 | `hypr-window-pop` | Window Pop-out & Pin Script | Triggered by `SUPER+O` to float, resize to 1100x700, center, and pin active window. |
 | `hypr-toggle-altwin` | Alt/Super Layout Toggle | Triggered by `SUPER+ALT+K` to toggle `kb_options` between Mac and PC layouts. |
 | `hypr-quicklook` | Quick Look File Preview | Triggered by `ALT+Return` to render instant floating previews via `swayimg`. |
@@ -115,6 +118,7 @@ Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-kbd-brightness` | Keyboard Backlight Control | Steps keyboard brightness (0-3) with visual OSD notification. |
 | `hypr-lid-handler` | Universal Clamshell DPMS Handler | Clamshell lid close/open handler managing DPMS power and power profiles. |
 | `fastfetch-custom` | Terminal Greeting Fetch Script | Renders two-column system specs and mini CachyOS logo in Fish. |
+| `zen-sync` | Encrypted Zen Browser Profile Sync | Symlinked to `~/zen-sync/zen-sync.sh` (`JValdivia23/zen-sync` private repo); backs up and restores Zen workspaces, tabs, logins (`key4.db`+`logins.json`), cookies, and extensions with GPG AES-256 encryption. |
 
 ---
 
