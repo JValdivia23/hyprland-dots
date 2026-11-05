@@ -228,7 +228,7 @@ helpers.bind(mainMod .. " + SHIFT + Z", "Redo",           hl.dsp.send_shortcut({
 helpers.bind(mainMod .. " + Return",         "Launch Kitty Terminal (New Window)", launchPrefix .. TERMINAL)
 helpers.bind(mainMod .. " + SHIFT + Return", "Launch or focus Ghostty Terminal",    helpers.launch_or_focus("ghostty", launchPrefix .. "ghostty"))
 helpers.bind(mainMod .. " + SHIFT + B",      "Launch or focus Zen Browser",         helpers.launch_or_focus("zen", launchPrefix .. "zen-browser"))
-helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus("dolphin", launchPrefix .. FILE_MANAGER))
+helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus("flea", launchPrefix .. FILE_MANAGER))
 helpers.bind(mainMod .. " + SHIFT + A",      "Launch or focus LazyGit",             helpers.launch_or_focus("lazygit", launchPrefix .. TERMINAL .. " --class lazygit -e lazygit"))
 helpers.bind(mainMod .. " + SHIFT + D",      "Launch or focus LazyDocker",          helpers.launch_or_focus("lazydocker", launchPrefix .. TERMINAL .. " --class lazydocker -e lazydocker"))
 helpers.bind(mainMod .. " + SHIFT + N",      "Launch or focus Notes (Neovim)",      helpers.launch_or_focus("notes", launchPrefix .. TERMINAL .. " --class notes -e nvim ~/Documents/Notes"))

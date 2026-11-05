@@ -89,6 +89,7 @@ local modalMatches = {
     { class = "^(.*dialog.*)$" },
     { title = "^(.*dialog.*)$" },
     { class = "^(hyprland-share-picker)$"},
+    { class = "^(com\\.thisisgm\\.flea\\.picker)$" },
 }
 for _, m in ipairs(modalMatches) do hl.window_rule({ match = m, float = true }) end
 

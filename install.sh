@@ -346,6 +346,17 @@ if [ "$DO_PACKAGES" = true ]; then
         fi
     fi
 
+    # 0. Core pre-install hooks (e.g. custom repository setup)
+    if [ -f "$DOTFILES_DIR/core/pre-install.sh" ]; then
+        echo "--> Running pre-install hook for core..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: bash $DOTFILES_DIR/core/pre-install.sh"
+        else
+            chmod +x "$DOTFILES_DIR/core/pre-install.sh"
+            bash "$DOTFILES_DIR/core/pre-install.sh"
+        fi
+    fi
+
     # 1. Profile pre-install hooks (e.g. custom repository setup)
     for p in "${STOWABLE_PROFILES[@]}"; do
         if [ -f "$DOTFILES_DIR/profiles/$p/pre-install.sh" ]; then
@@ -655,6 +666,16 @@ BASHRC_EOF
             echo "    [dry-run] Would execute: python3 $DOTFILES_DIR/core/.local/bin/hypr-autoscale --apply --profile \"$ACTIVE_PROFILES\""
         else
             python3 "$DOTFILES_DIR/core/.local/bin/hypr-autoscale" --apply --profile "$ACTIVE_PROFILES" || echo "    Notice: Could not auto-calibrate text size."
+        fi
+    fi
+
+    # 10. Configure Flea default file explorer & Noctalia integration
+    if command -v flea-cachyos-setup &>/dev/null; then
+        echo "--> Configuring Flea file manager & Noctalia theme integration..."
+        if [ "$DRY_RUN" = true ]; then
+            echo "    [dry-run] Would execute: flea-cachyos-setup on"
+        else
+            flea-cachyos-setup on 2>/dev/null || true
         fi
     fi
 

@@ -63,7 +63,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `Return` | `kitty` | **Multi-instance**: Always spawns a new terminal |
 | `SUPER` + `SHIFT` + `Return` | `ghostty` | Focuses active Ghostty or launches |
 | `SUPER` + `SHIFT` + `B` | `zen-browser` | Focuses active Zen Browser or launches |
-| `SUPER` + `SHIFT` + `F` | `dolphin` | Focuses active Dolphin File Manager or launches |
+| `SUPER` + `SHIFT` + `F` | `flea` | Focuses active Flea File Manager or launches |
 | `SUPER` + `SHIFT` + `A` | `lazygit` | Focuses active LazyGit TUI or launches |
 | `SUPER` + `SHIFT` + `D` | `lazydocker` | Focuses active LazyDocker TUI or launches |
 | `SUPER` + `SHIFT` + `N` | `nvim ~/Documents/Notes` | Focuses active Notes session or launches |

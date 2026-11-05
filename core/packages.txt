@@ -12,7 +12,7 @@ cantarell-fonts
 chrony
 cliamp-bin
 curl
-dolphin
+flea-cachyos
 fastfetch
 ffmpegthumbnailer
 fish

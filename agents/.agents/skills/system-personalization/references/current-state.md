@@ -56,7 +56,7 @@ Live system snapshot automatically generated for multi-PC environment.
 | btop | 1.4.7-1.1 | Process & System Monitor |
 | satty | 0.22.0-1.1 | Screenshot Annotation Editor |
 | swayimg | 5.7-1.1 | Image & Quick Look Viewer |
-| dolphin | 26.08.2-1.1 | File Manager |
+| flea-cachyos | 0.4.0 (r7657) | Fast GPU-accelerated (GPUI) File Manager & Picker (replaces dolphin) |
 | zen-browser-bin | 1.24b-1 | Primary Web Browser |
 | opencode | 2.2.5 | AI Coding CLI & Agent Platform |
 | firefox | 157.0.1-1.1 | Secondary Web Browser |

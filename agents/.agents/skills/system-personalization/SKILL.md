@@ -69,6 +69,7 @@ Complete documentation of this machine's configuration and personalization. This
 | ├── [`hyprland.md`](references/gotchas/hyprland.md) | Hyprland Lua syntax, IPC window dispatchers, modifier repetition, copy shortcut |
 | ├── [`wayland-noctalia.md`](references/gotchas/wayland-noctalia.md) | Noctalia messaging reload/restart, Satty screenshot piping, Quick Look |
 | ├── [`networking.md`](references/gotchas/networking.md) | LocalSend UFW firewall port rules (53317 TCP/UDP) |
+| ├── [`flea-file-explorer.md`](references/gotchas/flea-file-explorer.md) | Flea file explorer on CachyOS, Noctalia wallpaper palette syncing, and portal picker |
 | ├── [`terminal-ssh.md`](references/gotchas/terminal-ssh.md) | Kitty SSH terminfo export, `kitty -e` interactive password prompts |
 | ├── [`zen-browser.md`](references/gotchas/zen-browser.md) | Zen Browser keybindings, Linux modifier mappings & in-memory overwrite gotchas |
 | ├── [`opencode.md`](references/gotchas/opencode.md) | OpenCode TUI line navigation, TLS clock-drift recovery, packages keep-out |

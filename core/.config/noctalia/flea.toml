@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-only
+# flea-CachyOS: copy to ~/.config/noctalia/flea.toml (flea-cachyos-setup does it). Noctalia renders
+# Flea's palette from the active theme into the file Flea's window reads on Omarchy,
+# ~/.local/state/omarchy/current/theme/colors.toml (crates/flea-gui/src/palette.rs, src/theme/watch.rs).
+# Flea reads it under ~/.local/state whatever XDG_STATE_HOME says (Noctalia expands ~, not $HOME).
+# The hook rewrites theme.name, which Flea watches, so an open window recolours live. Nothing else of
+# Omarchy lives in that directory.
+[theme.templates.user.flea]
+input_path = "/usr/share/flea/noctalia/flea-colors.toml"
+pre_hook = "sh -c 'mkdir -p \"$HOME/.local/state/omarchy/current/theme\"'"
+output_path = "~/.local/state/omarchy/current/theme/colors.toml"
+post_hook = "sh -c 'date +%s > \"$HOME/.local/state/omarchy/current/theme.name\"'"

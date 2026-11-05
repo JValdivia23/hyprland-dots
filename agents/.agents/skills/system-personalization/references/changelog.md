@@ -2,6 +2,30 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
 
+## [2.87.0] - 2026-11-04
+### Installed & Configured: Migrated Default File Explorer to Flea (`flea-cachyos`, universal `core`)
+- **Package Installation (`flea-cachyos 0.4.0`)**:
+  - Added dedicated, signed pacman repository `[flea-cachyos]` (`https://github.com/gcap0n1/flea-CachyOS/releases/download/repo`) to `/etc/pacman.conf` and trusted maintainer GPG key (`324642F2730F085206D72AFE933E75887CEFE703`).
+  - Installed `flea-cachyos` (replacing `dolphin` cleanly in pacman while satisfying `cachyos-hypr-noctalia` dependencies via `provides = dolphin`).
+  - Ran `flea-cachyos-setup on` to configure user integration.
+- **Noctalia Theming Integration**:
+  - Configured `~/.config/noctalia/flea.toml` (`[theme.templates.user.flea]`), rendering Noctalia's active wallpaper palette directly into `~/.local/state/omarchy/current/theme/colors.toml`.
+  - Flea watches `theme.name` and hot-reloads colors live when the wallpaper or desktop theme switches.
+- **Universal Dotfiles Core Migration (`dotfiles/core`, universal)**:
+  - Replaced `dolphin` with `flea-cachyos` in [`core/packages.txt`](file:///home/java1127/dotfiles/core/packages.txt#L15).
+  - Added [`core/pre-install.sh`](file:///home/java1127/dotfiles/core/pre-install.sh) and updated [`install.sh`](file:///home/java1127/dotfiles/install.sh#L349) to automatically configure the signed `[flea-cachyos]` pacman repository on fresh machines.
+  - Tracked [`core/.config/noctalia/flea.toml`](file:///home/java1127/dotfiles/core/.config/noctalia/flea.toml), [`core/.config/xdg-desktop-portal/portals.conf`](file:///home/java1127/dotfiles/core/.config/xdg-desktop-portal/portals.conf), and [`core/.config/flea/language`](file:///home/java1127/dotfiles/core/.config/flea/language) in `core`, deployed via GNU Stow with zero conflicts.
+  - Added post-install execution hook in [`install.sh`](file:///home/java1127/dotfiles/install.sh#L663) (`flea-cachyos-setup on`).
+- **Hyprland Modular Lua Integration (`dotfiles/core`)**:
+  - Updated [`core/.config/hypr/config/variables.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/variables.lua#L4): Changed `FILE_MANAGER = "dolphin"` to `FILE_MANAGER = "flea"`.
+  - Updated [`core/.config/hypr/config/binds.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/binds.lua#L231): Changed `helpers.launch_or_focus("dolphin", ...)` to `helpers.launch_or_focus("flea", ...)`. Shortcut `SUPER + SHIFT + F` now focuses or launches Flea.
+  - Updated [`core/.config/hypr/config/windowrules.lua`](file:///home/java1127/dotfiles/core/.config/hypr/config/windowrules.lua#L92): Added `{ class = "^(com\\.thisisgm\\.flea\\.picker)$" }` to `modalMatches` so portal Open/Save dialogs float centered automatically.
+  - Live reloaded compositor via `hyprctl reload`; zero config errors confirmed via `hyprctl configerrors`.
+- **System MIME & Portal Defaults**:
+  - Configured `xdg-mime default com.thisisgm.flea.desktop inode/directory`.
+  - Configured `~/.config/xdg-desktop-portal/portals.conf` to route `org.freedesktop.impl.portal.FileChooser` to Flea.
+  - Documented complete architecture in [`references/gotchas/flea-file-explorer.md`](references/gotchas/flea-file-explorer.md).
+
 ## [2.86.4] - 2026-11-04
 ### Fixed & Hardened
 - **Trackpad Edge Controls & Noctalia OSD Integration (`profiles/macbook-t2/`, device-specific)**:
@@ -75,6 +99,7 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Documented in [`profiles/macbook-t2/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/profiles/macbook-t2/gotchas/apple-t2.md) §14.
 
 ## [2026-11-03] - MacBookPro15,1 GPU Research Workspace
+- **2026-11-04 isolated KUnit plumbing smoke:** the separately approved pristine-source x86-64 guest built in 315 s with one nice-19 job and a single-threaded linker, then ran once under KVM with 1 vCPU/1 GiB RAM, serial only and no disks/network/passthrough. Upstream example suites reported 19 passed and 5 intentionally skipped (no failures); original source/config/object/image/Git HEAD/index hashes and the host release stayed unchanged. This proves only the guest-testing setup, not fbcon, GPU power management, physical scanout, or a Mac console fix. No host kernel installation, native reboot or live graphics change occurred; see the research project's `docs/kunit-guest-smoke.md` and `provenance/kunit-smoke-20261104.json`.
 - **2026-11-04 guest-test prerequisites (research-local):** with explicit user approval installed general developer tooling `qemu-system-x86` `11.1.3-1` and dependencies (17 packages total) on `cachyos-cu` for the independent research project. Verified the emulator and its pinned KUnit runner's `/usr/share/qemu/qboot.rom`; KVM permissions were checked without opening the device. No guest, kernel build, GPU test, manual boot-entry edit, or shared `core/`/profile package-manifest change occurred. Stock/recovery kernel package versions remain `7.3.1-1` / `6.18.55-2`. Normal package hooks created dependency accounts/groups and Snapper pre/post snapshots; guest BIOS files were installed, not flashed to the Mac. See the research project's `provenance/qemu-readiness-20261104.json` for hashes and scope.
 - **Offline VT/removal review:** the research project prepared review-only console-transfer proposal 0005, with real VT/fbcon function-body fixtures and one copied-source fbcon-object compile. It is blocked: a registered replacement may already be DRM-unplugged. A one-line VT error-return draft (0004) was rejected after a modeled fresh-startup cleanup regression. Manual-unbind and failure controls are documented in `docs/console-removal-review.md`; this is not a hardware fix or an installable approved stack. Original build source/config/object/image hashes and all live boot/driver/power settings were left unchanged.
 - **Static console follow-up:** `/home/java1127/dev/mbp151-hybrid-graphics/docs/console-source-audit.md` records a conditional fbcon-unbind reproduction using nine unchanged Linux functions, plus a cached stock snapshot with i915 registered and framebuffer console unbound. This is a stronger console lead, not a validated hardware fix. Firmware framebuffer memory matches AMD BAR0; the earlier neither-GPU claim was wrong. NO_KIQ still passes through the AMD GMUX-off guard, correcting another earlier audit/model claim. Craft's callback graph was cross-checked against LLVM relocations. No live configuration, firmware export, VT switch, or GPU test occurred in this follow-up.
