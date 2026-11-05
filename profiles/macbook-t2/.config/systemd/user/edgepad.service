@@ -1,13 +1,14 @@
 [Unit]
 Description=edgepad touchpad edge gesture daemon
 Documentation=https://github.com/assembledev/edgepad
+PartOf=graphical-session.target
 After=graphical-session.target
 
 [Service]
 Type=notify
 NotifyAccess=main
 TimeoutStartSec=45s
-ExecStart=%h/.local/bin/edgepad daemon --config %h/.config/edgepad/edgepad.toml
+ExecStart=/bin/sh -c 'if [ -z "$$WAYLAND_DISPLAY" ]; then export WAYLAND_DISPLAY=$$(ls -1 /run/user/$$(id -u)/wayland-* 2>/dev/null | head -n1 | xargs -r basename); fi; exec %h/.local/bin/edgepad daemon --config %h/.config/edgepad/edgepad.toml'
 ExecReload=kill -HUP $MAINPID
 Restart=on-failure
 RestartSec=2s
@@ -16,4 +17,4 @@ StartLimitBurst=10
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 
 [Install]
-WantedBy=default.target
+WantedBy=graphical-session.target

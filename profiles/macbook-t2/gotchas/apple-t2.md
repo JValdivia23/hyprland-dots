@@ -222,6 +222,12 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 
 ## 12. Dual-GPU Management & Integrated GPU Boot (`apple-gmux` & KAIT2EN `t2-dgpu-control`)
 
+> **Offline review checkpoint:** research proposal 0005 transfers an actually bound fbcon before framebuffer removal and has copied-source fixture/object checks only. It is blocked because a still-registered replacement may already be DRM-unplugged. Draft 0004's simple VT error return was rejected because it loses modeled startup cleanup after a fresh registration/bind failure. Neither a return value nor checkpatch's submission boilerplate proves safe console recovery. No new proposal was installed or booted; see the research project's `docs/console-removal-review.md` for remaining blockers.
+
+> **Static research follow-up:** On the working stock desktop, cached state shows `i915drmfb` registered, dummy console bound, and framebuffer console unbound. Offline tests of nine unchanged Linux fbcon functions reproduce that conditional bookkeeping outcome. The firmware framebuffer lies in AMD BAR0 even when GMUX routes the panel to Intel; forcing default VGA to Intel does not by itself guarantee framebuffer-console primary selection. This remains a console lead, not a tested repair or proof of the failed boot's mappings. See the research project's `docs/console-source-audit.md`. No live binding, boot, firmware, or GPU-power change was made.
+
+> **Research status update, 2026-11-03:** The independent project later installed a distinct, explicitly approved test kernel and observed one controlled idle/wake/idle cycle, not production reliability. Console boots are now repeatedly black. Plymouth-off took effect, but `initcall_blacklist=simpledrm_platform_driver_init` did not disable simpledrm: this ThinLTO build calls a generated initstub. A parsed blacklist message is not proof of a skipped initcall. No console root cause or workaround is established; do not repeat the old bypass or further wake tests. Current recovery is stock; this read-only follow-up made no live configuration change. See `/home/java1127/dev/mbp151-hybrid-graphics/docs/console-boot-diagnosis.md`; the uninstalled-only research notes below describe an earlier stage.
+
 > **Live state / correction, 2026-11-02:** Booting the rEFInd `CachyOS Native Hybrid` entry through the Linux EFI stub exposes both GPUs on this Mac; the existing rEFInd spoof option followed by Limine's Linux protocol did not. Intel drives the internal panel, and `dgpu-run glxinfo -B` selects AMD using Mesa's `DRI_PRIME=pci-0000_01_00_0`. The connected Intel panel appeared as `eDP-1` on one boot and `eDP-2` on another; use `/dev/dri/by-path` and sysfs device links rather than assuming fixed DRM card/connector numbers. Vulkan applications see AMD first but may select a different device themselves. i915 logs `Failed to find VBIOS tables`; despite that warning, the internal panel and accelerated Intel OpenGL were observed working.
 >
 > **The dGPU is not dynamically sleeping yet.** With the stock CachyOS `7.3.1-1` kernel, `amdgpu` logs `Runtime PM not available`, the Radeon remains `D0`/`active`, and its `power/control` is `on`. The previously enabled forced-OFF service is now disabled so AMD stays available for PRIME. The active manual `POWER_SAVING` profile lowers clocks but is not D3cold. The [MacBookPro15,1 GMUX/AMDGPU/ALSA patch series](https://patchew.org/linux/20260812122206.193680-1-dev@deq.rocks/) targets automatic wake/suspend but has not been installed or validated here. Do not assume forcing `power/control=auto` supplies the missing driver support.
@@ -277,9 +283,13 @@ Curated hardware quirks, services, and diagnostic procedures for Apple MacBook P
 - **Restart & Finger Contact Gotcha**:
   - `edgepad daemon` checks for active finger contacts on launch. If the service is restarted while a finger is actively resting on the trackpad, it aborts with `touchpad is already touched on /dev/input/event7; release all fingers and retry live proxy` to prevent corrupting pointer coordinate state.
   - Mitigated by configuring `RestartSec=2s`, `StartLimitIntervalSec=30s`, `StartLimitBurst=10` in `edgepad.service`, and using `systemctl --user reload edgepad.service` (SIGHUP) for zero-downtime configuration updates without releasing the device grab.
+- **Wayland Environment & Service Target Gotcha**:
+  - `edgepad.service` must be hooked to `graphical-session.target` (`PartOf=graphical-session.target`, `After=graphical-session.target`, `WantedBy=graphical-session.target`), **not** `default.target`.
+  - When installed to `default.target`, systemd starts `edgepad` during initial login before Wayland/Hyprland has initialized and imported `WAYLAND_DISPLAY` into the user systemd environment.
+  - Without `WAYLAND_DISPLAY`, commands like `noctalia msg volume-up` fail with `error: noctalia is not running` because the Noctalia CLI cannot locate `/run/user/$UID/noctalia-wayland-*.sock`.
+  - In addition to proper target ordering, `edgepad.service` and helper scripts like `hypr-screen-brightness` include a runtime fallback check to auto-detect `WAYLAND_DISPLAY` from `/run/user/$UID/wayland-*` if unset.
 - **Hyprland Input Tuning**:
   - `drag_3fg = 0` configured in `profiles/macbook-t2/.config/hypr/config/profile/inputs.lua` so 3-finger workspace and fullscreen gestures respond immediately without drag delay.
 - **Diagnostics & Health**:
   - Check daemon and hardware binding: `edgepad doctor`
   - Check service status: `systemctl --user status edgepad.service`
-
