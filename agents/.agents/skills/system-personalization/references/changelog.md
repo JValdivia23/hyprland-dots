@@ -16,6 +16,47 @@ A dated log of all package changes, configurations, script modifications, and ha
 
 ## [2.86.3] - 2026-11-04
 ### Configured: Increased Window Groupbar Title Font & Bar Height (`core`, universal)
+- Diagnosed small, difficult-to-read window group tab titles: default unconfigured Hyprland `group:groupbar:font_size` was `8` and `height` was `14`. On high-DPI displays (Surface Book 3 @ scale 2 and MacBook Pro @ scale 1.6), this resulted in tiny 8pt font inside narrow 14px bars.
+- Updated `dotfiles/core/.config/hypr/config/decorations.lua` under `group.groupbar`:
+  - Set `font_size = 11` (comfortably readable title text).
+  - Set `height = 20` (proportional bar height preventing text clipping).
+- Universal scope: affects all profiles via core Hyprland decorations configuration.
+- Reloaded live via `hyprctl reload`; verified clean diagnostics via `hyprctl configerrors`.
+
+## [2.86.2] - 2026-11-03
+### Fixed: Eliminated Audio Noise Clutter, Treble Hiss & Pre-DAC `S32LE` Clipping (`profiles/surface`, device-specific)
+- Diagnosed root causes of audio noise clutter, high-frequency hiss, and mid-bass distortion:
+  - **Pre-DAC `S32LE` Digital Clipping**: Because `alsa_output.pci-0000_00_1f.3.analog-stereo` uses the Realtek ALC274 hardware `Master` mixer for volume control, PipeWire keeps `softVolumes = [1.0, 1.0]` (`0 dBFS`) and attenuates analog volume *after* `F32P -> S32LE` integer conversion. Adjacent biquad skirt stacking (`141 Hz +10.50 dB`, `234 Hz +11.00 dB`, `328 Hz +5.69 dB`) produced a `+15.86 dB` peak (`+14.36 dBFS` after `-1.5 dB` preamp), hard-clipping integer PCM before hardware attenuation.
+  - **Missing Dolby `ieq_balanced` Treble Roll-Off & Regulator Clamping**: In `DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml`, `<audio-optimizer-bands>` is paired with `<ieq_balanced>` (`-10.62 dB @ 11.25 kHz`, `-17.62 dB @ 13.875 kHz`) and `<regulator-tuning>` (`threshold_high = -16.6 dB / -12.5 dB` at `141–234 Hz`). Applying raw `+8.50 dB @ 11.25 kHz` and `+11.31 dB @ 13.875 kHz` amplified background hiss and vocal sibilance by `3.4x`.
+- Updated `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` and `profiles/surface/gotchas/audio-dsp.md`:
+  - Applied the de-overlapped `Optimizer + ieq_balanced` + regulator-clamped 20-band curve (`141–234 Hz` combined peak `+5.5 dB`, full `-8.69 dB @ 844 Hz` and `-4.12 dB @ 656 Hz` magnesium cavity resonance notches preserved, `11.25–13.88 kHz` contoured to `+1.0 dB / 0.0 dB`).
+  - Set preamp headroom to `-5.5 dB` so maximum net transfer gain across `20 Hz – 20 kHz` is strictly `<= 0.00 dBFS` (`-0.02 dB`), guaranteeing zero `S32LE` digital clipping at any volume.
+
+## [2.86.1] - 2026-11-03
+### Fixed: Resolved Low Volume via WirePlumber 0.5 Smart Filter (`profiles/surface`, device-specific)
+- Diagnosed root causes for low volume output at 100% on Surface Book 3:
+  - Hardware ALSA sink (`alsa_output.pci-0000_00_1f.3.analog-stereo`) was decoupled from virtual sink volume and clamped at `0.45` (45%).
+  - Realtek ALC274 hardware DAC master mixer was clamped at `60 [69%] [-20.25dB]`.
+  - Filter graph high-shelf preamp had excessive digital attenuation (`-6.0 dB`), compounding to `-26.25 dB` overall reduction.
+- Upgraded `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf` to a native **WirePlumber 0.5 Smart Filter**:
+  - Configured `filter.smart = true` and `filter.smart.target = "{ \"node.name\": \"alsa_output.pci-0000_00_1f.3.analog-stereo\" }"`.
+  - The physical ALSA device remains `@DEFAULT_AUDIO_SINK@`, unifying hardware volume control with desktop volume sliders and keys (0–100% full scale, 0.00 dB DAC gain).
+  - Audio streams playing to laptop speakers automatically route through the 20-band Dolby Atmos factory EQ curve; 3.5mm headphone jack automatically bypasses the speaker DSP.
+  - Adjusted preamp high-shelf from `-6.0 dB` to `-1.5 dB` (matching Windows' factory `volmax-boost` curve).
+  - Initial volume safely leveled at 40% (`wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.40`) to prevent sudden blasting.
+
+## [2.86.0] - 2026-11-03
+### Added: Native PipeWire Factory Audio DSP (`ViaolaE` / `ALC274`) Replacing EasyEffects (`profiles/surface`, device-specific)
+- Reverse-engineered official Microsoft Windows 11 audio driver package (`SurfaceBook3_Win11_22621_25.013.34389.0.msi`) for `VEN_10EC&DEV_0274&SUBSYS_10EC11F0` (Surface Book 3 13.5", codename **`ViaolaE`**):
+  - **Speaker Factory Optimizer Curve**: Extracted 20-band inverse EQ from `dax3extdolbyatmos_13/DEV_0274_SUBSYS_10EC11F0_PCI_SUBSYS_72708086.xml` (`47 Hz` to `19.7 kHz`, discovering the massive `-8.69 dB` magnesium/glass cavity resonance notch at `844 Hz` and `-4.12 dB` at `656 Hz`, as well as `+10.5 dB @ 141 Hz`, `+11.0 dB @ 234 Hz`, and `+11.3 dB @ 13.9 kHz` bezel-slot treble compensation).
+  - **Microphone Array Calibration EQ**: Extracted 4-band parametric EQ (`RTMICEQ0` in `hdxsstmd3a/RTAIODAT.DAT` offset `0x024506`) removing bezel aperture resonances (`1250 Hz +3dB`, `2100 Hz -2dB`, `3500 Hz -3dB`, `4000 Hz -2dB`, all `Q = 3.0`).
+- Implemented native zero-overhead PipeWire filter-chain drop-in at `profiles/surface/.config/pipewire/pipewire.conf.d/50-surface-audio-dsp.conf`:
+  - `surface_speaker_dsp` (`Audio/Sink`, `priority.session = 1015` default sink): 85 Hz Butterworth high-pass transducer protection + -6.0 dB headroom attenuation + exact 20-band factory Dolby Atmos curve, outputting to `alsa_output.pci-0000_00_1f.3.analog-stereo`.
+  - `surface_mic_dsp` (`Audio/Source`, `priority.session = 2015` default source): 4-band `RTMICEQ0` dual-mic correction, fed from `alsa_input.pci-0000_00_1f.3.analog-stereo`.
+- Retired EasyEffects background daemon:
+  - Removed `easyeffects --service-mode` from `profiles/surface/.config/hypr/config/profile/autostart.lua`.
+  - Commented out `easyeffects` in `profiles/surface/packages.txt`.
+  - Documented complete reverse-engineering and diagnostics in `profiles/surface/gotchas/audio-dsp.md`.
 
 ## [2.85.0] - 2026-11-03
 ### Added & Configured
@@ -34,6 +75,7 @@ A dated log of all package changes, configurations, script modifications, and ha
   - Documented in [`profiles/macbook-t2/gotchas/apple-t2.md`](file:///home/java1127/dotfiles/profiles/macbook-t2/gotchas/apple-t2.md) §14.
 
 ## [2026-11-03] - MacBookPro15,1 GPU Research Workspace
+- **2026-11-04 guest-test prerequisites (research-local):** with explicit user approval installed general developer tooling `qemu-system-x86` `11.1.3-1` and dependencies (17 packages total) on `cachyos-cu` for the independent research project. Verified the emulator and its pinned KUnit runner's `/usr/share/qemu/qboot.rom`; KVM permissions were checked without opening the device. No guest, kernel build, GPU test, manual boot-entry edit, or shared `core/`/profile package-manifest change occurred. Stock/recovery kernel package versions remain `7.3.1-1` / `6.18.55-2`. Normal package hooks created dependency accounts/groups and Snapper pre/post snapshots; guest BIOS files were installed, not flashed to the Mac. See the research project's `provenance/qemu-readiness-20261104.json` for hashes and scope.
 - **Offline VT/removal review:** the research project prepared review-only console-transfer proposal 0005, with real VT/fbcon function-body fixtures and one copied-source fbcon-object compile. It is blocked: a registered replacement may already be DRM-unplugged. A one-line VT error-return draft (0004) was rejected after a modeled fresh-startup cleanup regression. Manual-unbind and failure controls are documented in `docs/console-removal-review.md`; this is not a hardware fix or an installable approved stack. Original build source/config/object/image hashes and all live boot/driver/power settings were left unchanged.
 - **Static console follow-up:** `/home/java1127/dev/mbp151-hybrid-graphics/docs/console-source-audit.md` records a conditional fbcon-unbind reproduction using nine unchanged Linux functions, plus a cached stock snapshot with i915 registered and framebuffer console unbound. This is a stronger console lead, not a validated hardware fix. Firmware framebuffer memory matches AMD BAR0; the earlier neither-GPU claim was wrong. NO_KIQ still passes through the AMD GMUX-off guard, correcting another earlier audit/model claim. Craft's callback graph was cross-checked against LLVM relocations. No live configuration, firmware export, VT switch, or GPU test occurred in this follow-up.
 - **Later research status:** separate user approval covered installation/boot of `7.3.1-mbp151test-g36ae4c219cfb-dirty`, an inert PRIME smoke test, and one controlled `D3cold` → `D0` → `D3cold` cycle. Repeated console boots now go black; further GPU tests are paused. Read-only follow-up verified that Plymouth was disabled but the plain-name simpledrm blacklist did not bypass this ThinLTO build's generated initstub. The console cause remains unresolved; the old helper now refuses the ineffective bypass. This follow-up changed no live boot/driver/power configuration. See `/home/java1127/dev/mbp151-hybrid-graphics/docs/console-boot-diagnosis.md`; earlier uninstalled-only descriptions below are historical.

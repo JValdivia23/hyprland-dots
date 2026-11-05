@@ -224,7 +224,7 @@ fi
 if command -v systemctl &>/dev/null && [ -f "$HOME/.config/systemd/user/edgepad.service" ]; then
     echo "    [EdgePad] Enabling and starting edgepad user service..."
     systemctl --user daemon-reload 2>/dev/null || true
-    systemctl --user enable --now edgepad.service 2>/dev/null || true
+    systemctl --user reenable --now edgepad.service 2>/dev/null || true
 fi
 
 echo "==> Apple MacBook Pro setup finished."
