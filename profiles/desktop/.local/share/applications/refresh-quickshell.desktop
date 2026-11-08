@@ -1,0 +1,8 @@
+[Desktop Entry]
+Name=Refresh Quickshell
+Comment=Kill and restart Quickshell to rescan apps
+Exec=sh -c "pkill -9 qs; rm -rf /run/user/1000/quickshell; qs -n -d -c palette-only"
+Icon=/usr/share/icons/Adwaita/symbolic/actions/view-refresh-symbolic.svg
+Type=Application
+Terminal=false
+Categories=System;

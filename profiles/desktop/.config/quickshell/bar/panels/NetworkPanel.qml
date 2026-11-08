@@ -1,0 +1,750 @@
+import QtQuick
+import "../modules"
+import Quickshell
+import Quickshell.Io
+import Quickshell.Wayland
+
+PanelWindow {
+    id: netPanel
+    required property var root
+
+    color: "transparent"
+    anchors { top: true; bottom: true; left: true; right: true }
+    exclusionMode: ExclusionMode.Ignore
+    WlrLayershell.layer: WlrLayer.Overlay
+    WlrLayershell.namespace: "omarchy-network"
+
+    readonly property int barBottom: 35
+    readonly property int gap: 8
+
+    property string mode:  "none"   // wifi | ethernet | none
+    property string ssid:  ""
+    property int    signal: 0
+    property string iface: ""
+    property string ipAddr: ""
+    property string freq:  ""
+
+    property string wdev:   ""      // wifi device name (e.g. wlan0)
+    property bool   hasWifi: false
+    property bool   scanning: false
+    property var    networks: []    // [{conn, ssid, sec, sig}]
+    property var    known:   []     // known ssids
+
+    // ── wifi radio ──
+    property bool   wifiBlocked: false
+
+    // ── link speed (negotiated connection rate) ──
+    property string linkSpeed:   ""
+
+    function flagForCountry(code) {
+        var value = (code || "").toUpperCase()
+        if (!/^[A-Z]{2}$/.test(value)) return ""
+        return String.fromCharCode(
+            0xD83C, 0xDDE6 + value.charCodeAt(0) - 65,
+            0xD83C, 0xDDE6 + value.charCodeAt(1) - 65)
+    }
+
+    function formatMbps(value) {
+        if (!(value > 0)) return "—"
+        return (value >= 100 ? value.toFixed(0) : value.toFixed(1)) + " Mbps"
+    }
+
+    function formatPing(value) {
+        if (!(value > 0)) return "—"
+        return (value < 10 ? value.toFixed(1) : value.toFixed(0)) + " ms"
+    }
+
+    function edgeText() {
+        if (speedTest.phase === "idle" || speedTest.phase === "cancelled") return "Not tested"
+        if (speedTest.phase === "offline") return "Offline"
+        if (speedTest.phase === "error" || speedTest.phase === "timeout") return "Unavailable"
+        if (speedTest.phase === "latency") return "Locating…"
+        var edge = speedTest.edgeCode !== "" ? "Cloudflare · " + speedTest.edgeCode : "Cloudflare Edge"
+        var flag = flagForCountry(speedTest.countryCode)
+        return edge + (flag !== "" ? " " + flag : "")
+    }
+
+    // timestamp captured when a run completes — shown in the green "done" footer
+    property string lastTestStamp: ""
+
+    CloudflareSpeedTest {
+        id: speedTest
+        // live, 2 s-polled source (NetworkWidget → root.networkMode mirror) so a mid-test
+        // disconnect flips online→false at once and onOnlineChanged shows "Offline",
+        // instead of surfacing later as an XHR error/timeout. netPanel.mode (open-only) stays
+        // the source for the panel's detail rows.
+        online: root.networkMode !== "none"
+    }
+
+    Connections {
+        target: speedTest
+        function onPhaseChanged() {
+            if (speedTest.phase === "success")
+                netPanel.lastTestStamp = new Date().toLocaleString(Qt.locale("en_US"), "HH:mm · d MMM")
+        }
+    }
+
+    // ✓ marks show only on a healthy run (in progress or finished ok) — never on error/cancel/offline
+    readonly property bool speedRunOk: speedTest.running || speedTest.phase === "success"
+
+    function toggleWifi() {
+        var wasBlocked = netPanel.wifiBlocked
+        rfkillToggle.command = ["bash", "-c", wasBlocked ? "rfkill unblock wifi" : "rfkill block wifi"]
+        rfkillToggle.running = false; rfkillToggle.running = true
+        netPanel.wifiBlocked = !wasBlocked      // optimistic; rfkillState corrects
+        Qt.callLater(function() {
+            rfkillState.running = false; rfkillState.running = true
+            netData.running = false; netData.running = true
+            if (wasBlocked) netPanel.scan()     // just turned ON → look for networks
+        })
+    }
+
+    function scan() {
+        if (scanning || wifiBlocked || root.useNM) return   // NM: no iwctl scan
+        scanning = true
+        scanProc.running = false
+        scanProc.running = true
+        scanWatchdog.restart()        // never stay stuck in "scanning"
+    }
+
+    function connectTo(ssid, sec) {
+        var isKnown = known.indexOf(ssid) >= 0
+        if (sec === "open" || isKnown) {
+            if (!netPanel.wdev) return
+            // argv form (no shell) → a crafted SSID cannot inject commands
+            connectProc.command = ["iwctl", "station", netPanel.wdev, "connect", ssid]
+            connectProc.running = false
+            connectProc.running = true
+            // re-scan shortly to reflect new connection
+            rescanTimer.restart()
+        } else {
+            // unknown secured network — needs passphrase → open impala
+            root.networkVisible = false
+            wifiRunner.running = false
+            wifiRunner.running = true
+        }
+    }
+
+    property real reveal: root.networkVisible ? 1 : 0
+    Behavior on reveal {
+        NumberAnimation {
+            duration: root.networkVisible ? 160 : 120
+            easing.type: root.networkVisible ? Easing.OutCubic : Easing.InCubic
+        }
+    }
+    visible: reveal > 0.001
+    WlrLayershell.keyboardFocus: root.networkVisible ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
+
+    MouseArea { anchors.fill: parent; onClicked: root.networkVisible = false }
+
+    Rectangle {
+        id: card
+        width: 300
+        height: col.implicitHeight + 24
+        radius: reveal > 0.001 ? root.pillRadius : 0
+        color: root.bg
+        border.color: root.pillBorder
+        border.width: root.pillBorderW
+        PillShadow { theme: root }
+
+        x: Math.round(Math.max(6, Math.min(root.networkBarX - width / 2, parent.width - width - 6)))
+        y: root.barPosition === "bottom" ? (parent.height - barBottom - gap - height) : (barBottom + gap)
+        opacity: netPanel.reveal
+        focus: root.networkVisible
+
+        Keys.onPressed: function(event) {
+            if (event.key === Qt.Key_Escape) { root.networkVisible = false; event.accepted = true }
+        }
+
+        MouseArea { anchors.fill: parent; onClicked: {} }
+
+        Column {
+            id: col
+            anchors.fill: parent
+            anchors.margins: 12
+            spacing: 8
+
+            // ── header ──
+            Item {
+                width: parent.width
+                height: 24
+                UiText {
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                    text: "Network"
+                    color: root.ink; font.family: root.mono; font.pixelSize: 13
+                    font.letterSpacing: 2; font.weight: Font.Medium
+                }
+                UiText {
+                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                    text: "✕"; color: closeMa.containsMouse ? root.seal : root.sumi; font.pixelSize: 12
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    MouseArea { id: closeMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: root.networkVisible = false }
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.sep }
+
+            // ── status ──
+            Item {
+                width: parent.width
+                height: 30
+                UiText {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.top: parent.top
+                    text: {
+                        if (netPanel.mode === "wifi")     return netPanel.signal + "%"
+                        if (netPanel.mode === "ethernet") return "Connected"
+                        return "Offline"
+                    }
+                    color: netPanel.mode === "none" ? root.sumi : root.seal
+                    font.family: root.mono; font.pixelSize: 11; font.weight: Font.Medium
+                }
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    width: parent.width; height: 8; radius: 4
+                    color: root.fillActive
+                    Rectangle {
+                        width: parent.width * (netPanel.mode === "wifi" ? netPanel.signal / 100 : (netPanel.mode === "ethernet" ? 1 : 0))
+                        height: parent.height; radius: 4; color: root.seal
+                        Behavior on width { NumberAnimation { duration: 300 } }
+                    }
+                }
+            }
+
+            // ── details ──
+            Column {
+                width: parent.width
+                spacing: 4
+                Row {
+                    width: parent.width
+                    visible: netPanel.mode === "wifi"
+                    UiText { text: "SSID"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.ssid; color: root.ink; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.6; elide: Text.ElideRight }
+                }
+                Row {
+                    width: parent.width
+                    UiText { text: "Type"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText {
+                        text: netPanel.mode === "wifi" ? "Wi-Fi" : (netPanel.mode === "ethernet" ? "Ethernet" : "—")
+                        color: root.ink; font.family: root.mono; font.pixelSize: 11
+                    }
+                }
+                Row {
+                    width: parent.width
+                    visible: netPanel.iface !== ""
+                    UiText { text: "Interface"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.iface; color: root.ink; font.family: root.mono; font.pixelSize: 11 }
+                }
+                Row {
+                    width: parent.width
+                    visible: netPanel.ipAddr !== ""
+                    UiText { text: "IP"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.ipAddr; color: root.ink; font.family: root.mono; font.pixelSize: 11 }
+                }
+                Row {
+                    width: parent.width
+                    visible: netPanel.mode === "wifi" && netPanel.freq !== ""
+                    UiText { text: "Frequency"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.freq; color: root.ink; font.family: root.mono; font.pixelSize: 11 }
+                }
+                Row {
+                    width: parent.width
+                    visible: netPanel.linkSpeed !== ""
+                    UiText { text: "Link speed"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.linkSpeed; color: root.ink; font.family: root.mono; font.pixelSize: 11 }
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.sep }
+
+            Column {
+                width: parent.width
+                spacing: 4
+
+                Item {
+                    width: parent.width
+                    height: 24
+
+                    UiText {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "SPEED TEST"
+                        color: root.sumiHi
+                        font.family: root.mono
+                        font.pixelSize: 10
+                        font.letterSpacing: 1
+                    }
+
+                    // action: a real button in the panel's hover idiom (network-row style)
+                    Rectangle {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: 54
+                        height: 22
+                        radius: root.tileRadius
+                        color: speedTestMa.containsMouse ? root.fillHover : root.fillIdle
+                        border.color: speedTestMa.containsMouse ? root.seal : root.sep
+                        border.width: 1
+                        Behavior on color { ColorAnimation { duration: 120 } }
+
+                        UiText {
+                            anchors.centerIn: parent
+                            text: speedTest.running ? "stop" : "start"
+                            color: speedTestMa.enabled ? root.seal : root.sumi
+                            font.family: root.mono
+                            font.pixelSize: 11
+                        }
+
+                        MouseArea {
+                            id: speedTestMa
+                            anchors.fill: parent
+                            enabled: speedTest.running || netPanel.mode !== "none"
+                            hoverEnabled: true
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                            onClicked: speedTest.running ? speedTest.cancel() : speedTest.start()
+                        }
+                    }
+                }
+
+                Row {
+                    width: parent.width
+                    UiText { text: "Edge"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.4 }
+                    UiText { text: netPanel.edgeText(); color: root.ink; font.family: root.mono; font.pixelSize: 11; width: parent.width * 0.6; elide: Text.ElideRight }
+                }
+                Item {
+                    width: parent.width; height: 16
+                    UiText {
+                        id: pingLabel
+                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                        text: "Ping"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11
+                        width: parent.width * 0.4
+                    }
+                    UiText {
+                        anchors.left: pingLabel.right; anchors.right: pingCheck.left; anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: speedTest.phase === "latency" ? "Testing…" : (netPanel.speedRunOk ? netPanel.formatPing(speedTest.pingMs) : "—")
+                        color: root.ink; font.family: root.mono; font.pixelSize: 11; elide: Text.ElideRight
+                    }
+                    UiText {
+                        id: pingCheck
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        text: "✓"; visible: speedTest.pingMs > 0 && netPanel.speedRunOk
+                        color: root.green; font.family: root.mono; font.pixelSize: 11
+                    }
+                }
+                Item {
+                    width: parent.width; height: 16
+                    UiText {
+                        id: dlLabel
+                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                        text: "Download"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11
+                        width: parent.width * 0.4
+                    }
+                    UiText {
+                        anchors.left: dlLabel.right; anchors.right: dlCheck.left; anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: speedTest.phase === "download" ? "Testing…" : (netPanel.speedRunOk ? netPanel.formatMbps(speedTest.downloadMbps) : "—")
+                        color: (speedTest.downloadMbps > 0 && netPanel.speedRunOk) ? root.seal : root.ink
+                        font.family: root.mono; font.pixelSize: 11; elide: Text.ElideRight
+                    }
+                    UiText {
+                        id: dlCheck
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        text: "✓"; visible: speedTest.downloadMbps > 0 && netPanel.speedRunOk
+                        color: root.green; font.family: root.mono; font.pixelSize: 11
+                    }
+                }
+                Item {
+                    width: parent.width; height: 16
+                    UiText {
+                        id: ulLabel
+                        anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                        text: "Upload"; color: root.sumiHi; font.family: root.mono; font.pixelSize: 11
+                        width: parent.width * 0.4
+                    }
+                    UiText {
+                        anchors.left: ulLabel.right; anchors.right: ulCheck.left; anchors.rightMargin: 6
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: speedTest.phase === "upload" ? "Testing…" : (netPanel.speedRunOk ? netPanel.formatMbps(speedTest.uploadMbps) : "—")
+                        color: (speedTest.uploadMbps > 0 && netPanel.speedRunOk) ? root.indigo : root.ink
+                        font.family: root.mono; font.pixelSize: 11; elide: Text.ElideRight
+                    }
+                    UiText {
+                        id: ulCheck
+                        anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                        text: "✓"; visible: speedTest.uploadMbps > 0 && netPanel.speedRunOk
+                        color: root.green; font.family: root.mono; font.pixelSize: 11
+                    }
+                }
+
+                // animated height so the card grows/shrinks smoothly instead of snapping
+                Item {
+                    width: parent.width
+                    height: speedFooter.visible ? speedFooter.implicitHeight : 0
+                    clip: true
+                    Behavior on height { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+
+                    UiText {
+                        id: speedFooter
+                        width: parent.width
+                        visible: speedTest.phase === "success" && netPanel.lastTestStamp !== ""
+                        text: "done · " + netPanel.lastTestStamp
+                        color: root.green
+                        font.family: root.mono
+                        font.pixelSize: 10
+                        font.letterSpacing: 1
+                    }
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.sep; visible: netPanel.hasWifi }
+
+            // ── wifi radio toggle ──
+            Item {
+                width: parent.width
+                height: 24
+                visible: netPanel.hasWifi
+                UiText {
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                    text: "Wi-Fi"
+                    color: root.ink; font.family: root.mono; font.pixelSize: 11
+                }
+                Rectangle {
+                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                    width: 50; height: 22; radius: 11
+                    color: !netPanel.wifiBlocked ? root.fillActive
+                                                 : wifiToggleMa.containsMouse ? root.fillHover
+                                                 : root.fillIdle
+                    border.color: (wifiToggleMa.containsMouse || !netPanel.wifiBlocked) ? root.seal : root.sep
+                    border.width: 1
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    UiText {
+                        anchors.centerIn: parent
+                        text: netPanel.wifiBlocked ? "OFF" : "ON"
+                        color: !netPanel.wifiBlocked ? root.seal : root.sumi
+                        font.family: root.mono; font.pixelSize: 10; font.weight: Font.Medium
+                    }
+                    MouseArea {
+                        id: wifiToggleMa
+                        anchors.fill: parent; hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: netPanel.toggleWifi()
+                    }
+                }
+            }
+
+            // ── available networks ──
+            Item {
+                width: parent.width
+                height: 16
+                visible: netPanel.hasWifi && !netPanel.wifiBlocked && !root.useNM
+                UiText {
+                    anchors.left: parent.left; anchors.verticalCenter: parent.verticalCenter
+                    text: "AVAILABLE NETWORKS"
+                    color: root.sumiHi; font.family: root.mono; font.pixelSize: 10; font.letterSpacing: 1
+                }
+                UiText {
+                    anchors.right: parent.right; anchors.verticalCenter: parent.verticalCenter
+                    text: netPanel.scanning ? "scanning…" : "rescan"
+                    color: rescanMa.containsMouse ? root.fillPrimaryHover : root.seal
+                    font.family: root.mono; font.pixelSize: 10
+                    Behavior on color { ColorAnimation { duration: 120 } }
+                    MouseArea { id: rescanMa; anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor; onClicked: netPanel.scan() }
+                }
+            }
+
+            // scrollable network list
+            Flickable {
+                width: parent.width
+                height: Math.min(netList.implicitHeight, 180)
+                contentHeight: netList.implicitHeight
+                clip: true
+                visible: netPanel.hasWifi && !netPanel.wifiBlocked && !root.useNM
+                boundsBehavior: Flickable.StopAtBounds
+
+                Column {
+                    id: netList
+                    width: parent.width
+                    spacing: 4
+
+                    Repeater {
+                        model: netPanel.networks
+                        delegate: Rectangle {
+                            required property var modelData
+                            width: netList.width
+                            height: 30; radius: root.tileRadius
+                            color: modelData.conn ? root.fillActive
+                                   : nma.containsMouse ? root.fillHover : root.fillIdle
+                            border.color: (nma.containsMouse || modelData.conn) ? root.seal : root.sep
+                            border.width: 1
+                            Behavior on color { ColorAnimation { duration: 120 } }
+
+                            Row {
+                                anchors.left: parent.left; anchors.leftMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 6
+                                IconText {
+                                    text: modelData.sec === "open" ? "\uE898" : "\uE897"
+                                    font.pixelSize: 12
+                                    color: root.sumiHi
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                UiText {
+                                    text: modelData.ssid
+                                    color: (nma.containsMouse || modelData.conn) ? root.seal : root.ink
+                                    font.family: root.mono; font.pixelSize: 11
+                                    font.weight: modelData.conn ? Font.Medium : Font.Normal
+                                    width: modelData.conn ? 116 : 170; elide: Text.ElideRight
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                                UiText {
+                                    visible: modelData.conn
+                                    text: "· Connected"
+                                    color: root.seal
+                                    font.family: root.mono; font.pixelSize: 9
+                                    anchors.verticalCenter: parent.verticalCenter
+                                }
+                            }
+
+                            // signal bars
+                            Row {
+                                anchors.right: parent.right; anchors.rightMargin: 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 2
+                                Repeater {
+                                    model: 4
+                                    delegate: Rectangle {
+                                        required property int index
+                                        width: 3; height: 4 + index * 2; radius: 1
+                                        anchors.bottom: parent.bottom
+                                        color: index < modelData.sig
+                                            ? (modelData.conn ? root.seal : root.ink)
+                                            : Qt.rgba(root.ink.r, root.ink.g, root.ink.b, 0.18)
+                                    }
+                                }
+                            }
+
+                            MouseArea {
+                                id: nma
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: netPanel.connectTo(modelData.ssid, modelData.sec)
+                            }
+                        }
+                    }
+
+                    UiText {
+                        visible: !netPanel.scanning && netPanel.networks.length === 0
+                        width: netList.width; horizontalAlignment: Text.AlignHCenter
+                        text: "No networks found"
+                        color: Qt.rgba(root.ink.r, root.ink.g, root.ink.b, 0.3)
+                        font.family: root.mono; font.pixelSize: 11
+                    }
+                }
+            }
+
+            // NetworkManager (Omarchy 4.0): the iwctl scan/connect don't apply here →
+            // show an nmtui shortcut instead of an empty list
+            Rectangle {
+                width: parent.width
+                height: 52; radius: 6
+                visible: root.useNM && netPanel.hasWifi
+                color: nmMa.containsMouse ? root.fillHover : root.fillIdle
+                border.color: nmMa.containsMouse ? root.seal : root.sep; border.width: 1
+                Behavior on color { ColorAnimation { duration: 120 } }
+                Column {
+                    anchors.centerIn: parent; spacing: 3; width: parent.width - 24
+                    UiText {
+                        width: parent.width; horizontalAlignment: Text.AlignHCenter
+                        text: "Managed by NetworkManager"
+                        color: root.ink; font.family: root.mono; font.pixelSize: 11
+                    }
+                    UiText {
+                        width: parent.width; horizontalAlignment: Text.AlignHCenter
+                        text: "click to open nmtui"
+                        color: root.seal; font.family: root.mono; font.pixelSize: 10
+                    }
+                }
+                MouseArea {
+                    id: nmMa
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: { root.networkVisible = false; wifiRunner.running = false; wifiRunner.running = true }
+                }
+            }
+
+            Rectangle { width: parent.width; height: 1; color: root.sep }
+
+            // ── button ──
+            Rectangle {
+                width: parent.width
+                height: 28; radius: root.tileRadius
+                color: netSetMa.containsMouse ? root.fillPrimaryHover : root.seal
+                Behavior on color { ColorAnimation { duration: 120 } }
+                UiText { anchors.centerIn: parent; text: "Network settings"; color: root.paper; font.family: root.mono; font.pixelSize: 11 }
+                MouseArea {
+                    id: netSetMa
+                    anchors.fill: parent; hoverEnabled: true; cursorShape: Qt.PointingHandCursor
+                    onClicked: { root.networkVisible = false; wifiRunner.running = false; wifiRunner.running = true }
+                }
+            }
+        }
+    }
+
+    Process {
+        id: netData
+        command: ["bash", "-c",
+            "IFACE=$( (ip route get 1.1.1.1 2>/dev/null || ip -6 route get 2606:4700:4700::1111 2>/dev/null || ip route show default 2>/dev/null || ip -6 route show default 2>/dev/null) | awk '{for(i=1;i<=NF;i++) if($i==\"dev\"){print $(i+1); exit}}'); " +
+            "if [ -z \"$IFACE\" ]; then echo NONE; exit; fi; " +
+            "IPADDR=$(ip -o -4 addr show dev \"$IFACE\" scope global 2>/dev/null | awk '{split($4,a,\"/\"); print a[1]; exit}'); " +
+            "[ -z \"$IPADDR\" ] && IPADDR=$(ip -o -6 addr show dev \"$IFACE\" scope global 2>/dev/null | awk '{split($4,a,\"/\"); print a[1]; exit}'); " +
+            "if [ -d \"/sys/class/net/$IFACE/wireless\" ]; then " +
+            "  LINK=$(iw dev \"$IFACE\" link 2>/dev/null); " +
+            "  SSID=$(printf '%s\\n' \"$LINK\" | sed -n 's/^\\s*SSID: //p' | head -1); " +
+            "  SIG=$(printf '%s\\n' \"$LINK\" | awk '/signal:/ {print int($2); exit}'); " +
+            "  FRQ=$(printf '%s\\n' \"$LINK\" | awk '/freq:/ {print $2 \" MHz\"; exit}'); " +
+            "  QUAL=$(awk -v s=\"$SIG\" 'BEGIN{q=int((s+110)*100/70);if(q<0)q=0;if(q>100)q=100;print q}'); " +
+            "  printf 'WIFI\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \"$SSID\" \"$QUAL\" \"$IFACE\" \"$IPADDR\" \"$FRQ\"; " +
+            "else printf 'ETHERNET\\t%s\\t%s\\n' \"$IFACE\" \"$IPADDR\"; fi"
+        ]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var parts = this.text.trim().split("\t")
+                if (parts[0] === "WIFI") {
+                    netPanel.mode = "wifi"; netPanel.ssid = parts[1] || ""
+                    netPanel.signal = parseInt(parts[2]) || 0; netPanel.iface = parts[3] || ""
+                    netPanel.ipAddr = parts[4] || ""; netPanel.freq = parts[5] || ""
+                } else if (parts[0] === "ETHERNET") {
+                    netPanel.mode = "ethernet"; netPanel.iface = parts[1] || ""; netPanel.ipAddr = parts[2] || ""
+                    netPanel.ssid = ""; netPanel.freq = ""
+                } else {
+                    netPanel.mode = "none"; netPanel.iface = ""; netPanel.ipAddr = ""; netPanel.ssid = ""
+                }
+            }
+        }
+    }
+
+    Process { id: wifiRunner; command: ["bash", "-c", root.launchWifiCmd] }
+
+    // detect wifi device presence
+    Process {
+        id: devProbe
+        command: ["bash", "-c", "for d in /sys/class/net/*/wireless; do [ -e \"$d\" ] || continue; basename \"$(dirname \"$d\")\"; break; done 2>/dev/null"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var d = this.text.trim()
+                netPanel.wdev = d
+                netPanel.hasWifi = d !== ""
+                if (netPanel.hasWifi) netPanel.scan()
+            }
+        }
+    }
+
+    // scan + list available networks (and known networks)
+    Process {
+        id: scanProc
+        command: ["bash", "-c",
+            "DEV=$(for d in /sys/class/net/*/wireless; do [ -e \"$d\" ] || continue; basename \"$(dirname \"$d\")\"; break; done); " +
+            "[ -z \"$DEV\" ] && exit; " +
+            "iwctl station \"$DEV\" scan >/dev/null 2>&1; sleep 1.5; " +
+            "iwctl known-networks list 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g; s/\\r//g' | " +
+            "  awk '/^[[:space:]]*-+[[:space:]]*$/ {s++; next} s>=2 && NF>0 { sub(/^[[:space:]]+/,\"\"); sub(/[[:space:]][[:space:]]+.*$/,\"\"); if(length) print \"KNOWN\\t\" $0 }'; " +
+            "iwctl station \"$DEV\" get-networks 2>/dev/null | sed 's/\\x1b\\[[0-9;]*m//g; s/\\r//g' | " +
+            "  awk '" +
+            "    /^[[:space:]]*-+[[:space:]]*$/ { seps++; next } " +
+            "    seps>=2 && NF>0 { " +
+            "      line=$0; conn=0; " +
+            "      if (line ~ /^[[:space:]]*>/) conn=1; " +
+            "      sub(/^[[:space:]]*>?[[:space:]]*/, \"\", line); " +
+            "      if (match(line, /[[:space:]]+(open|psk|8021x|wep)[[:space:]]+\\*+[[:space:]]*$/)) { " +
+            "        tail=substr(line, RSTART); ssid=substr(line, 1, RSTART-1); " +
+            "        gsub(/[[:space:]]+$/, \"\", ssid); " +
+            "        n=split(tail, a, /[[:space:]]+/); sec=\"\"; sig=0; " +
+            "        for(i=1;i<=n;i++){ if(a[i] ~ /^(open|psk|8021x|wep)$/) sec=a[i]; if(a[i] ~ /^\\*+$/) sig=length(a[i]) } " +
+            "        print \"NET\\t\" conn \"\\t\" ssid \"\\t\" sec \"\\t\" sig " +
+            "      } " +
+            "    }'"
+        ]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var lines = this.text.trim().split("\n")
+                var nets = [], kn = []
+                for (var i = 0; i < lines.length; i++) {
+                    var p = lines[i].split("\t")
+                    if (p[0] === "KNOWN" && p[1]) {
+                        kn.push(p[1].trim())
+                    } else if (p[0] === "NET" && p.length >= 5) {
+                        nets.push({ conn: p[1] === "1", ssid: p[2], sec: p[3], sig: parseInt(p[4]) || 0 })
+                    }
+                }
+                // connected first, then by signal
+                nets.sort(function(a, b) { return (b.conn - a.conn) || (b.sig - a.sig) })
+                netPanel.networks = nets
+                netPanel.known = kn
+                netPanel.scanning = false
+                scanWatchdog.stop()
+            }
+        }
+    }
+
+    Process { id: connectProc; command: ["bash", "-c", "true"] }
+
+    Timer { id: rescanTimer; interval: 1500; onTriggered: { netData.running = false; netData.running = true; netPanel.scan() } }
+    // safety: if a scan hangs, don't block future rescans forever
+    Timer { id: scanWatchdog; interval: 8000; onTriggered: netPanel.scanning = false }
+
+    // ── wifi radio (rfkill) ──
+    Process {
+        id: rfkillState
+        command: ["bash", "-c", "rfkill list wifi 2>/dev/null | grep -qi 'Soft blocked: yes' && echo BLOCKED || echo OK"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: { netPanel.wifiBlocked = this.text.trim() === "BLOCKED" }
+        }
+    }
+    Process { id: rfkillToggle; command: ["bash", "-c", "true"] }
+
+    // negotiated link speed: ethernet from /sys, wifi from iw bitrate
+    Process {
+        id: speedProc
+        command: ["bash", "-c",
+            "IFACE=$( (ip route get 1.1.1.1 2>/dev/null || ip -6 route get 2606:4700:4700::1111 2>/dev/null || ip route show default 2>/dev/null || ip -6 route show default 2>/dev/null) | awk '{for(i=1;i<=NF;i++) if($i==\"dev\"){print $(i+1); exit}}'); " +
+            "[ -z \"$IFACE\" ] && exit; " +
+            "if [ -d /sys/class/net/$IFACE/wireless ]; then " +
+            "  R=$(iw dev \"$IFACE\" link 2>/dev/null | sed -n 's/.*tx bitrate: //p' | awk '{print $1\" \"$2; exit}'); " +
+            "  [ -n \"$R\" ] && echo \"W:$R\"; " +
+            "else " +
+            "  S=$(cat /sys/class/net/$IFACE/speed 2>/dev/null); " +
+            "  [ -n \"$S\" ] && echo \"E:$S\"; " +
+            "fi"]
+        running: false
+        stdout: StdioCollector {
+            onStreamFinished: {
+                var t = this.text.trim()
+                if (t.indexOf("E:") === 0) {
+                    var mb = parseInt(t.slice(2)) || 0
+                    netPanel.linkSpeed = mb >= 1000 ? (mb / 1000).toFixed(1).replace(/\.0$/, "") + " Gbit/s"
+                                       : (mb > 0 ? mb + " Mbit/s" : "")
+                } else if (t.indexOf("W:") === 0) {
+                    netPanel.linkSpeed = t.slice(2)   // already e.g. "866.7 MBit/s"
+                } else {
+                    netPanel.linkSpeed = ""
+                }
+            }
+        }
+    }
+
+    onVisibleChanged: {
+        if (visible) {
+            rfkillState.running = false; rfkillState.running = true
+            netData.running = false; netData.running = true
+            devProbe.running = false; devProbe.running = true
+            speedProc.running = false; speedProc.running = true
+        } else if (speedTest.running) {
+            speedTest.cancel()
+        }
+    }
+}

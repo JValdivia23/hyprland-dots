@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# Custom wttrbar using Quickshell's background weather cache
+# Fallback to direct wttr.in query if quickshell is not running or doesn't have data
+
+# Try to get data from Quickshell IPC
+JSON=$(qs -c desktop ipc call weather getJson 2>/dev/null)
+
+if [ -n "$JSON" ] && [[ "$JSON" == *"text"* ]] && [[ "$JSON" != *"󰖐 0"* ]]; then
+  echo "$JSON"
+  exit 0
+fi
+
+# If it's uninitialized (0 degrees), trigger a background refresh for next time
+if [[ "$JSON" == *"󰖐 0"* ]]; then
+  qs -c desktop ipc call weather refresh >/dev/null 2>&1 &
+fi
+
+# Fallback: Query wttr.in directly
+location=""
+if [ -f "$HOME/.config/omarchy/weather/location" ]; then
+  location=$(cat "$HOME/.config/omarchy/weather/location" | tr -d '[:space:]')
+fi
+
+response=$(curl -s --max-time 4 "https://wttr.in/${location}?format=j1" 2>/dev/null)
+if [ -n "$response" ]; then
+  temp=$(echo "$response" | jq -r '.current_condition[0].temp_C')
+  desc=$(echo "$response" | jq -r '.current_condition[0].weatherDesc[0].value')
+  feels=$(echo "$response" | jq -r '.current_condition[0].FeelsLikeC')
+  
+  # Default weather icon
+  icon="󰖐"
+  
+  jq -n --arg t "$icon   $temp" --arg tooltip "wttr.in (direct)\n$desc\nFeels like: ${feels}°C" \
+    '{text: $t, tooltip: $tooltip}'
+  exit 0
+fi
+
+# If everything fails, return empty/error json
+echo '{"text": "󰖐   N/A", "tooltip": "Weather service offline"}'

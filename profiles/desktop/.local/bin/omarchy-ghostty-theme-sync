@@ -1,0 +1,59 @@
+#!/usr/bin/env python3
+import sys
+import os
+
+alacritty_path = os.path.expanduser('~/.config/omarchy/current/theme/alacritty.toml')
+ghostty_theme_path = os.path.expanduser('~/.config/ghostty/theme')
+
+if not os.path.exists(alacritty_path):
+    print(f"Error: {alacritty_path} not found")
+    sys.exit(1)
+
+with open(alacritty_path, 'r') as f:
+    content = f.read()
+
+current_section = None
+colors = {}
+for line in content.splitlines():
+    line = line.strip()
+    if not line or line.startswith('#'):
+        continue
+    if line.startswith('[') and line.endswith(']'):
+        current_section = line[1:-1]
+        continue
+    if '=' in line:
+        parts = line.split('=', 1)
+        key = parts[0].strip()
+        val = parts[1].strip().strip("'").strip('"')
+        if current_section:
+            colors[f"{current_section}.{key}"] = val
+        else:
+            colors[key] = val
+
+ghostty_lines = []
+mapping = {
+    'colors.primary.background': 'background',
+    'colors.primary.foreground': 'foreground',
+    'colors.selection.background': 'selection-background',
+    'colors.selection.foreground': 'selection-foreground',
+}
+
+for src, dst in mapping.items():
+    if src in colors:
+        ghostty_lines.append(f"{dst} = {colors[src]}")
+
+normal_keys = ['black', 'red', 'green', 'yellow', 'blue', 'magenta', 'cyan', 'white']
+for idx, key in enumerate(normal_keys):
+    src = f"colors.normal.{key}"
+    if src in colors:
+        ghostty_lines.append(f"palette = {idx}={colors[src]}")
+
+for idx, key in enumerate(normal_keys):
+    src = f"colors.bright.{key}"
+    if src in colors:
+        ghostty_lines.append(f"palette = {idx+8}={colors[src]}")
+
+os.makedirs(os.path.dirname(ghostty_theme_path), exist_ok=True)
+with open(ghostty_theme_path, 'w') as f:
+    f.write('\n'.join(ghostty_lines) + '\n')
+print("Ghostty theme updated!")

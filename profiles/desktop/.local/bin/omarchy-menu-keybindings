@@ -1,0 +1,193 @@
+#!/bin/bash
+
+# Fetch dynamic bindings from Hyprland
+dynamic_bindings() {
+  hyprctl -j binds | jq -r '.[] | [.modmask, .key, .keycode, .description, .dispatcher, .arg] | @tsv'
+}
+
+parse_bindings() {
+  awk -F'\t' '
+  BEGIN {
+    # Modifier keys mapping
+    mods[0] = ""; mods[1] = "Shift"; mods[4] = "Ctrl"; mods[5] = "Ctrl+Shift";
+    mods[8] = "Alt"; mods[9] = "Alt+Shift"; mods[12] = "Ctrl+Alt"; mods[13] = "Ctrl+Alt+Shift";
+    mods[64] = "Super"; mods[65] = "Super+Shift"; mods[68] = "Super+Ctrl"; mods[69] = "Super+Ctrl+Shift";
+    mods[72] = "Super+Alt"; mods[73] = "Super+Alt+Shift"; mods[76] = "Super+Ctrl+Alt";
+    
+    # Key names mapping
+    keys["XF86AudioRaiseVolume"] = "🔊 Vol +";
+    keys["XF86AudioLowerVolume"] = "🔉 Vol -";
+    keys["XF86AudioMute"]        = "🔇 Mute";
+    keys["XF86MonBrightnessUp"]   = "🔆 Brightness +";
+    keys["XF86MonBrightnessDown"] = "🔅 Brightness -";
+    keys["XF86AudioPlay"]        = "⏯ Play/Pause";
+    keys["XF86AudioNext"]        = "⏭ Next";
+    keys["XF86AudioPrev"]        = "⏮ Prev";
+    keys["grave"]                = "`";
+    keys["Return"]               = "Enter";
+    keys["space"]                = "Space";
+    keys["escape"]               = "Esc";
+    keys["comma"]                = ",";
+    keys["period"]               = ".";
+    keys["slash"]                = "/";
+    keys["semicolon"]            = ";";
+  }
+  
+  function clean_action(desc, disp, arg) {
+    if (desc != "" && desc != "null") {
+      return desc;
+    }
+    
+    # Clean up exec commands
+    if (disp == "exec") {
+      # Strip paths
+      gsub(/^~\//, "", arg);
+      gsub(/^\/home\/[a-zA-Z0-9_-]+\//, "", arg);
+      gsub(/^.local\/bin\//, "", arg);
+      gsub(/^.local\/share\/omarchy\/bin\//, "", arg);
+      gsub(/^uwsm app -- /, "", arg);
+      
+      # Handle specific tools
+      if (arg ~ /^omarchy-menu system/) return "System Control Menu (Lock, Shutdown, etc.)";
+      if (arg ~ /^omarchy-menu theme/) return "Theme Selection Menu";
+      if (arg ~ /^omarchy-menu capture/) return "Screenshot / Screenrecord Menu";
+      if (arg ~ /^omarchy-menu toggle/) return "Toggle Settings Menu";
+      if (arg ~ /^omarchy-menu-keybindings/) return "Show Keybindings List";
+      if (arg ~ /^omarchy-menu/) return "Main Control Menu";
+      
+      if (arg ~ /^alacritty/) return "Launch Terminal (Alacritty)";
+      if (arg ~ /^ghostty/) return "Launch Terminal (Ghostty)";
+      if (arg ~ /^nautilus/) return "Open File Manager (Nautilus)";
+      if (arg ~ /^zen-browser/) return "Open Zen Web Browser";
+      
+      if (arg ~ /^hypr-dictate start/) return "Voice Dictation (start)";
+      if (arg ~ /^hypr-dictate stop/) return "Voice Dictation (stop)";
+      if (arg ~ /^hypr-dictate/) return "Voice Dictation";
+      
+      if (arg ~ /^hermes-voice start/) return "Hermes Voice Agent (start)";
+      if (arg ~ /^hermes-voice stop/) return "Hermes Voice Agent (stop)";
+      if (arg ~ /^hermes-voice/) return "Hermes Voice Agent";
+      
+      if (arg ~ /^hypr-ocr/) return "OCR Text Capture (Grim/Tesseract)";
+      if (arg ~ /^hyprlock/) return "Lock Screen";
+      if (arg ~ /^hyprpicker/) return "Color Picker";
+      
+      if (arg ~ /^omarchy-cmd-screenshot window/) return "Take Screenshot (active window)";
+      if (arg ~ /^omarchy-cmd-screenshot output/) return "Take Screenshot (active display)";
+      if (arg ~ /^omarchy-cmd-screenshot/) return "Take Screenshot (select region)";
+      
+      if (arg ~ /^omarchy-cmd-screenrecord output/) return "Record Screen (active display)";
+      if (arg ~ /^omarchy-cmd-screenrecord/) return "Record Screen (select region)";
+      
+      if (arg ~ /^swayosd-client/) {
+        if (arg ~ /--output-volume mute-toggle/) return "Volume Mute (toggle)";
+        if (arg ~ /--input-volume mute-toggle/) return "Microphone Mute (toggle)";
+        if (arg ~ /--output-volume raise/ || arg ~ /--output-volume \+1/ || arg ~ /--output-volume \+/) return "Volume Up";
+        if (arg ~ /--output-volume lower/ || arg ~ /--output-volume -1/ || arg ~ /--output-volume \-/) return "Volume Down";
+        if (arg ~ /--brightness raise/ || arg ~ /--brightness \+1/) return "Brightness Up";
+        if (arg ~ /--brightness lower/ || arg ~ /--brightness -1/) return "Brightness Down";
+        if (arg ~ /--playerctl play-pause/) return "Media: Play / Pause";
+        if (arg ~ /--playerctl next/) return "Media: Next Track";
+        if (arg ~ /--playerctl previous/) return "Media: Previous Track";
+      }
+      if (arg ~ /^playerctl/) {
+        if (arg ~ /play-pause/) return "Media: Play / Pause";
+        if (arg ~ /next/) return "Media: Next Track";
+        if (arg ~ /previous/) return "Media: Previous Track";
+      }
+      
+      # Setsid / gtk-launch cleanup
+      if (arg ~ /^setsid gtk-launch /) {
+        sub(/^setsid gtk-launch /, "Launch ", arg);
+        sub(/\.desktop$/, "", arg);
+        return arg;
+      }
+      
+      return "Run: " arg;
+    }
+    
+    # Clean up standard dispatchers
+    if (disp == "movefocus") {
+      dir = arg;
+      if (dir == "l" || dir == "left") dir = "Left";
+      if (dir == "r" || dir == "right") dir = "Right";
+      if (dir == "u" || dir == "up") dir = "Up";
+      if (dir == "d" || dir == "down") dir = "Down";
+      return "Focus Window " dir;
+    }
+    if (disp == "movewindow") {
+      dir = arg;
+      if (dir == "l" || dir == "left") dir = "Left";
+      if (dir == "r" || dir == "right") dir = "Right";
+      if (dir == "u" || dir == "up") dir = "Up";
+      if (dir == "d" || dir == "down") dir = "Down";
+      return "Move Window " dir;
+    }
+    if (disp == "workspace") {
+      return "Switch to Workspace " arg;
+    }
+    if (disp == "movetoworkspace") {
+      return "Move window to Workspace " arg;
+    }
+    if (disp == "movetoworkspacesilent") {
+      return "Move window to Workspace " arg " (silent)";
+    }
+    if (disp == "togglefloating") return "Toggle Floating State";
+    if (disp == "fullscreen") return "Toggle Fullscreen Mode";
+    if (disp == "killactive") return "Close Active Window";
+    if (disp == "pin") return "Pin Window (Visible on all workspaces)";
+    
+    return disp " " arg;
+  }
+  
+  {
+    modmask = $1;
+    key = $2;
+    keycode = $3;
+    description = $4;
+    dispatcher = $5;
+    arg = $6;
+    
+    # Resolve modifiers
+    mod_str = mods[modmask];
+    if (mod_str == "" && modmask > 0) {
+      mod_str = "";
+      if (and(modmask, 64)) mod_str = mod_str "Super+";
+      if (and(modmask, 8))  mod_str = mod_str "Alt+";
+      if (and(modmask, 4))  mod_str = mod_str "Ctrl+";
+      if (and(modmask, 1))  mod_str = mod_str "Shift+";
+      sub(/\+$/, "", mod_str);
+    }
+    
+    # Resolve key name
+    key_name = keys[key];
+    if (key_name == "") {
+      key_name = key;
+      if (key_name == "" || key_name == "null") {
+        key_name = "code:" keycode;
+      }
+      # Capitalize first letter of key for aesthetics
+      key_name = toupper(substr(key_name, 1, 1)) substr(key_name, 2);
+    }
+    
+    # Combine keys
+    if (mod_str != "") {
+      key_combo = mod_str " + " key_name;
+    } else {
+      key_combo = key_name;
+    }
+    
+    action = clean_action(description, dispatcher, arg);
+    
+    # Format and output
+    if (action != "" && action != "null") {
+      printf "%-22s │ %s\n", key_combo, action;
+    }
+  }
+  '
+}
+
+dynamic_bindings | \
+  sort -u | \
+  parse_bindings | \
+  walker --dmenu --theme keybindings -p 'Keybindings'

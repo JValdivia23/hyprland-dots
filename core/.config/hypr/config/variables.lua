@@ -1,4 +1,6 @@
--- Hyprland default apps
+-- Hyprland default apps & shell backend
+
+SHELL_BACKEND = "noctalia"
 
 TERMINAL     = "kitty"
 FILE_MANAGER = "flea"

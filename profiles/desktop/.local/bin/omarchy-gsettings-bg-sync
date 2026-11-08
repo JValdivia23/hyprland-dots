@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+# Daemon to sync GNOME background GSettings changes to Hyprland's swaybg via Omarchy.
+# Enables Nautilus's built-in "Set as background..." context menu action to work on Hyprland.
+
+# Ensure only one instance of this daemon runs
+pkill -f "gsettings monitor org.gnome.desktop.background"
+
+# Monitor the GSettings schema for wallpaper changes (covers both picture-uri and picture-uri-dark)
+gsettings monitor org.gnome.desktop.background | while read -r line; do
+    if [[ "$line" =~ ^picture-uri(-dark)?: ]]; then
+        # Extract the URI path
+        uri=$(echo "$line" | sed -E "s/^picture-uri(-dark)?: '(.*)'$/\2/")
+        if [ -n "$uri" ]; then
+            # Decode the file:// URI into a raw local filepath (resolving URL encodes like %20)
+            path=$(python3 -c "import urllib.parse, sys; print(urllib.parse.unquote(urllib.parse.urlparse(sys.argv[1]).path))" "$uri" 2>/dev/null)
+            if [ -f "$path" ]; then
+                # Call the Omarchy bg set script to apply the wallpaper and update symlinks
+                ~/.local/bin/omarchy-theme-bg-set "$path"
+            fi
+        fi
+    fi
+done

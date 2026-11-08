@@ -5,10 +5,11 @@ local homeDir = os.getenv("HOME") or "/home/user"
 
 hl.on("hyprland.start", function ()
     hl.exec_cmd("dbus-update-activation-environment --systemd --all")
-    hl.exec_cmd("noctalia -d")
+    if SHELL_BACKEND ~= "quickshell" then
+        hl.exec_cmd("noctalia -d")
+    end
     hl.exec_cmd("hypridle")
     hl.exec_cmd("xhost +SI:localuser:root")
     hl.exec_cmd(homeDir .. "/.local/bin/kitty-focus-opacity")
     hl.exec_cmd("systemctl --user start hypr-tray-drawer.service")
 end)
-

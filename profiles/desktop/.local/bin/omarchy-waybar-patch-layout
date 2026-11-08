@@ -1,0 +1,125 @@
+#!/usr/bin/env python3
+import sys
+import os
+import re
+
+def patch_waybar_config(config_path):
+    if not os.path.exists(config_path):
+        return False
+    
+    with open(config_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+    
+    # Check if already has language module
+    if "hyprland/language" in content:
+        print("hyprland/language module already present in config.")
+        return True
+    
+    # If it has custom/layout, replace it
+    if "custom/layout" in content:
+        print("Replacing custom/layout with hyprland/language...")
+        content = content.replace("custom/layout", "hyprland/language")
+        # Also replace its definition if present
+        layout_def_pattern = re.compile(r'"custom/layout"\s*:\s*\{.*?\},?', re.DOTALL)
+        language_def = (
+            '"hyprland/language": {\n'
+            '    "format": "{}",\n'
+            '    "format-en": "US",\n'
+            '    "format-es": "ES",\n'
+            '    "keyboard-name": "sonix-x85",\n'
+            '    "on-click": "~/.local/bin/hypr-switch-layout"\n'
+            '  }'
+        )
+        if layout_def_pattern.search(content):
+            content = layout_def_pattern.sub(language_def, content)
+        else:
+            # Append definition before the last closing brace
+            last_brace_idx = content.rfind('}')
+            if last_brace_idx != -1:
+                content = content[:last_brace_idx] + ',\n  ' + language_def + '\n' + content[last_brace_idx:]
+    else:
+        # Neither is present, let's inject it into modules-right
+        print("Injecting hyprland/language module...")
+        
+        # 1. Find modules-right and insert
+        modules_right_match = re.search(r'"modules-right"\s*:\s*\[', content)
+        if modules_right_match:
+            idx = modules_right_match.end()
+            content = content[:idx] + '\n    "hyprland/language",\n' + content[idx:]
+        else:
+            # Try modules-center or modules-left
+            modules_left_match = re.search(r'"modules-(?:center|left)"\s*:\s*\[', content)
+            if modules_left_match:
+                idx = modules_left_match.end()
+                content = content[:idx] + '\n    "hyprland/language",\n' + content[idx:]
+        
+        # 2. Append definition before the last closing brace
+        language_def = (
+            '"hyprland/language": {\n'
+            '    "format": "{}",\n'
+            '    "format-en": "US",\n'
+            '    "format-es": "ES",\n'
+            '    "keyboard-name": "sonix-x85",\n'
+            '    "on-click": "~/.local/bin/hypr-switch-layout"\n'
+            '  }'
+        )
+        last_brace_idx = content.rfind('}')
+        if last_brace_idx != -1:
+            content = content[:last_brace_idx] + ',\n  ' + language_def + '\n' + content[last_brace_idx:]
+            
+    with open(config_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return True
+
+def patch_waybar_style(style_path):
+    if not os.path.exists(style_path):
+        return False
+        
+    with open(style_path, 'r', encoding='utf-8') as f:
+        content = f.read()
+        
+    if "#language" in content:
+        print("#language style already present.")
+        return True
+        
+    if "#custom-layout" in content:
+        print("Replacing #custom-layout with #language in stylesheet...")
+        content = content.replace("#custom-layout", "#language")
+    else:
+        # Append styling for the language module at the end of the file
+        print("Injecting #language style rule...")
+        content += (
+            '\n\n/* Injected Language Module Style */\n'
+            '#language {\n'
+            '    min-width: 14px;\n'
+            '    color: @cyan;\n'
+            '    padding: 0px 4px;\n'
+            '    margin: 3px 2px;\n'
+            '    border-radius: 15px;\n'
+            '    transition: all 0.25s ease;\n'
+            '}\n'
+        )
+        
+    with open(style_path, 'w', encoding='utf-8') as f:
+        f.write(content)
+    return True
+
+if __name__ == '__main__':
+    waybar_dir = sys.argv[1] if len(sys.argv) > 1 else os.path.expanduser('~/.config/waybar')
+    
+    config_file = os.path.join(waybar_dir, 'config.jsonc')
+    if not os.path.exists(config_file):
+        config_file = os.path.join(waybar_dir, 'config')
+        
+    style_file = os.path.join(waybar_dir, 'style.css')
+    
+    print(f"Patching Waybar in {waybar_dir}...")
+    patched_config = patch_waybar_config(config_file)
+    patched_style = patch_waybar_style(style_file)
+    
+    if patched_config and patched_style:
+        print("Waybar patched successfully.")
+        sys.exit(0)
+    else:
+        print("Waybar patch failed or files not found.")
+        sys.exit(1)

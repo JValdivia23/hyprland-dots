@@ -2,6 +2,18 @@
 
 A dated log of all package changes, configurations, script modifications, and hardware setups across profiles.
 
+## [2.88.1] - 2026-11-07
+### Added & Configured: Bundled Personalized Quickshell Bar & `SHELL_BACKEND` Routing for `desktop` Profile (`core/` + `profiles/desktop/`)
+- **Modular Shell Backend Switch (`core/` + `profiles/desktop/`)**:
+  - Updated [`core/.config/hypr/hyprland.lua`](file:///home/jairo/dev/dotfiles/core/.config/hypr/hyprland.lua) to load `pcall(require, "config.profile.variables")` immediately after `require("config.variables")` so profile monitor names (`MONITOR1`, `MONITOR2`) and `SHELL_BACKEND` are active before `windowrules`, `workspaces`, `binds`, and `autostart` load.
+  - Default `SHELL_BACKEND = "noctalia"` in [`core/.config/hypr/config/variables.lua`](file:///home/jairo/dev/dotfiles/core/.config/hypr/config/variables.lua) preserves Noctalia unchanged across `macbook-t2`, `surface`, and `laptop`.
+  - Added [`profiles/desktop/.config/hypr/config/profile/variables.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/variables.lua) setting `SHELL_BACKEND = "quickshell"`, `MONITOR1 = "DP-1"`, and `MONITOR2 = "HDMI-A-1"`.
+  - Standardized all keybindings in [`core/.config/hypr/config/binds.lua`](file:///home/jairo/dev/dotfiles/core/.config/hypr/config/binds.lua): when `SHELL_BACKEND == "quickshell"`, the same universal shortcuts (`SUPER+Space`, `ALT+Space`, `SUPER+Escape`, `SUPER+E`, `SUPER+L`, `SUPER+Shift+L`, `SUPER+A`, `SUPER+Ctrl+V`, `SUPER+Shift+W`, `XF86Audio*`) route to Quickshell (`quickshell:palette-toggle`, `quickshell:palette-quick`, `qs -c desktop ipc call ...`), `swayosd-client`, `makoctl`, `hyprlock`, and `omarchy-menu`.
+- **Bundled Complete Personalized Quickshell Bar & Bridge Suite (`profiles/desktop/`)**:
+  - Tracked `profiles/desktop/.config/quickshell/` (4.7 MB — including `desktop/`, `bar/` Rise layout, `bin/`, `palette-only/`, and all local QML/JS patches for 4-mode bar switching, dual-monitor workspace colors, RX 7700 XT GPU telemetry, IPv6 routing, and `US`/`LA` keyboard indicator).
+  - Updated Quickshell `desktop/Data.js`, `DisplayPopup.qml`, and `QuickDisplayBody.qml` setup editor links to target the modular `.lua` files (`~/.config/hypr/config/profile/monitors.lua`, `config/binds.lua`, `config/profile/inputs.lua`, `config/decorations.lua`).
+  - Bundled `~/.config/omarchy/hooks/theme-set.d/`, `~/.config/systemd/user/qs-*` timers, `refresh-quickshell.desktop`, `omarchy.portal`, and all `~/.local/bin/omarchy-*`, `qs-*`, `waybar-*`, `wttrbar`, and `spotify` bridge scripts into `profiles/desktop/`.
+
 ## [2.88.0] - 2026-11-07
 ### Added & Configured: Populated Workstation `desktop` Profile for AMD RDNA 3 Dual-Monitor PC (`profiles/desktop/`, device-specific)
 - **Hardware Target (`cachyos-obsidian` / MSI MAG B650 TOMAHAWK WIFI `MS-7D75`)**:

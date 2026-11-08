@@ -1,0 +1,51 @@
+#!/bin/bash
+# waybar-battery — robust battery reader for Logitech HID++ devices
+# Outputs waybar custom module JSON. Returns empty on failure (no crash possible).
+
+# Battery icon map by level (same as waybar defaults)
+icons_charging=("󰢜" "󰂆" "󰂇" "󰂈" "󰢝" "󰂉" "󰢞" "󰂊" "󰂋" "󰂅")
+icons_default=("󰁺" "󰁻" "󰁼" "󰁽" "󰁾" "󰁿" "󰂀" "󰂁" "󰂂" "󰁹")
+
+get_icon() {
+    local level=$1
+    local status=$2
+    local idx=$(( level / 10 ))
+    [ "$idx" -gt 9 ] && idx=9
+    [ "$idx" -lt 0 ] && idx=0
+    if [ "$status" = "Charging" ]; then
+        echo "${icons_charging[$idx]}"
+    else
+        echo "${icons_default[$idx]}"
+    fi
+}
+
+# Find first HID++ battery — atomic single-shot read, no directory walk
+for d in /sys/class/power_supply/hidpp_battery_*; do
+    [ -d "$d" ] || continue
+    capacity=$(cat "$d/capacity" 2>/dev/null) || continue
+    status=$(cat "$d/status" 2>/dev/null) || status="Unknown"
+    model=$(cat "$d/model_name" 2>/dev/null) || model="Mouse"
+    [ -z "$capacity" ] && continue
+
+    icon=$(get_icon "$capacity" "$status")
+    text="$icon $capacity%"
+
+    if [ "$status" = "Charging" ]; then
+        class="charging"
+    elif [ "$capacity" -le 10 ]; then
+        class="critical"
+    elif [ "$capacity" -le 20 ]; then
+        class="warning"
+    else
+        class=""
+    fi
+
+    # Build JSON manually for proper newline handling
+    tooltip="$model | Status: $status | Capacity: $capacity%"
+    printf '{"text":"%s","tooltip":"%s","class":"%s","percentage":%d}\n' \
+        "$text" "$tooltip" "$class" "$capacity"
+    exit 0
+done
+
+# No battery found — empty output, waybar hides the module gracefully
+exit 0

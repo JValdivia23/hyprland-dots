@@ -54,19 +54,21 @@ This repository organizes configuration into three decoupled, modular tiers to e
 │   │   ├── gotchas/            # Apple T2 hardware quirks & documentation
 │   │   └── .stow-local-ignore
 │   │
-│   ├── desktop/                # AMD RDNA 3 Dual-Monitor Workstation (cachyos-obsidian / MS-7D75)
+│   ├── desktop/                # AMD RDNA 3 Dual-Monitor Workstation + Personalized Quickshell Bar (cachyos-obsidian / MS-7D75)
 │   │   ├── .config/hypr/config/profile/
+│   │   │   ├── variables.lua   # SHELL_BACKEND="quickshell", MONITOR1="DP-1", MONITOR2="HDMI-A-1"
 │   │   │   ├── monitors.lua    # Dual-head layout (DP-1 4K@60Hz 1.67x + HDMI-A-1 1440p@120Hz 1.33x)
 │   │   │   ├── environment.lua # AMD RDNA 3 (RX 7700 XT) RADV / Vulkan gaming optimizations
 │   │   │   ├── inputs.lua      # Flat mouse accel, Logitech G903 discrete scroll, Attack Shark X85
-│   │   │   ├── autostart.lua   # EasyEffects daemon, Xresources HiDPI, Dota 2 workspace daemon
-│   │   │   └── binds.lua       # Whisper.cpp voice dictation (F9 / Super+Ctrl+X) & layout toggle
+│   │   │   ├── autostart.lua   # Personalized Quickshell bar, Mako, SwayOSD, EasyEffects, Dota 2 daemon
+│   │   │   └── binds.lua       # Whisper.cpp voice dictation (F9 / Super+Ctrl+X), layout toggle & workspace batch move
+│   │   ├── .config/quickshell/ # Personalized Quickshell bar (Rise, Kanji, Hacker, OmniMenu & custom QML patches)
 │   │   ├── .config/libinput/   # Logitech G903 LIGHTSPEED XWayland scroll quirks
 │   │   ├── .config/easyeffects/# Realtek ALC4080 USB mic autogain & RNNoise presets
-│   │   ├── .local/bin/         # steam (HiDPI + PipeWire recovery), dota2-workspace, hypr-dictate
-│   │   ├── packages.txt        # pavucontrol, gamemode, easyeffects, lsp-plugins, lib32-libpulse
-│   │   ├── setup.sh            # Deploys /etc/libinput quirks & verifies RDNA 3 boot params
-│   │   ├── gotchas/            # Desktop AMD RDNA 3, G903, ALC4080 & gaming documentation
+│   │   ├── .local/bin/         # omarchy-* & qs-* bridge scripts, steam wrapper, dota2-workspace, hypr-dictate
+│   │   ├── packages.txt        # quickshell, mako, swayosd, aether, pavucontrol, gamemode, easyeffects, lib32-libpulse
+│   │   ├── setup.sh            # Deploys /etc/libinput quirks, enables Quickshell timers & verifies RDNA 3 boot params
+│   │   ├── gotchas/            # Desktop AMD RDNA 3, G903, ALC4080, Quickshell & gaming documentation
 │   │   └── .stow-local-ignore
 │   │
 │   ├── surface/                # Microsoft Surface Devices (Surface Book 3 / Surface Pro)

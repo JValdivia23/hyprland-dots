@@ -1,0 +1,13 @@
+#!/bin/bash
+
+# Read the current bar mode (defaults to waybar if not set)
+BAR_MODE=$(cat "$HOME/.local/state/quickshell-desktop/bar_mode" 2>/dev/null || echo "waybar")
+
+# Check if Waybar should actually be running
+if [ "$BAR_MODE" = "waybar" ]; then
+    # Restart Waybar normally using the original script
+    /home/jairo/.local/share/omarchy/bin/omarchy-restart-waybar
+else
+    # Otherwise, ensure Waybar remains closed
+    pkill -x waybar || true
+fi

@@ -1,0 +1,60 @@
+#!/bin/bash
+
+# omarchy-waybar-theme-set: Set Waybar configuration from waybar-themes repo
+# Usage: omarchy-waybar-theme-set <version-name>
+
+if [ -z "$1" ]; then
+  echo "Usage: omarchy-waybar-theme-set <version-name>" >&2
+  exit 1
+fi
+
+VERSION="$1"
+REPO_DIR="$HOME/.local/share/omarchy/waybar-themes"
+THEME_PATH="$REPO_DIR/config/$VERSION"
+
+if [ ! -d "$THEME_PATH" ]; then
+  echo "Error: Theme '$VERSION' does not exist in $REPO_DIR/config" >&2
+  exit 2
+fi
+
+WAYBAR_DIR="$HOME/.config/waybar"
+BACKUP_DIR="$WAYBAR_DIR.bak.$(date +%s)"
+
+# 1. Back up existing configuration if it exists
+if [ -d "$WAYBAR_DIR" ]; then
+  echo "Backing up existing Waybar configuration to $BACKUP_DIR..."
+  cp -r "$WAYBAR_DIR" "$BACKUP_DIR"
+fi
+
+# 2. Recreate Waybar directory clean (to prevent conflicting files from lingering)
+rm -rf "$WAYBAR_DIR"
+mkdir -p "$WAYBAR_DIR"
+
+# 3. Copy the new theme config files
+echo "Installing Waybar theme $VERSION..."
+cp -r "$THEME_PATH"/* "$WAYBAR_DIR/"
+
+# 3.5 Ensure Waybar is drawn on the top layer so it doesn't get covered by windows
+# We use sed instead of jq because Waybar uses JSONC (JSON with comments) which jq fails to parse.
+if [ -f "$WAYBAR_DIR/config.jsonc" ]; then
+  sed -i '0,/^[[:space:]]*{/s/^[[:space:]]*{/{\n  "layer": "top",/' "$WAYBAR_DIR/config.jsonc"
+elif [ -f "$WAYBAR_DIR/config" ]; then
+  sed -i '0,/^[[:space:]]*{/s/^[[:space:]]*{/{\n  "layer": "top",/' "$WAYBAR_DIR/config"
+fi
+
+# 3.6 Inject keyboard language module and style
+if [ -x "$HOME/.local/bin/omarchy-waybar-patch-layout" ]; then
+  "$HOME/.local/bin/omarchy-waybar-patch-layout" "$WAYBAR_DIR"
+fi
+
+# 4. Make python/shell scripts executable
+chmod +x "$WAYBAR_DIR"/*.py "$WAYBAR_DIR"/*.sh 2>/dev/null || true
+
+# 5. Record active theme
+echo "$VERSION" > "$WAYBAR_DIR/.active_theme"
+
+# 6. Restart Waybar
+echo "Restarting Waybar..."
+omarchy-restart-waybar
+
+echo "Waybar theme '$VERSION' applied successfully!"

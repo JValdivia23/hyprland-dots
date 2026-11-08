@@ -1,0 +1,1 @@
+/home/jairo/.config/quickshell/desktop/omni/Footer.qml

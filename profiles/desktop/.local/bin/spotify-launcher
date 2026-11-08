@@ -1,0 +1,9 @@
+#!/bin/bash
+# Check if DNS resolution is working for repository.spotify.com
+if ! timeout 1 getent ahosts repository.spotify.com >/dev/null 2>&1; then
+    # Offline or DNS not ready, skip update check
+    exec /usr/bin/spotify-launcher --skip-update "$@"
+else
+    # Online, run normally to allow update check
+    exec /usr/bin/spotify-launcher "$@"
+fi

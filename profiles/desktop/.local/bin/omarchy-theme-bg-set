@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+# Bridge script for Quickshell Rise to change wallpaper on CachyOS Omarchy
+ln -nsf "$1" "$HOME/.config/omarchy/current/background"
+pkill -x swaybg
+setsid uwsm app -- swaybg -i "$HOME/.config/omarchy/current/background" -m fill >/dev/null 2>&1 &

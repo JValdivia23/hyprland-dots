@@ -15,13 +15,15 @@ local hyprOcr = homeDir .. "/.local/bin/hypr-ocr"
 local hyprRecord = homeDir .. "/.local/bin/hypr-record"
 local captureMenu = homeDir .. "/.local/bin/hypr-capture-menu"
 local trayDrawer = homeDir .. "/.local/bin/hypr-tray-drawer"
+local isQuickshell = (SHELL_BACKEND == "quickshell")
+local osdClient = "swayosd-client --monitor \"$(hyprctl monitors -j | jq -r '.[] | select(.focused == true).name')\" "
 
 ---------------------------
 ---- WINDOW MANAGEMENT ----
 ---------------------------
 
 -- Window manipulation
-helpers.bind(mainMod .. " + Escape", "Toggle session menu", hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
+helpers.bind(mainMod .. " + Escape", "Toggle session menu", isQuickshell and hl.dsp.exec_cmd(homeDir .. "/.local/bin/omarchy-menu system") or hl.dsp.exec_cmd(noctCall .. "panel-toggle session"))
 helpers.bind(mainMod .. " + Q",      "Close active window", hl.dsp.window.close())
 helpers.bind(mainMod .. " + W",      "Close active window", hl.dsp.window.close())
 helpers.bind(mainMod .. " + M",      "Minimize active window to tray drawer", hl.dsp.exec_cmd(trayDrawer .. " minimize"))
@@ -237,17 +239,17 @@ helpers.bind(mainMod .. " + SHIFT + U",      "Launch or focus Yazi",            
 
 -- System Panels & Controls (SUPER + <key>)
 helpers.bind("CONTROL + SHIFT + Escape", "Launch Btop system monitor", launchPrefix .. TERMINAL .. " -e btop")
-helpers.bind(mainMod .. " + comma",      "Toggle Noctalia settings",   hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
-helpers.bind(mainMod .. " + E",          "Toggle Noctalia control center", hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
-helpers.bind(mainMod .. " + Space",      "Toggle Noctalia app launcher",   hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
-helpers.bind("ALT + Space",              "Toggle Noctalia wallpaper panel", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
-helpers.bind(mainMod .. " + period",     "Open Noctalia emoji picker",     hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
-helpers.bind(mainMod .. " + L",          "Lock desktop session",           hl.dsp.exec_cmd(noctCall .. "session lock"))
-helpers.bind(mainMod .. " + ALT + C",    "Kill window mode",               hl.dsp.exec_cmd("hyprctl kill"))
-helpers.bind(mainMod .. " + A",          "Toggle notification center",     hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center notifications"))
-helpers.bind(mainMod .. " + CONTROL + V","Toggle clipboard history",       hl.dsp.exec_cmd(noctCall .. "panel-toggle clipboard"))
-helpers.bind(mainMod .. " + ALT + K",    "Toggle Command/Alt modifier layout", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
-helpers.bind(mainMod .. " + SHIFT + K",  "Toggle Command/Alt modifier layout", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
+helpers.bind(mainMod .. " + comma",      "Toggle settings / dismiss notification", isQuickshell and hl.dsp.exec_cmd("makoctl dismiss") or hl.dsp.exec_cmd(noctCall .. "settings-toggle"))
+helpers.bind(mainMod .. " + E",          "Toggle control center / quick tiles",    isQuickshell and hl.dsp.global("quickshell:palette-quick") or hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center"))
+helpers.bind(mainMod .. " + Space",      "Toggle app launcher",                    isQuickshell and hl.dsp.global("quickshell:palette-toggle") or hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher"))
+helpers.bind("ALT + Space",              "Toggle wallpaper / quick panel",         isQuickshell and hl.dsp.global("quickshell:palette-quick") or hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
+helpers.bind(mainMod .. " + period",     "Open emoji picker",                      isQuickshell and hl.dsp.exec_cmd("walker -m symbols") or hl.dsp.exec_cmd(noctCall .. "panel-toggle launcher /emo"))
+helpers.bind(mainMod .. " + L",          "Lock desktop session",                   isQuickshell and hl.dsp.exec_cmd("hyprlock") or hl.dsp.exec_cmd(noctCall .. "session lock"))
+helpers.bind(mainMod .. " + ALT + C",    "Kill window mode",                       hl.dsp.exec_cmd("hyprctl kill"))
+helpers.bind(mainMod .. " + A",          "Toggle notification / Aether panel",     isQuickshell and hl.dsp.exec_cmd("qs -c desktop ipc call aether toggle") or hl.dsp.exec_cmd(noctCall .. "panel-toggle control-center notifications"))
+helpers.bind(mainMod .. " + CONTROL + V","Toggle clipboard history",               isQuickshell and hl.dsp.exec_cmd("walker -k clipboard") or hl.dsp.exec_cmd(noctCall .. "panel-toggle clipboard"))
+helpers.bind(mainMod .. " + ALT + K",    "Toggle Command/Alt modifier layout",     hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
+helpers.bind(mainMod .. " + SHIFT + K",  "Toggle Command/Alt modifier layout",     hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
 helpers.bind(mainMod .. " + K",          "Interactive Keybindings Cheatsheet (Live IPC)", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class Keybindings -T 'Hyprland Keybindings' -e " .. keybindsMenu))
 helpers.bind("ALT + Return",            "Quick Look preview",             hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-quicklook"))
 helpers.bind("SUPER + SUPER_R",         "Trigger Context Menu on Right Super tap", hl.dsp.send_shortcut({ mods = "", key = "Menu", window = "activewindow" }), { release = true })
@@ -257,16 +259,16 @@ helpers.bind("SUPER + SUPER_R",         "Trigger Context Menu on Right Super tap
 ---------------------------
 
 -- Audio
-helpers.bind("XF86AudioRaiseVolume", "Raise audio volume",   hl.dsp.exec_cmd(noctCall .. "volume-up"),   { locked = true, repeating = true })
-helpers.bind("XF86AudioLowerVolume", "Lower audio volume",   hl.dsp.exec_cmd(noctCall .. "volume-down"), { locked = true, repeating = true })
-helpers.bind("XF86AudioMute",        "Toggle audio mute",    hl.dsp.exec_cmd(noctCall .. "volume-mute"), { locked = true })
-helpers.bind("XF86AudioMicMute",     "Toggle mic mute",      hl.dsp.exec_cmd(noctCall .. "mic-mute"),    { locked = true })
+helpers.bind("XF86AudioRaiseVolume", "Raise audio volume",   isQuickshell and hl.dsp.exec_cmd(osdClient .. "--output-volume raise")        or hl.dsp.exec_cmd(noctCall .. "volume-up"),   { locked = true, repeating = true })
+helpers.bind("XF86AudioLowerVolume", "Lower audio volume",   isQuickshell and hl.dsp.exec_cmd(osdClient .. "--output-volume lower")        or hl.dsp.exec_cmd(noctCall .. "volume-down"), { locked = true, repeating = true })
+helpers.bind("XF86AudioMute",        "Toggle audio mute",    isQuickshell and hl.dsp.exec_cmd(osdClient .. "--output-volume mute-toggle")  or hl.dsp.exec_cmd(noctCall .. "volume-mute"), { locked = true })
+helpers.bind("XF86AudioMicMute",     "Toggle mic mute",      isQuickshell and hl.dsp.exec_cmd(osdClient .. "--input-volume mute-toggle")   or hl.dsp.exec_cmd(noctCall .. "mic-mute"),    { locked = true })
 
 -- Media
-helpers.bind("XF86AudioPlay",  "Toggle media play/pause", hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
-helpers.bind("XF86AudioPause", "Toggle media play/pause", hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
-helpers.bind("XF86AudioNext",  "Next media track",        hl.dsp.exec_cmd(noctCall .. "media next"),     { locked = true })
-helpers.bind("XF86AudioPrev",  "Previous media track",    hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
+helpers.bind("XF86AudioPlay",  "Toggle media play/pause", isQuickshell and hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause") or hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
+helpers.bind("XF86AudioPause", "Toggle media play/pause", isQuickshell and hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause") or hl.dsp.exec_cmd(noctCall .. "media toggle"),   { locked = true })
+helpers.bind("XF86AudioNext",  "Next media track",        isQuickshell and hl.dsp.exec_cmd(osdClient .. "--playerctl next")       or hl.dsp.exec_cmd(noctCall .. "media next"),     { locked = true })
+helpers.bind("XF86AudioPrev",  "Previous media track",    isQuickshell and hl.dsp.exec_cmd(osdClient .. "--playerctl previous")   or hl.dsp.exec_cmd(noctCall .. "media previous"), { locked = true })
 
 -- Brightness (Display / Screen Backlight)
 helpers.bind("XF86MonBrightnessUp",         "Increase screen brightness (5%)",        hl.dsp.exec_cmd(screenBrightness .. "+5%"),   { locked = true, repeating = true })
@@ -299,18 +301,19 @@ helpers.bind(mainMod .. " + CONTROL + SHIFT + S", "Extract text with OCR to clip
 helpers.bind(mainMod .. " + CONTROL + C",         "Interactive Capture Menu",                     hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class CaptureMenu -T 'Screen Capture' -e " .. captureMenu))
 
 -- Lock & Suspend
-helpers.bind(mainMod .. " + SHIFT + L",  "Lock session and suspend", hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"))
-helpers.bind("XF86Sleep",                "System sleep",             hl.dsp.exec_cmd(noctCall .. "session lock-and-suspend"), { locked = true })
+local lockSuspendCmd = isQuickshell and "sh -c 'hyprlock & sleep 0.5 && systemctl suspend'" or (noctCall .. "session lock-and-suspend")
+helpers.bind(mainMod .. " + SHIFT + L",  "Lock session and suspend", hl.dsp.exec_cmd(lockSuspendCmd))
+helpers.bind("XF86Sleep",                "System sleep",             hl.dsp.exec_cmd(lockSuspendCmd), { locked = true })
 
 -- Laptop Lid Switch (Clamshell & Ultra-Low Power Mode)
 helpers.bind("switch:on:Lid Switch",     "Clamshell lid closed handler", hl.dsp.exec_cmd(lidHandler .. "close"), { locked = true })
 helpers.bind("switch:off:Lid Switch",    "Clamshell lid opened handler", hl.dsp.exec_cmd(lidHandler .. "open"),  { locked = true })
 
 -- Theming, Wallpaper & Night Light
-helpers.bind(mainMod .. " + SHIFT + W", "Toggle Noctalia wallpaper panel", hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
-helpers.bind(mainMod .. " + ALT + N",   "Toggle night light",             hl.dsp.exec_cmd(noctCall .. "nightlight-toggle"))
-helpers.bind(mainMod .. " + ALT + T",   "Toggle dark/light theme mode",   hl.dsp.exec_cmd(noctCall .. "theme-mode-toggle"))
-helpers.bind(mainMod .. " + CONTROL + I", "Toggle caffeine mode",         hl.dsp.exec_cmd(noctCall .. "caffeine-toggle"))
+helpers.bind(mainMod .. " + SHIFT + W", "Toggle wallpaper panel",      isQuickshell and hl.dsp.exec_cmd("qs -c desktop ipc call palette openCategory Backgrounds") or hl.dsp.exec_cmd(noctCall .. "panel-toggle wallpaper"))
+helpers.bind(mainMod .. " + ALT + N",   "Toggle night light",          isQuickshell and hl.dsp.exec_cmd("omarchy-toggle-nightlight") or hl.dsp.exec_cmd(noctCall .. "nightlight-toggle"))
+helpers.bind(mainMod .. " + ALT + T",   "Toggle theme menu / mode",    isQuickshell and hl.dsp.exec_cmd(homeDir .. "/.local/bin/omarchy-menu theme") or hl.dsp.exec_cmd(noctCall .. "theme-mode-toggle"))
+helpers.bind(mainMod .. " + CONTROL + I", "Toggle caffeine / idle mode", isQuickshell and hl.dsp.exec_cmd("omarchy-toggle-idle") or hl.dsp.exec_cmd(noctCall .. "caffeine-toggle"))
 
 -------------------------------
 ---- WORKSPACES & MONITORS ----

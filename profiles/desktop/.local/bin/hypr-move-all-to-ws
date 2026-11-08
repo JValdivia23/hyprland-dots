@@ -1,0 +1,34 @@
+#!/bin/bash
+# Mueve todas las ventanas del workspace actual al workspace N
+# Uso: hypr-move-all-to-ws <workspace_destino>
+# Ej: hypr-move-all-to-ws 1
+
+TARGET_WS="${1:?Uso: hypr-move-all-to-ws <workspace_destino>}"
+
+# Obtener el workspace activo
+CURRENT_WS=$(hyprctl activeworkspace -j | jq -r '.id')
+
+if [ -z "$CURRENT_WS" ] || [ "$CURRENT_WS" = "null" ]; then
+    notify-send "hypr-move-all" "No se pudo detectar el workspace actual" -u critical
+    exit 1
+fi
+
+if [ "$CURRENT_WS" = "$TARGET_WS" ]; then
+    notify-send "hypr-move-all" "Origen y destino son el mismo (ws $TARGET_WS)" -u normal
+    exit 0
+fi
+
+# Mover cada ventana del workspace actual al destino
+COUNT=0
+hyprctl clients -j | jq -r --arg ws "$CURRENT_WS" \
+    '.[] | select(.workspace.id == ($ws | tonumber)) | .address' | \
+while read -r addr; do
+    hyprctl dispatch movetoworkspacesilent "$TARGET_WS,address:$addr" >/dev/null 2>&1
+    COUNT=$((COUNT + 1))
+done
+
+# La variable COUNT del subshell no sobrevive al pipe, contamos de nuevo
+FINAL_COUNT=$(hyprctl clients -j | jq -r --arg ws "$TARGET_WS" \
+    '[.[] | select(.workspace.id == ($ws | tonumber))] | length')
+
+notify-send "hypr-move-all" "ws $CURRENT_WS → ws $TARGET_WS  ($FINAL_COUNT ventanas)" -u low

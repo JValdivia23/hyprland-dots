@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Workstation Desktop Profile Setup (cachyos-obsidian / MSI MS-7D75 / AMD RDNA 3)
+# Workstation Desktop Profile Setup (cachyos-obsidian / MSI MS-7D75 / AMD RDNA 3 / Personalized Quickshell)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
-echo "==> Initializing Workstation Desktop Profile..."
+echo "==> Initializing Workstation Desktop Profile (Personalized Quickshell + AMD RDNA 3)..."
 
 SUDO=""
 if [ "$(id -u)" -ne 0 ]; then
@@ -29,7 +29,22 @@ if [ -f "$QUIRKS_SRC" ]; then
     fi
 fi
 
-# 2. Check AMD RDNA 3 DisplayPort blanking mitigation parameters
+# 2. Ensure Quickshell weather location file and state directories exist
+mkdir -p "$HOME/.config/omarchy/weather" \
+         "$HOME/.local/state/quickshell-desktop"
+[ -f "$HOME/.config/omarchy/weather/location" ] || touch "$HOME/.config/omarchy/weather/location"
+
+# 3. Enable Quickshell Rise bar background timers (update check & AUR security gate)
+if command -v systemctl &>/dev/null; then
+    systemctl --user daemon-reload 2>/dev/null || true
+    for timer in qs-aur-blacklist-fetch.timer qs-shell-update-check.timer; do
+        if [ -f "$HOME/.config/systemd/user/$timer" ]; then
+            systemctl --user enable --now "$timer" 2>/dev/null || true
+        fi
+    done
+fi
+
+# 4. Check AMD RDNA 3 DisplayPort blanking mitigation parameters
 if lspci 2>/dev/null | grep -qiE "Navi 3|RX 7[0-9]{3}"; then
     if ! grep -q "amdgpu.dcdebugmask=0x10" /proc/cmdline 2>/dev/null; then
         echo "    [AMDGPU] Notice: RDNA 3 GPU detected without 'amdgpu.dcdebugmask=0x10 amdgpu.sg_display=0' in kernel cmdline."

@@ -1,4 +1,12 @@
-# Desktop Workstation, Audio DSP & Gaming Utility Packages
+# Desktop Workstation, Personalized Quickshell Bar, Audio DSP & Gaming Packages
+quickshell
+mako
+swayosd
+swaybg
+waybar
+wl-clip-persist
+polkit-gnome
+aether
 pavucontrol
 gamemode
 smartmontools

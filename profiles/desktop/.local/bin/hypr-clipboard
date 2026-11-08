@@ -1,0 +1,54 @@
+#!/bin/bash
+# Universal clipboard operations for Hyprland (using wtype)
+# Usage: hypr-clipboard {copy|cut|paste|manager}
+
+ACTION="${1:?Uso: hypr-clipboard copy|cut|paste|manager}"
+
+# Pequeña pausa para que Hyprland libere las teclas físicas
+sleep 0.15
+
+get_active_class() {
+    hyprctl activewindow -j | jq -r '.class // ""'
+}
+
+is_terminal() {
+    local class
+    class=$(get_active_class)
+    case "$class" in
+        Alacritty|kitty|foot|wezterm|ghostty|konsole|gnome-terminal|xfce4-terminal|tilix|terminator)
+            return 0 ;;
+        *)
+            return 1 ;;
+    esac
+}
+
+case "$ACTION" in
+    copy)
+        if is_terminal; then
+            wtype -M ctrl -M shift c -m shift -m ctrl
+        else
+            wtype -M ctrl c -m ctrl
+        fi
+        ;;
+    cut)
+        if is_terminal; then
+            wtype -M ctrl -M shift c -m shift -m ctrl
+        else
+            wtype -M ctrl x -m ctrl
+        fi
+        ;;
+    paste)
+        if is_terminal; then
+            wtype -M ctrl -M shift v -m shift -m ctrl
+        else
+            wtype -M ctrl v -m ctrl
+        fi
+        ;;
+    manager)
+        walker -k clipboard
+        ;;
+    *)
+        echo "Acción desconocida: $ACTION" >&2
+        exit 1
+        ;;
+esac

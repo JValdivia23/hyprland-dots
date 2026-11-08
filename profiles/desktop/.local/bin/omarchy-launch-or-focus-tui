@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# Bridge script for Quickshell Rise to launch TUI commands on CachyOS Omarchy
+exec omarchy-launch-tui "$@"

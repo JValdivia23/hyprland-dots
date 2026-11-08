@@ -1,0 +1,20 @@
+#!/bin/bash
+# Waybar custom module — display current keyboard layout
+# Reads from Hyprland's main keyboard device
+
+LAYOUT=$(hyprctl devices -j 2>/dev/null | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+for k in d.get('keyboards', []):
+    if k.get('name') == 'sonix-x85':
+        print(k.get('active_keymap', '??'))
+        break
+else:
+    print('??')
+" 2>/dev/null)
+
+case "$LAYOUT" in
+    "English (US)"|"English") echo "US" ;;
+    "Spanish"|"Spanish (ES)"|"Spanish (Latin American)") echo "ES" ;;
+    *) echo "$LAYOUT" ;;
+esac
