@@ -108,15 +108,26 @@ echo "    Vendor:   ${SYS_VENDOR:-Unknown Vendor}"
 echo "    Chassis:  ${SYS_CHASSIS:-Unknown Chassis}"
 echo "    Kernel:   $KERNEL_RELEASE"
 
-# Laptop detection
+# Laptop detection (exclude peripheral Device batteries like hidpp_battery_0 on wireless mice)
 IS_LAPTOP=false
 case "$SYS_CHASSIS" in
     8|9|10|11|12|14|30|31|32)
         IS_LAPTOP=true
         ;;
+    3|4|5|6|7|13|15|16)
+        IS_LAPTOP=false
+        ;;
     *)
-        if [ -d /sys/class/power_supply ] && ls /sys/class/power_supply/ 2>/dev/null | grep -q -E "BAT|battery"; then
-            IS_LAPTOP=true
+        if [ -d /sys/class/power_supply ]; then
+            for ps in /sys/class/power_supply/*; do
+                [ -e "$ps" ] || continue
+                ps_type=$(cat "$ps/type" 2>/dev/null || true)
+                ps_scope=$(cat "$ps/scope" 2>/dev/null || true)
+                if [ "$ps_type" = "Battery" ] && [ "$ps_scope" != "Device" ]; then
+                    IS_LAPTOP=true
+                    break
+                fi
+            done
         fi
         ;;
 esac

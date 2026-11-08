@@ -1,0 +1,6 @@
+! Xresources for HiDPI XWayland apps (1.67x scale)
+Xft.dpi: 144
+Xft.antialias: 1
+Xft.hinting: 1
+Xft.hintstyle: hintslight
+Xft.rgba: rgb

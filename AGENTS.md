@@ -54,13 +54,19 @@ This repository organizes configuration into three decoupled, modular tiers to e
 │   │   ├── gotchas/            # Apple T2 hardware quirks & documentation
 │   │   └── .stow-local-ignore
 │   │
-│   ├── desktop/                # Multi-Monitor Workstations & Generic Standard PCs
+│   ├── desktop/                # AMD RDNA 3 Dual-Monitor Workstation (cachyos-obsidian / MS-7D75)
 │   │   ├── .config/hypr/config/profile/
-│   │   │   ├── monitors.lua    # Multi-head layout template (DP-1, DP-2, 144Hz)
-│   │   │   ├── environment.lua # NVIDIA / generic Mesa acceleration template
-│   │   │   └── inputs.lua      # Desktop mouse settings (flat accel, no gestures)
-│   │   ├── packages.txt        # pavucontrol, gamemode
-│   │   ├── setup.sh            # Workstation desktop setup
+│   │   │   ├── monitors.lua    # Dual-head layout (DP-1 4K@60Hz 1.67x + HDMI-A-1 1440p@120Hz 1.33x)
+│   │   │   ├── environment.lua # AMD RDNA 3 (RX 7700 XT) RADV / Vulkan gaming optimizations
+│   │   │   ├── inputs.lua      # Flat mouse accel, Logitech G903 discrete scroll, Attack Shark X85
+│   │   │   ├── autostart.lua   # EasyEffects daemon, Xresources HiDPI, Dota 2 workspace daemon
+│   │   │   └── binds.lua       # Whisper.cpp voice dictation (F9 / Super+Ctrl+X) & layout toggle
+│   │   ├── .config/libinput/   # Logitech G903 LIGHTSPEED XWayland scroll quirks
+│   │   ├── .config/easyeffects/# Realtek ALC4080 USB mic autogain & RNNoise presets
+│   │   ├── .local/bin/         # steam (HiDPI + PipeWire recovery), dota2-workspace, hypr-dictate
+│   │   ├── packages.txt        # pavucontrol, gamemode, easyeffects, lsp-plugins, lib32-libpulse
+│   │   ├── setup.sh            # Deploys /etc/libinput quirks & verifies RDNA 3 boot params
+│   │   ├── gotchas/            # Desktop AMD RDNA 3, G903, ALC4080 & gaming documentation
 │   │   └── .stow-local-ignore
 │   │
 │   ├── surface/                # Microsoft Surface Devices (Surface Book 3 / Surface Pro)

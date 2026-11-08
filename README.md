@@ -37,7 +37,7 @@ This repository is built around a **3-Tier Architecture** that cleanly isolates 
 | Profile | Target Hardware | Included Overrides |
 | :--- | :--- | :--- |
 | **`macbook-t2`** | Apple MacBook Pro 15,1 (T2) | 2880x1800 @ 1.33 scale, AMD `radeonsi` GPU flags, MacBook trackpad gestures, Touch Bar `tiny-dfr`, sleep/resume fixes. |
-| **`desktop`** | Workstations / Generic PCs | Multi-monitor display templates (144Hz, portrait/landscape), flat mouse acceleration, audio routing (`pavucontrol`), gaming mode. |
+| **`desktop`** | AMD RDNA 3 Workstation (`MS-7D75`) | Dual-monitor (`DP-1` 4K@60Hz 1.67x + `HDMI-A-1` 1440p@120Hz 1.33x), AMD RX 7700 XT RADV/Vulkan gaming flags, Logitech G903 scroll quirks, Realtek ALC4080 EasyEffects mic DSP, Steam HiDPI/PipeWire recovery wrapper, Whisper dictation. |
 | **`surface`** | Microsoft Surface Book / Pro | 3000x2000 @ 2.0 integer scaling, Intel Precise Touch (`iptsd`), tablet detach daemon (`surface-dtx-daemon`); physical-detachment-only automatic screen rotation on Surface Book 3. |
 | **`laptop`** | Generic Laptops | Touchpad natural scrolling, 3-finger & 4-finger gestures, battery power management. |
 

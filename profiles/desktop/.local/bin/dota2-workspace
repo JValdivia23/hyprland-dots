@@ -1,0 +1,36 @@
+#!/usr/bin/env bash
+# Move Dota 2 / Gamescope to workspace 8 (HDMI-A-1 secondary monitor) — only the game, not Steam dialogs
+while true; do
+    sleep 1
+    hyprctl clients -j 2>/dev/null | python3 -c "
+import json, sys, subprocess
+TARGET = 8
+
+for w in json.load(sys.stdin):
+    cls = w.get('class', '')
+    title = w.get('title', '')
+    ws = w.get('workspace', {}).get('id', 0)
+    addr = w.get('address', '')
+    size = w.get('size', [0, 0])
+    area = size[0] * size[1] if len(size) >= 2 else 0
+
+    # Skip windows already on target workspace
+    if ws == TARGET:
+        continue
+
+    # Game window: class=dota2 (always the real game)
+    if cls == 'dota2':
+        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
+        subprocess.run(['hyprctl', 'dispatch', 'focuswindow', f'address:{addr}'])
+        subprocess.run(['hyprctl', 'dispatch', 'fullscreen', '0'])
+    # Gamescope wrapper: class=gamescope, contains the game window when launched under gamescope
+    elif cls == 'gamescope':
+        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
+        subprocess.run(['hyprctl', 'dispatch', 'focuswindow', f'address:{addr}'])
+        # Fullscreen it after moving (avoids xdg-desktop-portal share picker from gamescope -f)
+        subprocess.run(['hyprctl', 'dispatch', 'fullscreen'])
+    # Steam wrapper: class=steam + title='Dota 2' + large window (skip Properties dialogs)
+    elif cls == 'steam' and title == 'Dota 2' and area > 3000000:
+        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
+" 2>/dev/null
+done

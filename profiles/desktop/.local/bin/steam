@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# Steam wrapper for CachyOS + Hyprland (Desktop 1.67x HiDPI + PipeWire segfault recovery)
+
+# --- Cursor settings for XWayland ---
+export XCURSOR_THEME="${XCURSOR_THEME:-Bibata-Modern-Ice}"
+export XCURSOR_SIZE="${XCURSOR_SIZE:-24}"
+
+# --- HiDPI scaling (monitor at 1.67x) ---
+if [ -f ~/.Xresources ] && command -v xrdb &>/dev/null; then
+  xrdb -merge ~/.Xresources 2>/dev/null
+fi
+
+# Force Steam's desktop UI to use the 1.67x scale factor
+export STEAM_FORCE_DESKTOPUI_SCALING=1.67
+
+# Force SDL games to use Wayland directly
+export SDL_VIDEODRIVER=wayland
+
+# Run Steam with automatic recovery for audio-related segmentation faults (libaudio.so / threaded-ml)
+if [ -z "${STEAM_RECOVERY_ATTEMPT:-}" ]; then
+  /usr/bin/steam -forcedesktopscaling -pipewire "$@"
+  EXIT_CODE=$?
+  if [ $EXIT_CODE -eq 139 ]; then
+    echo "========================================================="
+    echo "[Steam Wrapper] Steam crashed with a segmentation fault (exit code 139)."
+    echo "[Steam Wrapper] This is typically caused by inconsistent PipeWire/PulseAudio states."
+    echo "[Steam Wrapper] Attempting recovery by restarting audio services..."
+    echo "========================================================="
+
+    # Save EasyEffects status before restarting PipeWire
+    EASYEFFECTS_WAS_RUNNING=0
+    pgrep -x easyeffects >/dev/null && EASYEFFECTS_WAS_RUNNING=1
+
+    systemctl --user restart pipewire pipewire-pulse wireplumber
+    sleep 1.5
+
+    # Restore EasyEffects if it was active
+    if [ $EASYEFFECTS_WAS_RUNNING -eq 1 ]; then
+      echo "[Steam Wrapper] Restoring EasyEffects daemon..."
+      easyeffects --gapplication-service &
+      sleep 1.5
+      EE_SRC_ID=$(wpctl status | grep -E "Easy Effects Source" | head -n 1 | awk -F. '{print $1}' | tr -d -c '0-9')
+      if [ -n "$EE_SRC_ID" ]; then
+        wpctl set-default "$EE_SRC_ID"
+        echo "[Steam Wrapper] Restored Easy Effects Source ($EE_SRC_ID) as default microphone."
+      fi
+    fi
+
+    sleep 0.5
+    export STEAM_RECOVERY_ATTEMPT=1
+    exec "$0" "$@"
+  fi
+  exit $EXIT_CODE
+else
+  exec /usr/bin/steam -forcedesktopscaling -pipewire "$@"
+fi

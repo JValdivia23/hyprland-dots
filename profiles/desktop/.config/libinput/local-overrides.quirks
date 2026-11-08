@@ -1,0 +1,19 @@
+# Logitech G903 Lightspeed — disable hi-res scroll wheel
+# Hi-res scroll events (REL_WHEEL_HI_RES) break scroll in XWayland games (Dota 2)
+# This forces traditional REL_WHEEL events that games understand
+[Logitech G903 Lightspeed]
+MatchName=*G903*
+AttrEventCode=-REL_WHEEL_HI_RES;-REL_HWHEEL_HI_RES;
+
+[Logitech G903 LS]
+MatchName=*G903*LS*
+AttrEventCode=-REL_WHEEL_HI_RES;-REL_HWHEEL_HI_RES;
+
+[Logitech G903 LS Wireless Receiver]
+MatchName=*g903*
+AttrEventCode=-REL_WHEEL_HI_RES;-REL_HWHEEL_HI_RES;
+
+[Logitech G903 Wireless Vendor/Product]
+MatchVendor=0x046D
+MatchProduct=0x4087
+AttrEventCode=-REL_WHEEL_HI_RES;-REL_HWHEEL_HI_RES;

@@ -1,0 +1,15 @@
+[StreamInputs]
+inputDevice=alsa_input.usb-Generic_USB_Audio-00.HiFi__Mic__source
+plugins=autogain#0,rnnoise#0
+visiblePage=pluginsPage
+visiblePlugin=autogain#0
+
+[StreamOutputs]
+outputDevice=alsa_output.pci-0000_03_00.1.hdmi-stereo
+
+[Window]
+autostartOnLogin=true
+height=606
+noWindowAfterStarting=true
+visiblePage=inputPage
+width=553

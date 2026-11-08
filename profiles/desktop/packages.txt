@@ -1,4 +1,10 @@
-# Desktop Workstation Utility Packages
+# Desktop Workstation, Audio DSP & Gaming Utility Packages
 pavucontrol
 gamemode
 smartmontools
+easyeffects
+lsp-plugins
+lib32-libpulse
+amdgpu_top
+tesseract-data-spa
+wtype

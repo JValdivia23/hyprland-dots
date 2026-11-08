@@ -1,6 +1,22 @@
 # System Personalization Changelog
 
-A dated log of all package changes, configurations, script modifications, and hardware setups for `surface`.
+A dated log of all package changes, configurations, script modifications, and hardware setups across profiles.
+
+## [2.88.0] - 2026-11-07
+### Added & Configured: Populated Workstation `desktop` Profile for AMD RDNA 3 Dual-Monitor PC (`profiles/desktop/`, device-specific)
+- **Hardware Target (`cachyos-obsidian` / MSI MAG B650 TOMAHAWK WIFI `MS-7D75`)**:
+  - AMD Ryzen 5 7600X + AMD Radeon RX 7700 XT (Navi 32 / RDNA 3), Dual KTC Monitors (`DP-1` KTC A32Q8 3840x2160@60Hz at 1.67x scale + `HDMI-A-1` KTC Q24T09 2560x1440@120Hz at 1.33333x scale), Attack Shark X85 keyboard (`sonix-x85`), Logitech G903 LIGHTSPEED mouse (`logitech-g903-ls-1`), and Realtek ALC4080 USB audio.
+- **Hyprland Native Lua Profile Overrides (`profiles/desktop/.config/hypr/config/profile/`)**:
+  - [`monitors.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/monitors.lua): Configured `DP-1` (`3840x2160@60`, `0x0`, `scale = 1.67`), `HDMI-A-1` (`2560x1440@120`, `auto-left`, `scale = 1.33333`), `GDK_SCALE=1`, and persistent workspace rules (workspaces 1–3 on `DP-1`, gaming workspace 8 on `HDMI-A-1`).
+  - [`environment.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/environment.lua): Added AMD RDNA 3 hardware video acceleration and Vulkan gaming flags (`LIBVA_DRIVER_NAME=radeonsi`, `AMD_VULKAN_ICD=RADV`, `RADV_PERFTEST=nggc,sam,nircache`, `mesa_glthread=true`, `RADV_PRESENT_MODE=mailbox`, `vblank_mode=0`, `QT_ACCESSIBILITY=1`, `YDOTOOL_SOCKET`).
+  - [`inputs.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/inputs.lua): Configured `kb_layout = "us,latam"`, `accel_profile = "flat"`, `emulate_discrete_scroll = 2` (for XWayland games), `general.allow_tearing = true`, `misc.on_focus_under_fullscreen = 1`, and `hl.device` rule for `logitech-g903-ls-1`.
+  - [`autostart.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/autostart.lua): Autostarts `~/.Xresources` HiDPI merge (`Xft.dpi: 144`), `easyeffects --gapplication-service`, and `~/.local/bin/dota2-workspace`.
+  - [`binds.lua`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/binds.lua): Added `SUPER + ALT + L` layout switch (`hypr-switch-layout`) and `whisper.cpp` bilingual voice dictation (`SUPER + CONTROL + X` toggle and `F9` push-to-talk hold/release).
+- **Peripherals, Audio DSP, Gaming Wrappers & Gotchas (`profiles/desktop/`)**:
+  - Added [`local-overrides.quirks`](file:///home/jairo/dev/dotfiles/profiles/desktop/.config/libinput/local-overrides.quirks) and updated [`setup.sh`](file:///home/jairo/dev/dotfiles/profiles/desktop/setup.sh) to deploy `/etc/libinput/local-overrides.quirks` for Logitech G903 scroll in XWayland games and verify RDNA 3 DisplayPort kernel parameters.
+  - Added EasyEffects microphone autogain + RNNoise DB configs (`easyeffectsrc`, `autogainrc`), `.Xresources`, and `~/.local/bin/` scripts (`steam` 1.67x HiDPI + PipeWire segfault exit-139 auto-recovery, `dota2-workspace`, `hypr-dictate`, `hypr-switch-layout`).
+  - Updated [`packages.txt`](file:///home/jairo/dev/dotfiles/profiles/desktop/packages.txt) (`pavucontrol`, `gamemode`, `smartmontools`, `easyeffects`, `lsp-plugins`, `lib32-libpulse`, `amdgpu_top`, `tesseract-data-spa`, `wtype`).
+  - Documented desktop hardware and gaming quirks in [`profiles/desktop/gotchas/desktop-amd-gaming.md`](file:///home/jairo/dev/dotfiles/profiles/desktop/gotchas/desktop-amd-gaming.md).
 
 ## [2.87.0] - 2026-11-04
 ### Installed & Configured: Migrated Default File Explorer to Flea (`flea-cachyos`, universal `core`)

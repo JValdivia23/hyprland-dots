@@ -120,7 +120,19 @@ else
     if [[ "${SYS_PRODUCT_NAME,,}" =~ surface ]] || [[ "${SYS_KERNEL,,}" =~ surface ]]; then
         DETECTED+=("surface")
     fi
-    if [ -d /sys/class/power_supply ] && ls /sys/class/power_supply/ 2>/dev/null | grep -q -E "BAT|battery"; then
+    HAS_SYS_BATTERY=false
+    if [ -d /sys/class/power_supply ]; then
+        for ps in /sys/class/power_supply/*; do
+            [ -e "$ps" ] || continue
+            ps_type=$(cat "$ps/type" 2>/dev/null || true)
+            ps_scope=$(cat "$ps/scope" 2>/dev/null || true)
+            if [ "$ps_type" = "Battery" ] && [ "$ps_scope" != "Device" ]; then
+                HAS_SYS_BATTERY=true
+                break
+            fi
+        done
+    fi
+    if [ "$HAS_SYS_BATTERY" = true ]; then
         DETECTED+=("laptop")
     else
         DETECTED+=("desktop")

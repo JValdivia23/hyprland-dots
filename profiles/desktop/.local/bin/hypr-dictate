@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# Voice dictation with whisper.cpp (auto-detects English/Spanish)
+# SUPER+Ctrl+X = toggle start/stop
+# F9 = push-to-talk (hold to record, release to transcribe)
+# Dependencies: whisper-cli, pw-record, wtype, notify-send
+
+TMPDIR="${XDG_RUNTIME_DIR:-/tmp}"
+AUDIO="$TMPDIR/hypr-dictate.wav"
+MODEL="$HOME/.cache/whisper-models/ggml-base.bin"
+
+action="${1:-toggle}"
+
+# If Dota 2 is the active window, pass F9 through and exit
+if hyprctl activewindow 2>/dev/null | grep -q 'class: dota2'; then
+    if [ "$action" = "start" ]; then
+        hyprctl dispatch sendshortcut ", F9, activewindow"
+    fi
+    exit 0
+fi
+
+if [ "$action" = "start" ]; then
+    # === PUSH-TO-TALK: START RECORDING ===
+    rm -f "$AUDIO"
+    pw-record --rate 16000 "$AUDIO" > /dev/null 2>&1 &
+    echo $! > "$TMPDIR/hypr-dictate.flag"
+    notify-send "Dictation" "Recording... (release F9 to stop)" -u low
+
+elif [ "$action" = "stop" ]; then
+    # === PUSH-TO-TALK: STOP AND TRANSCRIBE ===
+    pkill -f "pw-record.*hypr-dictate" 2>/dev/null
+    rm -f "$TMPDIR/hypr-dictate.flag"
+    sleep 0.3
+
+    if [ -f "$AUDIO" ] && [ -s "$AUDIO" ]; then
+        whisper-cli -m "$MODEL" -f "$AUDIO" -l auto -otxt \
+            -of "$TMPDIR/hypr-dictate" --no-timestamps > "$TMPDIR/hypr-dictate.log" 2>&1
+
+        if [ -f "$TMPDIR/hypr-dictate.txt" ]; then
+            TEXT=$(cat "$TMPDIR/hypr-dictate.txt" | sed '/^$/d' | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        fi
+
+        if [ -n "${TEXT:-}" ]; then
+            wtype -- "$TEXT"
+            notify-send "Dictation" "$TEXT" -u normal -t 4000
+        fi
+
+        rm -f "$AUDIO" "$TMPDIR/hypr-dictate.txt" "$TMPDIR/hypr-dictate.log"
+    fi
+
+elif [ "$action" = "toggle" ]; then
+    # === TOGGLE MODE (SUPER+Ctrl+X) ===
+    if [ -f "$TMPDIR/hypr-dictate.flag" ]; then
+        pkill -f "pw-record.*hypr-dictate" 2>/dev/null
+        rm -f "$TMPDIR/hypr-dictate.flag"
+        sleep 0.3
+
+        if [ -f "$AUDIO" ] && [ -s "$AUDIO" ]; then
+            whisper-cli -m "$MODEL" -f "$AUDIO" -l auto -otxt \
+                -of "$TMPDIR/hypr-dictate" --no-timestamps > "$TMPDIR/hypr-dictate.log" 2>&1
+
+            if [ -f "$TMPDIR/hypr-dictate.txt" ]; then
+                TEXT=$(cat "$TMPDIR/hypr-dictate.txt" | sed '/^$/d' | tr -d '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            fi
+
+            if [ -n "${TEXT:-}" ]; then
+                wtype -- "$TEXT"
+                notify-send "Dictation" "$TEXT" -u normal -t 4000
+            fi
+
+            rm -f "$AUDIO" "$TMPDIR/hypr-dictate.txt" "$TMPDIR/hypr-dictate.log"
+        fi
+    else
+        rm -f "$AUDIO"
+        pw-record --rate 16000 "$AUDIO" > /dev/null 2>&1 &
+        echo $! > "$TMPDIR/hypr-dictate.flag"
+        notify-send "Dictation" "Recording... (press SUPER+Ctrl+X to stop)" -u low -t 2000
+    fi
+fi

@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+# Switch keyboard layout (US/LATAM) on Attack Shark X85 and wireless dongles
+# Only toggle main devices (not sub-devices like *-keyboard which share state)
+
+switched=false
+for device in sonix-x85 2.4g-dongle; do
+    if hyprctl devices 2>/dev/null | grep -q "$device"; then
+        hyprctl switchxkblayout "$device" next 2>/dev/null || true
+        switched=true
+    fi
+done
+
+if [ "$switched" = false ]; then
+    hyprctl switchxkblayout all next 2>/dev/null || true
+fi
