@@ -6,6 +6,7 @@ Every system change, config edit, package install, and fix. Most recent first.
 
 | Time | What | Why | Files Touched |
 |------|------|-----|---------------|
+| 18:22 | Completed full system package upgrade & reboot | Upgraded Linux CachyOS kernel to `7.3.3-1` (LTS to `6.18.60-2`), Hyprland to `0.57.1-1.1`, Mesa and Vulkan Radeon to `26.2.6-1`, PipeWire to `1.6.10-1`, and Ghostty to `1.4.0-1.1`. Verified system reboot: Hyprland 0.57.1 loaded modular Lua cleanly with zero config errors, dual monitors restored exact fractional scales and positions, Quickshell and SwayOSD operational, and all user configs in `~/.config` intact. | System packages, `~/.agents/skills/system-personalization/references/current-state.md` |
 | 10:28 | Migrated live desktop to Hyprland native `.lua` configuration | Symlinked `hyprland.lua`, `helpers.lua`, `config/*.lua`, and `config/profile/*.lua` selectively into `~/.config/hypr/` while leaving all existing `.conf` files untouched for instant zero-risk fallback. Verified config with `Hyprland --verify-config` and reloaded live session (`hyprctl reload`) with zero config errors. Preserved Quickshell, Mako, SwayOSD, dual-monitor scales, and custom workspace assignments. | `~/.config/hypr/hyprland.lua`, `~/.config/hypr/helpers.lua`, `~/.config/hypr/config/`, `~/.config/hypr/config/profile/` |
 
 ## 2026-11-07

@@ -1,99 +1,145 @@
-# Current System State
+# Current State — 2026-11-08
 
-Live system snapshot automatically generated for multi-PC environment.
+## Operating System
 
-## Operating System & Kernel
-- **OS**: CachyOS Linux
-- **Kernel (`surface`)**: `7.3.1-1-cachyos` (active running kernel & default in Limine since 2026-10-22; touch via DKMS `ipts`, see `gotchas/kernel-cachyos-ipts.md`). Fallback: `7.2.14.arch1-1` (linux-surface, kept installed).
-- **Kernel (`cachyos-cu`)**: `7.3.1-1-cachyos` (active upon reboot; `linux-cachyos-lts 6.18.55-2` installed as fallback; unpinned in `/etc/pacman.conf`)
-- **Shell**: `/bin/fish` (version 4.9.3)
-- **Compositor**: Hyprland 0.57.0 (package: `0.57.0-3.1`)
-- **Active Profiles**: `surface` (Surface Book 3), `macbook-t2` (MacBookPro15,1)
+```
+OS: CachyOS Linux (Arch-based)
+Kernel: 7.3.3-1-cachyos
+Init: systemd
+Session: Wayland (Hyprland)
+Shell: /usr/bin/zsh
+```
 
-## Boot & Sleep (`surface`)
-- **Bootloader**: Active Limine 12.9.3; ESP mounted at `/boot`, configuration `/boot/limine.conf` (verified 2026-10-13).
-- **Boot menu**: Hidden one-second countdown (`quiet: yes`, `timeout: 1`), replacing the visible five-second wait on 2026-10-08. Press Space during that second to reveal the menu.
-- **Kernel selection (2026-10-13)**: `/etc/default/limine` `BOOT_ORDER="linux-cachyos, linux-surface*, *, *lts, *fallback, Snapshots"` (backup: `/etc/default/limine.bak-ipts`). Menu order: `linux-cachyos`, `linux-surface`, `linux-cachyos-lts`; `default_entry: 2` now resolves to `linux-cachyos`; `remember_last_entry: yes` remains enabled.
-- **IPTS on CachyOS kernels (2026-10-22)**: DKMS `ipts/2024.04.16` (built for `7.3.1-1-cachyos` and `6.18.55-2-cachyos-lts`) + `/usr/local/bin/surface-ipts-mei-bind` via `/etc/udev/rules.d/72-surface-ipts-mei-bind.rules`.
-- **IPU4P Cameras & USB-C UCSI/Charger DKMS on CachyOS `7.3+` (2026-11-02)**: DKMS `surface-ipu4p/0.2.0` (`intel-ipu6`, `intel-ipu6-isys`, `ov7251`, `ov5693`, `dw9719`) and DKMS `surface-usbc/0.2.0` (`ucsi_surface_hid` exposing `/sys/class/typec/port0` & `ucsi-source-psy-*`, plus patched `surface_charger` exposing `ADP1/input_power_limit` via SSAM `CID=0x0f` `Artg`).
-- **Lid policy**: Suspend-then-hibernate, with 30-minute hibernation delay and `HibernateMode=shutdown`.
-- **Hibernation compression & image size (2026-10-18)**: **LZ4 selected** (`/sys/module/hibernate/parameters/compressor = lz4`) and `/sys/power/image_size = 4800000000` (`~4.8 GB`, bypassing pre-snapshot `zram0` swap thrashing), applied at boot by `/usr/local/bin/surface-hibernate-compressor` (`surface-hibernate-compressor.service`).
-- **Hibernation CMOS RTC epoch alignment (2026-10-18)**: `/usr/local/bin/surface-hibernate-rtc-sync` and `/etc/systemd/system-sleep/19-surface-rtc-hibernate.sh` (symlinked in `/usr/lib/systemd/system-sleep/`) shift `rtc0` to the SAM EC UEFI POST epoch (`-25,179s` in `/var/lib/surface-hibernate-rtc/offset_sec`) on `pre/hibernate` and restore UTC on `post/hibernate` so kernel `timekeeping_resume()` natively injects the true hibernated duration.
-- **IPTS recovery (2026-10-18)**: `/usr/local/bin/surface-ipts-resume-recover` (with `0.5s` fast-path healthy check) and `/etc/systemd/system-sleep/21-surface-ipts-resume.sh` (symlinked in `/usr/lib/systemd/system-sleep/`, stopping active `iptsd@*.service` cleanly on `pre/*`).
-- **Touch Gestures (`lisgd`)**: External gesture daemon with session uaccess rule `/etc/udev/rules.d/71-iptsd-touchscreen-uaccess.rules` active and automated.
-- **Detached-only rotation (2026-10-19, Surface Book 3 only)**: `iio-sensor-proxy` + user `surface-autorotate.service`, gated by root-owned physical connection status from `surface-base-state.service`. Any attached base (including backwards) locks `eDP-1` to landscape. IPTS touch/pen transforms, lisgd edge directions and touch-resizer coordinates follow display rotation. User confirmed detached rotation, touch/keyboard gestures and landscape restoration on reattachment; both portrait transforms are logged. Pen, backwards attachment and resume remain untested. See `gotchas/screen-rotation.md`.
-- **Idle Power Baseline (2026-10-19)**: Tool `profiles/surface/scripts/surface-idle-power.py` deployed (appends to `~/.local/state/surface-idle-power/log.jsonl`). Verified clean baseline on `7.2.11-1-cachyos`: **5.86 W** median draw (5.91 W mean, 95.5% C3 residency at 25% display brightness; documented in [`gotchas/power-baseline.md`](file:///home/jmvp/.agents/skills/system-personalization/references/gotchas/power-baseline.md)).
+## Desktop Environment
 
-## Multi-PC System Specs & Display
+```
+WM: Hyprland 0.57.1 (Native Lua modular configuration via hyprland-dots profiles/desktop)
+Display Manager: SDDM (standard login screen)
+Bar/Launcher: Quickshell 0.3.2 (desktop / palette-only mode)
+  Config: ~/.config/quickshell/
+  Cache: /run/user/1000/quickshell/
+Terminal: Alacritty 0.17.0, Ghostty 1.4.0-1.1
+Notifications: Mako
+Idle daemon: Hypridle
+Lock screen: Hyprlock
+```
 
-### Microsoft Surface Book 3 (`surface`)
-- **Product**: Surface Book 3 (`surface`)
-- **CPU**: Intel(R) Core(TM) i5-1035G7 CPU @ 1.20GHz
-- **GPU**: Intel Corporation Iris Plus Graphics G7
-- **RAM**: 7.4Gi RAM, 16Gi swap
-- **Primary Display**: eDP-1 (3000x2000@60Hz, scale 2)
-- **Active Profile**: `surface`
-
-### Apple MacBook Pro 15,1 (`cachyos-cu`)
-- **Product**: MacBookPro15,1 (`cachyos-cu`)
-- **CPU**: Intel(R) Core(TM) i9-9880H CPU @ 2.30GHz
-- **GPU**: Advanced Micro Devices, Inc. [AMD/ATI] Baffin [Radeon RX 460/560D / Pro 450/455/460/555/555X/560/560X] / Intel UHD 630 / Apple Inc. T2 Bridge Controller
-- **RAM**: 15Gi RAM, 15Gi swap
-- **Primary Display**: eDP-1 (2880x1800@60Hz, scale 1.6 / 1.33)
-- **Active Profile**: `macbook-t2`
-
-## Key Installed Packages & Utilities
+## Key Packages
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.57.0-3.1 | Core Desktop Compositor |
-| noctalia | 5.4.1-1.1 | Wayland Shell & Panels |
-| kitty | 0.49.2-1.1 | Primary Terminal Emulator |
-| alacritty | 0.17.0-1.2 | Secondary Terminal Emulator |
-| ani-cli | 5.1-1 | Anime Streaming CLI (mpv/fzf) |
-| paru | 2.2.0-1 | AUR Helper (CachyOS Native) |
-| fish | 4.9.3-1 | System Interactive Shell |
-| btop | 1.4.7-1.1 | Process & System Monitor |
-| satty | 0.22.0-1.1 | Screenshot Annotation Editor |
-| swayimg | 5.7-1.1 | Image & Quick Look Viewer |
-| flea-cachyos | 0.4.0 (r7657) | Fast GPU-accelerated (GPUI) File Manager & Picker (replaces dolphin) |
-| zen-browser-bin | 1.24b-1 | Primary Web Browser |
-| opencode | 2.2.5 | AI Coding CLI & Agent Platform |
-| firefox | 157.0.1-1.1 | Secondary Web Browser |
-| pipewire | 1.6.10-1.1 | Audio & Video Pipeline (Native Factory Audio DSP active via `50-surface-audio-dsp.conf`: `surface_speaker_dsp` & `surface_mic_dsp`) |
-| easyeffects | 8.3.0-1.1 | Audio Processing Backend (Retired on `surface`; replaced by zero-daemon native PipeWire filter-chain) |
-| lsp-plugins-lv2 | 1.2.35-1.1 | LV2 Audio DSP Plugins (Equalizer, Limiter, High-Pass Filter) |
-| calf | 0.90.9-2.1 | LV2 Audio Plugins (Bass Enhancer / Virtual Bass, Stereo Tools) |
-| localsend | 1.17.0-4 | Local Network File Transfer |
-| lisgd | 0.4.0-1 | Surface Libinput Synthetic Gesture Daemon |
-| iio-sensor-proxy | 3.9-1.1 | Surface Book 3 detached-only orientation sensing |
-| wvkbd | 0.20-1 | Surface Virtual Touch Keyboard |
-| iptsd | 3.1.1-1 | Surface Precise Touch & Stylus Daemon |
-| surface-dtx-daemon | 0.3.10-1 | Surface Clipboard Detachment Daemon |
-| msr-tools | 1.3-4 | Intel MSR / RAPL Hardware Access |
-| fprintd | 1.94.5-2.1 | Fingerprint Authentication Daemon |
-| kait2en-touchbar | 0.1.0 | Advanced Apple T2 Touch Bar Daemon |
-| t2-touchid | 0.1.0 | BridgeXPC Apple T2 Touch ID Daemon |
-| t2-cpu-control | 0.02 | Intel Core i9 PL1/PL2 RAPL Limiter |
-| t2-power-tune | 0.02 | Package C-State & PCIe ASPM Power Tuner |
-| t2-power-explorer | 0.1.0 | PCIe Power Management & Lane Diagnostic |
-| apple-t2-audio-config | 0.3-2 | T2 Audio Driver Topology |
+| hyprland | 0.57.1-1.1 | Window manager (Native Lua) |
+| quickshell | 0.3.2-1.1 | Bar + palette launcher |
+| alacritty | 0.17.0 | Terminal emulator |
+| ghostty | 1.4.0-1.1 | Terminal emulator (with Kitty graphics support) |
+| google-chrome | 155.0.8059.84-1 | Browser |
+| zen-browser | 1.23.3b-1 | Browser (Zen Browser) |
+| firefox | 158.0.1-1 | Browser (fallback) |
+| zed | 1.24.4-1 | Code editor |
+| paru | 2.1.0-3 | Package management |
+| plymouth | 26.134.222-2.1 | Graphical boot splash screen |
+| grim | 1.5.0-2.1 | Wayland screenshots |
+| slurp | 1.5.0-2.1 | Region selection |
+| tesseract | 5.5.3-1.1 | OCR engine |
+| wl-clipboard | 1:2.3.0-1.1 | Wayland clipboard |
+| jq | 1.8.2-1.1 | JSON processor |
+| tesseract-data-eng | — | English OCR language |
+| tesseract-data-spa | — | Spanish OCR language |
+| pamixer | 1.6-4.2 | Audio control |
+| brightnessctl | 0.5.1-3 | Brightness control |
 
-## User-local Applications (current account)
+## Installed via AUR / Manual
 
-- **VLCdots Alpha `0.1.0-alpha.1`**: installed at `~/.local/opt/vlcdots-alpha/current` (versioned release underneath); launch with `vlcdots-alpha` or the **VLCdots Alpha** application-menu entry. Own persistent profile under `~/.local/state/vlcdots-alpha/profile` (original XDG state base respected). System VLC, MIME defaults, and ani-cli history remain separate/unchanged. This is a universal app, not a hardware profile or system package.
-- **Source/release**: private `JValdivia23/vlcdots`, main/tag `v0.1.0-alpha.1` at `81ae9d3`; runtime does not require its build/source checkout. Installer/uninstaller and limitations are documented in `/home/jmvp/work/vlcdots/README.md`. Uninstall preserves profile/count cache/history and refuses known mapped releases or modified owned files.
+| Package | Source | Purpose |
+|---------|--------|---------|
+| upscayl-desktop-git | Chaotic-AUR | AI image upscaler desktop GUI |
+| upscayl-ncnn | Chaotic-AUR | AI image upscaler CLI engine |
+| whisper.cpp (whisper-cli) | Built from source | Voice dictation |
+| ggml-base.bin | ~/.cache/whisper-models/ | Whisper model (148 MB) |
+| hyprresume | AUR | Session persistence |
+| google-chrome | AUR (paru -S --aur) | Browser |
+| elephant-all-bin | AUR | Walker data providers |
 
-## Hardware Drivers & Subsystems (`macbook-t2`)
-- **T2 Driver**: `t2bce_core` actively bound to PCI `02:00.1`
-- **Virtual Input**: `t2bce_vhci` active (internal keyboard & trackpad)
-- **Audio Routing**: `t2bce_audio` active -> PipeWire `Apple Audio Device Speakers`
-- **Touch Bar**: `kait2en-touchbar.service` active + `appletbdrm` (dark-first OLED, multi-layer & gestures)
-- **Touch ID**: Verified active & operational. 3 macOS fingers auto-bound via BridgeXPC over CDC-NCM (`t2_ncm`) -> `fprintd` -> PAM `sudo` / `hyprlock`
-- **GPU Power (2026-11-02)**: Intel UHD 630 drives the internal display; AMD Radeon Pro 560X renders via `dgpu-run` when selected. The Radeon is still powered in `D0` under `POWER_SAVING` DPM profile 2: stock `7.3.1-1-cachyos` reports `Runtime PM not available`, so automatic sleep/wake remains unresolved. EFI-stub boot using the Limine-managed initramfs was verified after reboot, including early Intel microcode; see `gotchas/apple-t2.md` §12.
-- **CPU Limits**: PL1 = 45 W, PL2 = 60 W active via `t2-cpu-control.service` and `/etc/t2-cpu-control.conf`
-- **Power Optimization**: `t2-power-tune` & `t2-power-explorer` deployed with Polkit privilege escalation
-- **Thermals / Fans**: `t2fanrd.service` active with linear curve (45°C–72°C) via `/etc/t2fand.conf`
+## Omarchy Fork
 
-## Compositor Health
-- **Hyprland Errors**: None (Clean)
+```
+Repo: https://github.com/lentra0/omarchy-cachyos.git
+Path: ~/.local/share/omarchy/
+Current: CachyOS fork, ~1 year behind upstream Hyprland
+Last commit: 41f7de5 "Update aur.sh"
+```
+
+## Display
+
+```
+Primary Monitor: KTC A32Q8
+Resolution: 3840x2160 @ 60Hz
+Connection: DP-1 (DisplayPort)
+Scale: 1.67 (fractional scaling)
+
+Secondary Monitor (Left): KTC Q24T09
+Resolution: 2560x1440 @ 120Hz
+Connection: HDMI-A-1 (HDMI)
+Scale: 1.33 (fractional scaling, ~1920x1080 logical)
+
+Config: ~/.config/hypr/monitors.conf
+```
+
+## Input
+
+```
+Keyboard layout: us (primary), es (secondary via script)
+Keyboard: Attack Shark X85 (USB, SONiX chip, 5 HID interfaces)
+Mouse: Logitech G903 LIGHTSPEED (wireless)
+Battery path: /sys/class/power_supply/hidpp_battery_0
+XRemap: ~/.config/xremap/config.yml (CapsLock remapping)
+```
+
+## Audio & Voice
+
+```
+Dictation: whisper.cpp (~/.local/bin/whisper-cli)
+Model: ggml-base.bin (~/.cache/whisper-models/, 148 MB)
+Dictation script: ~/.local/bin/hypr-dictate
+Toggle bind: SUPER+Ctrl+X
+Push-to-talk: F9
+TTS: MOSS-TTS-Nano (~/dev/tts/MOSS-TTS-Nano/)
+Voice: Clairy (bilingual EN/ES)
+```
+
+## Quickshell Palette
+
+```
+Launch: SUPER+Space → OmniMenu palette
+Quick tiles: SUPER+Shift+Space → 4x3 grid
+App backup: SUPER+D → wofi --show drun
+Refresh command: "Refresh Quickshell" .desktop entry or:
+  pkill -9 qs; rm -rf /run/user/1000/quickshell; qs -n -d -c palette-only &
+```
+
+## System Services (user)
+
+```
+quickshell (palette-only): runs as user process
+hypridle: idle management
+hyprlock: screen lock
+whisper dictation: on-demand (not a service)
+OCR: on-demand (not a service)
+```
+
+## Environment Variables
+
+Key env vars (from `~/.config/hypr/envs.conf`):
+- `XCURSOR_THEME=breeze_cursors`
+- `HYPRCURSOR_THEME=breeze_cursors`
+- `QT_ACCESSIBILITY=1`
+- `RADV_PERFTEST=gpl,nggc,sam`
+- `mesa_glthread=true`
+
+## Network
+
+```
+SSH to MacBook: ssh clairy@10.0.0.39 (key auth)
+SSH to CUdesk: ssh CUdesk (ProxyJump login.rc.colorado.edu)
+Chaotic-aur repo: enabled (/etc/pacman.conf)
+```
