@@ -15,13 +15,12 @@ Shell: /usr/bin/zsh
 ```
 WM: Hyprland 0.57.1 (Native Lua modular configuration via hyprland-dots profiles/desktop)
 Display Manager: SDDM (standard login screen)
-Bar/Launcher: Quickshell 0.3.2 (desktop / palette-only mode)
-  Config: ~/.config/quickshell/
-  Cache: /run/user/1000/quickshell/
+Bar/Launcher: Noctalia 5.4.1 (Unified desktop shell: bar, app launcher, control center, notifications, OSD, wallpapers)
+  Config: ~/.config/noctalia/ -> ~/dev/dotfiles/core/.config/noctalia
 Terminal: Alacritty 0.17.0, Ghostty 1.4.0-1.1
-Notifications: Mako
+Notifications: Noctalia
 Idle daemon: Hypridle
-Lock screen: Hyprlock
+Lock screen: Hyprlock / Noctalia Session Lock
 ```
 
 ## Key Packages
