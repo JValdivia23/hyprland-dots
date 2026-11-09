@@ -113,3 +113,12 @@ hl.window_rule({
     },
     no_focus = true,
 })
+
+-- Layer Rules (Noctalia Shell surfaces)
+hl.layer_rule({
+    name = "noctalia-blur",
+    match = { namespace = "^(noctalia-(bar-.*|notification.*|panel.*|osd.*))$" },
+    blur = true,
+    ignore_alpha = 0.5,
+})
+

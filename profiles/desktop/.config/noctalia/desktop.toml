@@ -4,3 +4,6 @@
 concave_edge_corners = false
 radius_bottom_left = 0
 radius_bottom_right = 0
+background_opacity = 0.55
+compositor_blur = true
+
