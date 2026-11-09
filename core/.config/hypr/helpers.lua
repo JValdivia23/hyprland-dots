@@ -48,6 +48,12 @@ function helpers.bind(keys, description, action, opts)
     hl.bind(keys, final_action, options)
 end
 
+--- Unbind a previously registered shortcut
+-- @param keys string Key combination (e.g. "SUPER + Return")
+function helpers.unbind(keys)
+    hl.unbind(keys)
+end
+
 --- Native Focus-or-Launch (launch_sole) with multi-instance cycling
 -- If the application window exists, focus it (or cycle if already active).
 -- If absent, launch it cleanly through UWSM.
