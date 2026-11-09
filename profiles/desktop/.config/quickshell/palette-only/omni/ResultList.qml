@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/ResultList.qml
+../../desktop/omni/ResultList.qml

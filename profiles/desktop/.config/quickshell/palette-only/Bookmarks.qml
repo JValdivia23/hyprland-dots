@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/Bookmarks.qml
+../desktop/Bookmarks.qml

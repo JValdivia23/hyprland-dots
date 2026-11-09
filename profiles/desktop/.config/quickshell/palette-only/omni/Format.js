@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/Format.js
+../../desktop/omni/Format.js

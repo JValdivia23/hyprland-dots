@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/CardWindow.qml
+../desktop/CardWindow.qml

@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickSlider.qml
+../desktop/QuickSlider.qml

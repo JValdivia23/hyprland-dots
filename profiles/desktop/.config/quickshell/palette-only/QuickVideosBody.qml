@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickVideosBody.qml
+../desktop/QuickVideosBody.qml

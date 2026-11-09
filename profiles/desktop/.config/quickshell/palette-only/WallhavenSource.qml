@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/WallhavenSource.qml
+../desktop/WallhavenSource.qml

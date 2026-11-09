@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/GhSearch.qml
+../desktop/GhSearch.qml

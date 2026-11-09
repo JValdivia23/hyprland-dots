@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickWifiBody.qml
+../desktop/QuickWifiBody.qml

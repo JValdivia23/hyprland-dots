@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/OmniMenu.qml
+../desktop/OmniMenu.qml

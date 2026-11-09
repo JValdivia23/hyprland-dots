@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/PreviewPane.qml
+../../desktop/omni/PreviewPane.qml

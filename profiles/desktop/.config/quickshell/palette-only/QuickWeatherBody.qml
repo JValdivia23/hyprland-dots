@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickWeatherBody.qml
+../desktop/QuickWeatherBody.qml

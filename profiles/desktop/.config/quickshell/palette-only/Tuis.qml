@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/Tuis.qml
+../desktop/Tuis.qml

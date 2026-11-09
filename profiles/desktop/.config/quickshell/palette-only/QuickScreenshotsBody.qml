@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickScreenshotsBody.qml
+../desktop/QuickScreenshotsBody.qml

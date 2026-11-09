@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/TldrSearch.qml
+../desktop/TldrSearch.qml

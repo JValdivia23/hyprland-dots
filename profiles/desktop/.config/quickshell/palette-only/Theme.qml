@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/Theme.qml
+../desktop/Theme.qml

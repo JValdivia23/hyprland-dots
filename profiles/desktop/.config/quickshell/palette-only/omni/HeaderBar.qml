@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/HeaderBar.qml
+../../desktop/omni/HeaderBar.qml

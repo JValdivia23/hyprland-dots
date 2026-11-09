@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/SearchInput.qml
+../../desktop/omni/SearchInput.qml

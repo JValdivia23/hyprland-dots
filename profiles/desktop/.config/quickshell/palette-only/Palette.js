@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/Palette.js
+../desktop/Palette.js

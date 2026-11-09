@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickCalendarBody.qml
+../desktop/QuickCalendarBody.qml

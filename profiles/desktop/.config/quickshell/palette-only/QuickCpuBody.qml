@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/QuickCpuBody.qml
+../desktop/QuickCpuBody.qml

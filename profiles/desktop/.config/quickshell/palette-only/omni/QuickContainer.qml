@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/omni/QuickContainer.qml
+../../desktop/omni/QuickContainer.qml

@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/FileSearch.qml
+../desktop/FileSearch.qml

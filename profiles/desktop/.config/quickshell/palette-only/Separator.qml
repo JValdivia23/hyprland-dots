@@ -1,1 +1,1 @@
-/home/jairo/.config/quickshell/desktop/Separator.qml
+../desktop/Separator.qml
