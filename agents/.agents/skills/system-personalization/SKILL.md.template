@@ -1,7 +1,7 @@
 ---
 name: system-personalization
-description: "Comprehensive system personalization tracker for {{HOSTNAME}} ({{PRODUCT_NAME}}) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.24.0
+description: "Comprehensive system personalization tracker — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
+version: 2.25.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 

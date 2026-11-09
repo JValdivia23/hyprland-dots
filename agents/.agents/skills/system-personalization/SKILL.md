@@ -1,11 +1,11 @@
 ---
 name: system-personalization
-description: "Comprehensive system personalization tracker for surface (Surface Book 3) and cachyos-cu (MacBookPro15,1) — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
-version: 2.56.0
+description: "Comprehensive system personalization tracker — OS, hardware, modular configs, keybindings, gotchas, and changelog. Self-improving: update after every change."
+version: 2.57.0
 tags: [system, personalization, dotfiles, desktop, hyprland, lua, cachyos, noctalia, fish, keybindings, gotchas]
 ---
 
-# System Personalization (Multi-PC: `surface` & `cachyos-cu`)
+# System Personalization
 
 Complete documentation of this machine's configuration and personalization. This is a **self-improving skill** — after any system configuration change, software install, or gotcha discovery, update this skill's modular references (`references/changelog.md` and `references/gotchas/`).
 
@@ -38,22 +38,22 @@ Complete documentation of this machine's configuration and personalization. This
 
 ## Quick Reference
 
-| Category | Surface Book 3 (`surface`) | MacBook Pro 15,1 (`cachyos-cu`) |
-| :--- | :--- | :--- |
-| **Machine** | Surface Book 3 | MacBookPro15,1 |
-| **Hostname** | `surface` | `cachyos-cu` |
-| **OS** | CachyOS | CachyOS |
-| **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc; fallback `7.2.14.arch1-1`) | `7.2.9-1-cachyos` |
-| **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
-| **Wayland Shell** | Noctalia | Noctalia |
-| **Primary Display** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) |
-| **GPU** | Intel Iris Plus Graphics G7 | Intel UHD 630 / AMD Radeon Pro 560X / Apple T2 |
-| **CPU** | Intel Core i5-1035G7 @ 1.20GHz | Intel Core i9-9880H @ 2.30GHz |
-| **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap |
-| **Active Profiles** | surface | macbook-t2 |
-| **Shell** | `/bin/fish` | `/bin/fish` |
-| **Terminal** | `kitty` (primary) | `kitty` (primary) |
-| **Package Manager**| `pacman` | `pacman` |
+| Category | Surface Book 3 (`surface`) | MacBook Pro 15,1 (`cachyos-cu`) | Desktop Workstation (`cachyos-obsidian`) |
+| :--- | :--- | :--- | :--- |
+| **Machine** | Surface Book 3 | MacBookPro15,1 | MSI MS-7D75 (PRO B650M-A WIFI) |
+| **Hostname** | `surface` | `cachyos-cu` | `cachyos-obsidian` |
+| **OS** | CachyOS | CachyOS | CachyOS |
+| **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc) | `7.2.9-1-cachyos` | `7.3.3-1-cachyos` (LTS `6.18.60-2`) |
+| **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
+| **Wayland Shell** | Noctalia | Noctalia | Noctalia |
+| **Displays** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) | DP-1 (4K@60Hz, 1.67x) + HDMI-A-1 (1440p@120Hz, 1.33x) |
+| **GPU** | Intel Iris Plus Graphics G7 | Intel UHD 630 / AMD Radeon Pro 560X | AMD Radeon RX 7700 XT (RADV) |
+| **CPU** | Intel Core i5-1035G7 @ 1.20GHz | Intel Core i9-9880H @ 2.30GHz | AMD Ryzen 5 7600X (6c/12t) |
+| **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap | 31Gi RAM, 33Gi swap |
+| **Active Profiles** | surface | macbook-t2 | desktop |
+| **Shell** | `/bin/fish` | `/bin/fish` | `/bin/fish` |
+| **Terminal** | `kitty` (primary) | `kitty` (primary) | `alacritty` (primary), `ghostty` |
+| **Package Manager**| `pacman` | `pacman` | `pacman` / `paru` |
 
 ---
 
