@@ -2,17 +2,15 @@
 local homeDir = os.getenv("HOME") or "/home/user"
 
 hl.on("hyprland.start", function ()
-    -- Personalized Quickshell desktop layout (manages both bar and OmniMenu palette)
-    hl.exec_cmd("qs -n -d -c desktop")
-
-    -- Notification & OSD daemons
-    hl.exec_cmd("mako")
-    hl.exec_cmd("swayosd-server")
-
-    -- Wallpaper & Omarchy theme sync daemons
-    hl.exec_cmd("swaybg -i " .. homeDir .. "/.config/omarchy/current/background -m fill")
-    hl.exec_cmd(homeDir .. "/.local/bin/omarchy-gsettings-bg-sync")
-    hl.exec_cmd(homeDir .. "/.local/bin/omarchy-portal-backend")
+    -- Quickshell suite (only if active shell backend is quickshell)
+    if SHELL_BACKEND == "quickshell" then
+        hl.exec_cmd("qs -n -d -c desktop")
+        hl.exec_cmd("mako")
+        hl.exec_cmd("swayosd-server")
+        hl.exec_cmd("swaybg -i " .. homeDir .. "/.config/omarchy/current/background -m fill")
+        hl.exec_cmd(homeDir .. "/.local/bin/omarchy-gsettings-bg-sync")
+        hl.exec_cmd(homeDir .. "/.local/bin/omarchy-portal-backend")
+    end
 
     -- Polkit authentication, clipboard persistence & session restore
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")

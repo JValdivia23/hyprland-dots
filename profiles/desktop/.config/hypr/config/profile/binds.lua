@@ -35,10 +35,12 @@ helpers.bind(mainMod .. " + L",              "Launch Lazygit",            "alacr
 helpers.bind(mainMod .. " + SHIFT + D",      "Launch Lazydocker",         "alacritty -e lazydocker")
 helpers.bind(mainMod .. " + D",              "Launch Wofi App Launcher",  "wofi --show drun -p 'Search...'")
 
--- 3. Quickshell OmniMenu & Quick Tiles
-helpers.bind(mainMod .. " + Space",          "Toggle OmniMenu Palette",   hl.dsp.global("quickshell:palette-toggle"))
-helpers.bind("ALT + Space",                  "Toggle Quick Panel",        hl.dsp.global("quickshell:palette-quick"))
-helpers.bind(mainMod .. " + SHIFT + Space",  "Toggle Quick Tiles Grid",   hl.dsp.global("quickshell:palette-quick"))
+-- 3. Quickshell OmniMenu & Quick Tiles (only if active shell is quickshell)
+if SHELL_BACKEND == "quickshell" then
+    helpers.bind(mainMod .. " + Space",          "Toggle OmniMenu Palette",   hl.dsp.global("quickshell:palette-toggle"))
+    helpers.bind("ALT + Space",                  "Toggle Quick Panel",        hl.dsp.global("quickshell:palette-quick"))
+    helpers.bind(mainMod .. " + SHIFT + Space",  "Toggle Quick Tiles Grid",   hl.dsp.global("quickshell:palette-quick"))
+end
 
 -- 4. Window Floating, Fullscreen & Pop
 helpers.bind(mainMod .. " + O",              "Pop window (Float + Pin)",  hl.dsp.exec_cmd(homeDir .. "/.local/bin/omarchy-hyprland-window-pop"))
@@ -119,18 +121,20 @@ helpers.bind("ALT + PRINT", "Screenrecord region", hl.dsp.exec_cmd("omarchy-cmd-
 helpers.bind("CONTROL + ALT + PRINT", "Screenrecord full display", hl.dsp.exec_cmd("omarchy-cmd-screenrecord output"))
 helpers.bind(mainMod .. " + PRINT", "Color Picker (Hyprpicker)", hl.dsp.exec_cmd("pkill hyprpicker || hyprpicker -a"))
 
--- 10. Hardware Keys via SwayOSD
-helpers.bind("XF86AudioRaiseVolume", "Raise volume", hl.dsp.exec_cmd(osdClient .. "--output-volume raise"), { locked = true, repeating = true })
-helpers.bind("XF86AudioLowerVolume", "Lower volume", hl.dsp.exec_cmd(osdClient .. "--output-volume lower"), { locked = true, repeating = true })
-helpers.bind("SHIFT + XF86AudioRaiseVolume", "Raise volume 1%", hl.dsp.exec_cmd(osdClient .. "--output-volume +1"), { locked = true, repeating = true })
-helpers.bind("SHIFT + XF86AudioLowerVolume", "Lower volume 1%", hl.dsp.exec_cmd(osdClient .. "--output-volume -1"), { locked = true, repeating = true })
-helpers.bind("XF86AudioMute", "Toggle mute", hl.dsp.exec_cmd(osdClient .. "--output-volume mute-toggle"), { locked = true })
-helpers.bind("XF86AudioMicMute", "Toggle mic mute", hl.dsp.exec_cmd(osdClient .. "--input-volume mute-toggle"), { locked = true })
-helpers.bind("XF86MonBrightnessUp", "Raise brightness", hl.dsp.exec_cmd(osdClient .. "--brightness raise"), { locked = true, repeating = true })
-helpers.bind("XF86MonBrightnessDown", "Lower brightness", hl.dsp.exec_cmd(osdClient .. "--brightness lower"), { locked = true, repeating = true })
-helpers.bind("SHIFT + XF86MonBrightnessUp", "Raise brightness 1%", hl.dsp.exec_cmd(osdClient .. "--brightness +1"), { locked = true, repeating = true })
-helpers.bind("SHIFT + XF86MonBrightnessDown", "Lower brightness 1%", hl.dsp.exec_cmd(osdClient .. "--brightness -1"), { locked = true, repeating = true })
-helpers.bind("XF86AudioNext", "Next media track", hl.dsp.exec_cmd(osdClient .. "--playerctl next"), { locked = true })
-helpers.bind("XF86AudioPrev", "Previous media track", hl.dsp.exec_cmd(osdClient .. "--playerctl previous"), { locked = true })
-helpers.bind("XF86AudioPlay", "Toggle media playback", hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause"), { locked = true })
-helpers.bind("XF86AudioPause", "Toggle media playback", hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause"), { locked = true })
+-- 10. Hardware Keys via SwayOSD (fallback for quickshell backend; noctalia handles hardware keys in core)
+if SHELL_BACKEND == "quickshell" then
+    helpers.bind("XF86AudioRaiseVolume", "Raise volume", hl.dsp.exec_cmd(osdClient .. "--output-volume raise"), { locked = true, repeating = true })
+    helpers.bind("XF86AudioLowerVolume", "Lower volume", hl.dsp.exec_cmd(osdClient .. "--output-volume lower"), { locked = true, repeating = true })
+    helpers.bind("SHIFT + XF86AudioRaiseVolume", "Raise volume 1%", hl.dsp.exec_cmd(osdClient .. "--output-volume +1"), { locked = true, repeating = true })
+    helpers.bind("SHIFT + XF86AudioLowerVolume", "Lower volume 1%", hl.dsp.exec_cmd(osdClient .. "--output-volume -1"), { locked = true, repeating = true })
+    helpers.bind("XF86AudioMute", "Toggle mute", hl.dsp.exec_cmd(osdClient .. "--output-volume mute-toggle"), { locked = true })
+    helpers.bind("XF86AudioMicMute", "Toggle mic mute", hl.dsp.exec_cmd(osdClient .. "--input-volume mute-toggle"), { locked = true })
+    helpers.bind("XF86MonBrightnessUp", "Raise brightness", hl.dsp.exec_cmd(osdClient .. "--brightness raise"), { locked = true, repeating = true })
+    helpers.bind("XF86MonBrightnessDown", "Lower brightness", hl.dsp.exec_cmd(osdClient .. "--brightness lower"), { locked = true, repeating = true })
+    helpers.bind("SHIFT + XF86MonBrightnessUp", "Raise brightness 1%", hl.dsp.exec_cmd(osdClient .. "--brightness +1"), { locked = true, repeating = true })
+    helpers.bind("SHIFT + XF86MonBrightnessDown", "Lower brightness 1%", hl.dsp.exec_cmd(osdClient .. "--brightness -1"), { locked = true, repeating = true })
+    helpers.bind("XF86AudioNext", "Next media track", hl.dsp.exec_cmd(osdClient .. "--playerctl next"), { locked = true })
+    helpers.bind("XF86AudioPrev", "Previous media track", hl.dsp.exec_cmd(osdClient .. "--playerctl previous"), { locked = true })
+    helpers.bind("XF86AudioPlay", "Toggle media playback", hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause"), { locked = true })
+    helpers.bind("XF86AudioPause", "Toggle media playback", hl.dsp.exec_cmd(osdClient .. "--playerctl play-pause"), { locked = true })
+end

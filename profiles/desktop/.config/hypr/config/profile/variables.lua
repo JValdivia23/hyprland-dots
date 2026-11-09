@@ -1,6 +1,6 @@
--- Desktop Workstation Profile Variables (Dual-Monitor + Personalized Quickshell Bar)
+-- Desktop Workstation Profile Variables (Dual-Monitor + Noctalia Shell Backend)
 
-SHELL_BACKEND   = "quickshell"
+SHELL_BACKEND   = "noctalia"
 
 TERMINAL        = "alacritty"
 BROWSER         = "zen-browser"
