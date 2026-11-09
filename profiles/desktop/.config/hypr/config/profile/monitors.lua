@@ -18,11 +18,13 @@ hl.monitor({
 })
 
 -- Secondary 24" 1440p Monitor positioned to the left of DP-1 (KTC Q24T09)
+-- Explicitly disable VRR (vrr = 0) to eliminate FreeSync brightness/gamma pulsing on desktop
 hl.monitor({
     output   = "HDMI-A-1",
     mode     = "2560x1440@120",
     position = "auto-left",
     scale    = 1.33333,
+    vrr      = 0,
 })
 
 -- Global fallback for any additional newly connected monitors

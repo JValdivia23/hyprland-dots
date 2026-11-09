@@ -75,3 +75,14 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 - **Workspace Routing**: Workspace `8` is bound to the secondary 1440p@120Hz monitor (`HDMI-A-1`) in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, and `~/.local/bin/dota2-workspace` automatically moves and fullscreens (`fullscreen 0`) `dota2` / `gamescope` windows onto workspace `8`.
 - **Fullscreen Alt+Tab Protection**: `on_focus_under_fullscreen = 1` in `inputs.lua` prevents fullscreen games from collapsing into dwindle tiles when Alt+Tabbing.
 - **F9 Voice Dictation Passthrough**: `~/.local/bin/hypr-dictate` checks `hyprctl activewindow` for `class: dota2` and forwards `F9` directly to the game window (for match pause/unpause) instead of starting voice dictation.
+
+---
+
+## 9. Secondary 1440p FreeSync / VRR Gamma Flicker (`HDMI-A-1` KTC Q24T09)
+
+- **Symptom**: Rapid brightness / gamma pulsing or flickering on the secondary 24" 1440p monitor (`HDMI-A-1`), especially noticeable across dark/gray backgrounds or while typing in terminal and Discord.
+- **Root Cause**: The KTC Q24T09 panel supports Adaptive Sync / FreeSync (`vrrCapable: yes`). When Hyprland's `misc.vrr = 3` (adaptive sync) is active, desktop applications (which render on-demand rather than at constant framerates) cause the monitor refresh rate to oscillate rapidly between the panel's low threshold (~48Hz) and 120Hz. On LCD panels, liquid crystal voltage response shifts with refresh rate, producing visible brightness pulsing.
+- **Fix**:
+  1. Set `misc.vrr = 0` in `core/.config/hypr/config/misc.lua`.
+  2. Explicitly enforce `vrr = 0` on `HDMI-A-1` in `profiles/desktop/.config/hypr/config/profile/monitors.lua`.
+  3. Keep game-specific presentation overrides (`vblank_mode=0`, `RADV_PRESENT_MODE=mailbox`) scoped inside game launch commands rather than globally in `environment.lua` to maintain clean desktop VSync pacing.

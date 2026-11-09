@@ -21,9 +21,8 @@ hl.env("AMD_VULKAN_ICD", "RADV")
 hl.env("RADV_PERFTEST", "nggc,sam,nircache")
 hl.env("mesa_glthread", "true")
 
--- High-FPS Vulkan Presentation Workarounds (prevents 30 FPS lock in Dota 2 / Source 2)
-hl.env("RADV_PRESENT_MODE", "mailbox")
-hl.env("vblank_mode", "0")
+-- Note: Game-specific Vulkan presentation flags (RADV_PRESENT_MODE=mailbox, vblank_mode=0)
+-- should be passed per-game via Steam launch options or game wrappers to preserve desktop vsync pacing.
 
 -- ydotool socket location
 hl.env("YDOTOOL_SOCKET", "/run/user/1000/.ydotool_socket")
