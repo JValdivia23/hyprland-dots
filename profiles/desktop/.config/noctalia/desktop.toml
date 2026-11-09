@@ -1,0 +1,6 @@
+# Noctalia Desktop Profile Overrides (cachyos-obsidian workstation)
+
+[bar.default]
+concave_edge_corners = false
+radius_bottom_left = 0
+radius_bottom_right = 0
