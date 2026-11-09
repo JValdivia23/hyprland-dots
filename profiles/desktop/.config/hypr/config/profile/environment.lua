@@ -2,6 +2,7 @@
 -- Hardware: AMD Ryzen 5 7600X + AMD Radeon RX 7700 XT (Navi 32 / RDNA 3)
 
 -- Wayland & Toolkit Backends
+hl.env("TERMINAL", "ghostty")
 hl.env("GDK_BACKEND", "wayland,x11,*")
 hl.env("QT_QPA_PLATFORM", "wayland;xcb")
 hl.env("SDL_VIDEODRIVER", "wayland")

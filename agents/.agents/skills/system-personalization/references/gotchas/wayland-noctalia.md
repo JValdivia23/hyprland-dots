@@ -173,3 +173,26 @@ Curated troubleshooting issues, rules, and fixes for Noctalia Wayland Shell and 
 - **Selection / compatibility:** The recipe uses automatic recognition of the integrated wrapper's MZ/PE headers and binary identity markers, not the mere existence of a graphics INI. Legacy wrappers keep native game coordinates. `SIDEQUEST_TOUCH_COORDINATES=game`/`client` explicitly override the recipe; direct helper invocation defaults to `game`. A versioned handshake now includes the selected coordinate space, so old/new Python and Windows helpers must not be mixed.
 - **Deployment / validation:** Backed up the installed pair/launcher, gracefully detached only touch support, installed a matched pair, and attached to the existing game without losing progress or opening another copy. Renderer hashes, fullscreen command, shared generic bridge, and other games remained unchanged. The user confirmed taps across the picture, held left/right actions, release, physical mouse, and browser touch after Super+number switching. All 69 regression tests and the Windows SDK build pass.
 - **Limits:** A normal quit/reopen of the new pair was not physically retested because the live game stayed open. Rotation, mixed-scale layouts, and gameplay lock/unlock remain untested. This is separate from section 13's workspace-swipe issue; do not re-enable the failed focus watcher or confinement rule. Keep private renderer/version mappings, exact commands, and backups in the encrypted guide.
+
+---
+
+## 15. Noctalia Network Bar Widget Right-Click Disconnects Active Network (`network-toggle`)
+
+- **Symptom**: Right-clicking the network widget on the Noctalia bar causes the Ethernet (or active connection) icon to disappear and internet connectivity to drop, leaving the interface in a disconnected state.
+- **Root Cause**: By default, Noctalia binds mouse actions on `widget.network`:
+  - `left`: `panel-toggle control-center network`
+  - `right`: `network-toggle` (invokes NetworkManager device disconnect)
+  - `middle`: `settings-open-widget`
+  Right-clicking accidentally invokes `network-toggle`, disconnecting the active network interface. In NetworkManager, manual device disconnection prevents automatic reconnection until explicitly re-connected (`nmcli device connect <dev>`).
+- **Fix**:
+  1. Rebind/unbind the right-click gesture to `"none"` in `~/.config/noctalia/config.toml` (in `~/dev/dotfiles/core/.config/noctalia/config.toml`):
+     ```toml
+     [widget.network]
+     color = "secondary"
+
+     [widget.network.actions]
+     right = "none"
+     ```
+  2. Reload Noctalia via IPC: `noctalia msg config-reload`.
+  3. Ensure the wired profile has a positive autoconnect priority (`nmcli connection modify "Wired connection 1" connection.autoconnect yes connection.autoconnect-priority 100`) so Ethernet is always prioritized over Wi-Fi when plugged in.
+

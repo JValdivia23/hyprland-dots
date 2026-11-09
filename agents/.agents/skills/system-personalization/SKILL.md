@@ -52,7 +52,7 @@ Complete documentation of this machine's configuration and personalization. This
 | **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap | 31Gi RAM, 33Gi swap |
 | **Active Profiles** | surface | macbook-t2 | desktop |
 | **Shell** | `/bin/fish` | `/bin/fish` | `/bin/fish` |
-| **Terminal** | `kitty` (primary) | `kitty` (primary) | `alacritty` (primary), `ghostty` |
+| **Terminal** | `kitty` (primary) | `kitty` (primary) | `ghostty` (primary), `alacritty` |
 | **Package Manager**| `pacman` | `pacman` | `pacman` / `paru` |
 
 ---

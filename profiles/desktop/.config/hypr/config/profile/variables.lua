@@ -2,7 +2,7 @@
 
 SHELL_BACKEND   = "noctalia"
 
-TERMINAL        = "alacritty"
+TERMINAL        = "ghostty"
 BROWSER         = "zen-browser"
 FILE_MANAGER    = "nautilus"
 EDITOR          = "nvim"

@@ -11,6 +11,7 @@ function fish_greeting
 end
 
 # Environment variables
+set -gx TERMINAL ghostty
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 

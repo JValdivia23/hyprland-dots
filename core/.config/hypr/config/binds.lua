@@ -227,7 +227,7 @@ helpers.bind(mainMod .. " + SHIFT + Z", "Redo",           hl.dsp.send_shortcut({
 ------------------
 
 -- Application Launchers (SUPER + SHIFT + <key>)
-helpers.bind(mainMod .. " + Return",         "Launch Kitty Terminal (New Window)", launchPrefix .. TERMINAL)
+helpers.bind(mainMod .. " + Return",         "Launch Terminal (New Window)",       launchPrefix .. TERMINAL)
 helpers.bind(mainMod .. " + SHIFT + Return", "Launch or focus Ghostty Terminal",    helpers.launch_or_focus("ghostty", launchPrefix .. "ghostty"))
 helpers.bind(mainMod .. " + SHIFT + B",      "Launch or focus Zen Browser",         helpers.launch_or_focus("zen", launchPrefix .. "zen-browser"))
 helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus("flea", launchPrefix .. FILE_MANAGER))
