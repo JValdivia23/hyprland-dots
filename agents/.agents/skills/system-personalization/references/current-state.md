@@ -15,8 +15,8 @@ Shell: /usr/bin/zsh
 ```
 WM: Hyprland 0.57.1 (Native Lua modular configuration via hyprland-dots profiles/desktop)
 Display Manager: SDDM (standard login screen)
-Bar/Launcher: Noctalia 5.4.1 (Unified desktop shell: bar, app launcher, control center, notifications, OSD, wallpapers)
-  Config: ~/.config/noctalia/ -> ~/dev/dotfiles/core/.config/noctalia
+Bar/Launcher: Noctalia 5.4.1 (Unified desktop shell: straight-edge glossy bar, app launcher, control center, notifications, OSD, wallpapers)
+  Config: ~/.config/noctalia/config.toml (core) + ~/.config/noctalia/desktop.toml (desktop profile override: straight edge, 0px radius, 0.55 opacity, compositor blur)
 Terminal: Alacritty 0.17.0, Ghostty 1.4.0-1.1
 Notifications: Noctalia
 Idle daemon: Hypridle

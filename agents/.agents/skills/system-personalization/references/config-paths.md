@@ -71,7 +71,8 @@ hl.gesture({ fingers = <N>, direction = "<dir>", action = "<action>" })
 
 | Path | Controls | Edit Rule |
 |------|----------|-----------|
-| `config.toml` | Main Wayland Shell settings: widgets, panels, tray icons, themes | Patch specific key-value pairs (TOML structure). Run `noctalia msg reload` or restart after editing. |
+| `config.toml` | Main Wayland Shell settings: widgets, panels, tray icons, themes | Universal base configuration from `core/.config/noctalia/config.toml`. Run `noctalia msg config-reload` or restart after editing. |
+| `desktop.toml` | Desktop profile overrides: straight edges, 0px radius, 0.55 opacity, compositor blur | Profile override deployed from `profiles/desktop/.config/noctalia/desktop.toml` via GNU Stow. Noctalia merges automatically. |
 
 ---
 
