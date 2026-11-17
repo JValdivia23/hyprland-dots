@@ -77,11 +77,11 @@ Connection: DP-1 (DisplayPort)
 Scale: 1.67 (fractional scaling)
 
 Secondary Monitor (Left): KTC Q24T09
-Resolution: 2560x1440 @ 120Hz
+Resolution: 2560x1440 @ 144Hz
 Connection: HDMI-A-1 (HDMI)
 Scale: 1.33 (fractional scaling, ~1920x1080 logical)
 
-Config: ~/.config/hypr/monitors.conf
+Config: ~/.config/hypr/config/profile/monitors.lua
 ```
 
 ## Input

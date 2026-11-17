@@ -58,6 +58,7 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 - **Symptom**: Microphone connected to the MSI MAG B650 TOMAHAWK WIFI (`MS-7D75`) front/rear 3.5mm jack is very quiet even at 100% ALSA gain.
 - **Root Cause**: The Realtek ALC4080/ALC4082 is a USB-bridged audio controller whose hardware Microphone Boost amplifier (+10/+20/+30 dB) is not exposed by the Linux USB audio driver.
 - **Fix**: Software amplification and noise suppression via **EasyEffects** (`easyeffects --gapplication-service`, autostarted in `profiles/desktop/.config/hypr/config/profile/autostart.lua`) with `lsp-plugins` (`autogain#0` + `rnnoise#0` stored in `profiles/desktop/.config/easyeffects/db/`).
+- **Line Input vs. Microphone Priority Gotcha**: On `usb-Generic_USB_Audio`, PipeWire assigns `HiFi__Line__source` a higher `priority.session` (`1828`) than `HiFi__Mic__source` (`1812`), even when the Line jack is unplugged (`off`). With `easyeffects_source` as the PipeWire default source, leaving `useDefaultInputDevice` unset/enabled in `profiles/desktop/.config/easyeffects/db/easyeffectsrc` can cause EasyEffects to fall back to `HiFi__Line__source`. Pin `inputDevice=alsa_input.usb-Generic_USB_Audio-00.HiFi__Mic__source` and `useDefaultInputDevice=false` under `[StreamInputs]` (stop EasyEffects with `easyeffects -q` before editing so it doesn't flush stale state on exit).
 
 ---
 
@@ -72,17 +73,18 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 
 ## 8. Dota 2 Multi-Monitor Routing (`HDMI-A-1` Workspace 8) & F9 Dictation Passthrough
 
-- **Workspace Routing**: Workspace `8` is bound to the secondary 1440p@120Hz monitor (`HDMI-A-1`) in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, and `~/.local/bin/dota2-workspace` automatically moves and fullscreens (`fullscreen 0`) `dota2` / `gamescope` windows onto workspace `8`.
+- **Workspace Routing**: Workspace `8` is bound to the secondary 1440p@144Hz monitor (`HDMI-A-1`) in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, and `~/.local/bin/dota2-workspace` automatically moves and fullscreens (`fullscreen 0`) `dota2` / `gamescope` windows onto workspace `8`.
 - **Fullscreen Alt+Tab Protection**: `on_focus_under_fullscreen = 1` in `inputs.lua` prevents fullscreen games from collapsing into dwindle tiles when Alt+Tabbing.
 - **F9 Voice Dictation Passthrough**: `~/.local/bin/hypr-dictate` checks `hyprctl activewindow` for `class: dota2` and forwards `F9` directly to the game window (for match pause/unpause) instead of starting voice dictation.
 
 ---
 
-## 9. Secondary 1440p FreeSync / VRR Gamma Flicker (`HDMI-A-1` KTC Q24T09)
+## 9. Secondary 1440p Brightness Pulsing at 120Hz (`HDMI-A-1` KTC Q24T09)
 
-- **Symptom**: Rapid brightness / gamma pulsing or flickering on the secondary 24" 1440p monitor (`HDMI-A-1`), especially noticeable across dark/gray backgrounds or while typing in terminal and Discord.
-- **Root Cause**: The KTC Q24T09 panel supports Adaptive Sync / FreeSync (`vrrCapable: yes`). When Hyprland's `misc.vrr = 3` (adaptive sync) is active, desktop applications (which render on-demand rather than at constant framerates) cause the monitor refresh rate to oscillate rapidly between the panel's low threshold (~48Hz) and 120Hz. On LCD panels, liquid crystal voltage response shifts with refresh rate, producing visible brightness pulsing.
+- **Symptom**: Rapid brightness / gamma pulsing or flickering on the secondary 24" 1440p monitor (`HDMI-A-1`) when running at `2560x1440@120` (`119.998Hz`), especially noticeable across dark/gray backgrounds (Ghostty, Discord). Appeared after the `2026-11-08` kernel (`7.3.3-1-cachyos`) + Hyprland (`0.57.1` / Aquamarine `0.16.0`) upgrade.
+- **Investigation Findings**:
+  1. Even with Hyprland `misc.vrr = 0` (`VRR_ENABLED: 0`), `HDMI-A-1` still exposes `passive_vrr_capable: 1` and CRTC `PASSIVE_VRR_DISABLED: 0` in kernel `7.3.3` `amdgpu` (which Aquamarine `0.16.0` does not toggle).
+  2. Live isolation confirmed the flicker was tied specifically to the `120Hz` mode (`497.75 MHz` pixel clock, 85-line vblank): disabling Hyprland blur, color management (`cm_enabled`), and software cursors (`no_hardware_cursors = 0`) did not stop it at `120Hz`, whereas both `60Hz` (`241.57 MHz`) and `144Hz` (`583.61 MHz`, 50-line vblank) ran completely flicker-free with default compositor settings.
 - **Fix**:
-  1. Set `misc.vrr = 0` in `core/.config/hypr/config/misc.lua`.
-  2. Explicitly enforce `vrr = 0` on `HDMI-A-1` in `profiles/desktop/.config/hypr/config/profile/monitors.lua`.
-  3. Keep game-specific presentation overrides (`vblank_mode=0`, `RADV_PRESENT_MODE=mailbox`) scoped inside game launch commands rather than globally in `environment.lua` to maintain clean desktop VSync pacing.
+  1. Switched `HDMI-A-1` mode from `2560x1440@120` to `2560x1440@144` in `profiles/desktop/.config/hypr/config/profile/monitors.lua` while keeping `vrr = 0` and `misc.vrr = 0` in `core/.config/hypr/config/misc.lua`.
+  2. Keep game-specific presentation overrides (`vblank_mode=0`, `RADV_PRESENT_MODE=mailbox`) scoped inside game launch commands rather than globally in `environment.lua` to maintain clean desktop VSync pacing.

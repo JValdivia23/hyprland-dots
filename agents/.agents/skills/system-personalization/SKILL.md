@@ -46,7 +46,7 @@ Complete documentation of this machine's configuration and personalization. This
 | **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc) | `7.2.9-1-cachyos` | `7.3.3-1-cachyos` (LTS `6.18.60-2`) |
 | **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia | Noctalia | Noctalia |
-| **Displays** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) | DP-1 (4K@60Hz, 1.67x) + HDMI-A-1 (1440p@120Hz, 1.33x) |
+| **Displays** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) | DP-1 (4K@60Hz, 1.67x) + HDMI-A-1 (1440p@144Hz, 1.33x) |
 | **GPU** | Intel Iris Plus Graphics G7 | Intel UHD 630 / AMD Radeon Pro 560X | AMD Radeon RX 7700 XT (RADV) |
 | **CPU** | Intel Core i5-1035G7 @ 1.20GHz | Intel Core i9-9880H @ 2.30GHz | AMD Ryzen 5 7600X (6c/12t) |
 | **RAM & Swap** | 7.4Gi RAM, 16Gi swap | 15Gi RAM, 15Gi swap | 31Gi RAM, 33Gi swap |

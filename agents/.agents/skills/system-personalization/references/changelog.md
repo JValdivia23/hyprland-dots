@@ -2,6 +2,13 @@
 
 Every system change, config edit, package install, and fix. Most recent first.
 
+## 2026-11-16
+
+| Time | What | Why | Files Touched |
+|------|------|-----|---------------|
+| 19:16 | Switched secondary monitor (`HDMI-A-1` KTC Q24T09) from `120Hz` to `144Hz` to eliminate brightness flickering | Live A/B isolation proved brightness pulsing persisted at `120Hz` (`2560x1440@119.998`) even with `vrr = 0`, blur off, color management off, and hardware cursors enabled, whereas both `60Hz` and `144Hz` (`2560x1440@144.002`) ran completely flicker-free. Updated `HDMI-A-1` mode to `2560x1440@144` in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, updated skill docs (`SKILL.md`, `current-state.md`, `desktop-amd-gaming.md`), and reloaded Hyprland cleanly with zero config errors. | `~/dev/dotfiles/profiles/desktop/.config/hypr/config/profile/monitors.lua`, `~/dev/dotfiles/profiles/desktop/gotchas/desktop-amd-gaming.md`, `~/dev/dotfiles/agents/.agents/skills/system-personalization/SKILL.md`, `~/dev/dotfiles/agents/.agents/skills/system-personalization/references/*` |
+| 18:15 | Pinned EasyEffects input to USB Audio Microphone (`HiFi__Mic__source`) | EasyEffects was capturing from the unplugged `HiFi__Line__source` (higher PipeWire `priority.session` `1828` vs `1812` on `HiFi__Mic__source`), starving `easyeffects_source` and Discord of mic input. Stopped EasyEffects (`easyeffects -q`), updated `[StreamInputs]` in `easyeffectsrc` to `inputDevice=alsa_input.usb-Generic_USB_Audio-00.HiFi__Mic__source` and `useDefaultInputDevice=false`, restarted via `easyeffects --service-mode`, and verified live `pw-link` / `wpctl` routing. | `~/dev/dotfiles/profiles/desktop/.config/easyeffects/db/easyeffectsrc`, `~/dev/dotfiles/profiles/desktop/gotchas/desktop-amd-gaming.md`, `~/dev/dotfiles/agents/.agents/skills/system-personalization/references/changelog.md` |
+
 ## 2026-11-08
 
 | Time | What | Why | Files Touched |
