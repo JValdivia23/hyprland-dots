@@ -76,9 +76,9 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
 
 - **Symptom**: Calling `exec_raw("resizeactive", ...)` from scripts fails to resize floating windows.
 - **Root Cause**: In modern Hyprland, `resizeactive` has been replaced with the native Lua API `hl.dsp.window.resize()`.
-- **Fix**: Dispatch `hl.dsp.window.resize({ x = width, y = height, exact = true })`:
+- **Fix**: Dispatch `hl.dsp.window.resize({ x = width, y = height, relative = false, window = "address:..." })` (on Hyprland `0.57.1`, the schema is `{ x, y, relative?, window? }`; `relative = false` specifies exact pixels):
   ```bash
-  hyprctl dispatch 'hl.dsp.window.resize({ x = 560, y = 315, exact = true })'
+  hyprctl eval 'hl.dispatch(hl.dsp.window.resize({ x = 560, y = 315, relative = false, window = "activewindow" }))'
   ```
 
 ---
@@ -183,6 +183,8 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
   - Relative window resize: `hl.dsp.window.resize({ x = dx, y = dy, relative = true })`
   - Move window out of group: `hl.dsp.window.move({ out_of_group = true })`
   - Move window to workspace silently: `hl.dsp.window.move({ workspace = "special:scratchpad", follow = false })`
+  - Force true fullscreen (non-toggling, not maximized): `hl.dsp.window.fullscreen({ mode = "fullscreen", action = "set", window = "address:0x..." })`
+  - External tools using `.socket.sock` (`hyprresume` v0.5.0): `keyword ...` returns `unknown request` and `dispatch ...` runs `return hl.dispatch(...)`. Patch `~/hyprresume/lua-ipc-support.patch` auto-detects Lua mode (`eval return true` == `ok` and `keyword` == `unknown request`) and translates `hyprresume` restore IPC (`hl.config`, `hl.window_rule` + `:set_enabled(false)`, `hl.dsp.exec_cmd`, `hl.dsp.window.float({ action = "enable" })`, `hl.dsp.window.move`, `hl.dsp.window.resize`, `hl.dsp.window.fullscreen`, `hl.dsp.workspace.move`, `hl.dsp.focus`, `hl.dsp.layout`).
 
 ---
 
@@ -220,9 +222,9 @@ Curated troubleshooting issues, rules, and fixes for Hyprland compositor configu
 
 ## 17. Triggering Lua Keybindings Programmatically (`debug.getregistry()[arg]()`)
 
-- **Symptom**: Querying `hyprctl binds -j` in Lua-configured Hyprland returns `"dispatcher": "__lua"` and `"arg": "<id>"` for every keybinding, and running `hyprctl dispatch __lua <id>` fails with `error: [string "return hl.dispatch(__lua <id>)"]:1: ')' expected near '<id>'`.
-- **Root Cause**: When `hl.bind(keys, action, opts)` registers a keybind in Hyprland's Lua runtime, it stores either the compiled `HL.Dispatcher` C closure or the Lua callback function inside Lua's `LUA_REGISTRYINDEX` (`luaL_ref`) and records the integer reference ID as `"arg"`. Meanwhile, `hyprctl dispatch` wraps its CLI string in `return hl.dispatch(...)`, which cannot call `__lua` directly.
-- **Fix**: Invoke the registered keybinding callable directly in Lua via `hyprctl eval`:
+- **Symptom**: Querying `hyprctl binds -j` in Lua-configured Hyprland returns `"dispatcher": "__lua"` (or in **Hyprland `0.57.1+`**, `"HL.Dispatcher(...)"` / `"function: 0x..."`) and `"arg": "<id>"` for every keybinding, and running `hyprctl dispatch __lua <id>` fails with `error: [string "return hl.dispatch(__lua <id>)"]:1: ')' expected near '<id>'`.
+- **Root Cause**: When `hl.bind(keys, action, opts)` registers a keybind in Hyprland's Lua runtime, it stores either the compiled `HL.Dispatcher` C closure or the Lua callback function inside Lua's `LUA_REGISTRYINDEX` (`luaL_ref`) and records the integer reference ID as `"arg"`. Meanwhile, `hyprctl dispatch` wraps its CLI string in `return hl.dispatch(...)`, which cannot call `__lua` or `HL.Dispatcher(...)` directly.
+- **Fix**: Invoke the registered keybinding callable directly in Lua via `hyprctl eval` whenever `arg` is numeric and `dispatcher` is `"__lua"`, `"HL.Dispatcher(..."`, or `"function:..."`:
   ```bash
   hyprctl eval "local fn = debug.getregistry()[<id>]; if type(fn) == 'function' then fn() end"
   ```

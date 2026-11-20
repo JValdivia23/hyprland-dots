@@ -41,3 +41,15 @@ Curated terminal emulator behaviors, SSH quirks, and administrative prompt pract
   b"\x1bP@kitty-cmd" + json.dumps({"cmd": "set-background-opacity", "version": [0, 26, 0], "payload": {"opacity": 0.75, "all": True}}).encode() + b"\x1b\\"
   ```
 
+---
+
+## 4. Ghostty CLI Flags & Reverse-DNS GTK App IDs (`--class=`, `--title=`)
+
+- **Symptom**: Pressing `SUPER + K` (or other `TERMINAL`-launched menus) when `TERMINAL = "ghostty"` opens Ghostty with a modal **`Configuration Errors`** GTK dialog (`GTK Application | Configuration Errors`), and the window tiles instead of matching floating window rules (`class = "^(Keybindings)$"`).
+- **Root Cause**:
+  1. Ghostty parses CLI overrides strictly as `--<key>=<value>` (`--class=...`, `--title=...`) and does **not** accept Alacritty/Kitty-style space-separated `--class <name>` or `-T <title>`. Invalid CLI flags populate Ghostty's diagnostics buffer and open `GhosttyConfigErrorsDialog`.
+  2. Ghostty's `class` option sets the GTK/Wayland Application ID, which must satisfy `g_application_id_is_valid()` (reverse-DNS format containing at least one dot, e.g., `org.hypr.Keybindings`). Single-token names like `Keybindings` trigger `warning(gtk_ghostty_application): invalid 'class' in config, ignoring` and fall back to `com.mitchellh.ghostty`.
+- **Fix**:
+  1. Use `helpers.terminal_cmd(command, { class = ..., title = ... })` in `core/.config/hypr/helpers.lua`, which emits `--class=org.hypr.<Class> --title='<Title>' -e <command>` when `TERMINAL` is Ghostty and preserves `--class <Class> -T '<Title>' -e <command>` for Kitty/Alacritty.
+  2. Match `^(org\\.hypr\\.)?(Keybindings)$` / `^(org\\.hypr\\.)?(CaptureMenu)$` and `org\\.hypr\\..*` in `core/.config/hypr/config/windowrules.lua`, and recognize `^org%.hypr%.` in `helpers.is_terminal()`.
+

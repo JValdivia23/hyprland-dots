@@ -43,7 +43,7 @@ Complete documentation of this machine's configuration and personalization. This
 | **Machine** | Surface Book 3 | MacBookPro15,1 | MSI MS-7D75 (PRO B650M-A WIFI) |
 | **Hostname** | `surface` | `cachyos-cu` | `cachyos-obsidian` |
 | **OS** | CachyOS | CachyOS | CachyOS |
-| **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc) | `7.2.9-1-cachyos` | `7.3.3-1-cachyos` (LTS `6.18.60-2`) |
+| **Kernel** | `7.3.1-1-cachyos` (+DKMS ipts/ipu4p/usbc) | `7.2.9-1-cachyos` | `7.3.5-1-cachyos` (LTS `6.18.60-2`) |
 | **WM** | Hyprland (Lua modular API) | Hyprland (Lua modular API) | Hyprland (Lua modular API) |
 | **Wayland Shell** | Noctalia | Noctalia | Noctalia |
 | **Displays** | eDP-1 (3000x2000@60Hz, scale 2) | eDP-1 (2880x1800@60Hz, scale 1.6) | DP-1 (4K@60Hz, 1.67x) + HDMI-A-1 (1440p@144Hz, 1.33x) |

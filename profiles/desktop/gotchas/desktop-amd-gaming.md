@@ -73,9 +73,9 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 
 ## 8. Dota 2 Multi-Monitor Routing (`HDMI-A-1` Workspace 8) & F9 Dictation Passthrough
 
-- **Workspace Routing**: Workspace `8` is bound to the secondary 1440p@144Hz monitor (`HDMI-A-1`) in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, and `~/.local/bin/dota2-workspace` automatically moves and fullscreens (`fullscreen 0`) `dota2` / `gamescope` windows onto workspace `8`.
+- **Workspace Routing & True Fullscreen**: Workspace `8` is bound to the secondary 1440p@144Hz monitor (`HDMI-A-1`) in `profiles/desktop/.config/hypr/config/profile/monitors.lua`, paired with the `dota2-ws8-fullscreen` `hl.window_rule` (`workspace = "8"`, `fullscreen = true`, `content = "game"`, `decorate = false`). `~/.local/bin/dota2-workspace` uses Hyprland Lua `hyprctl eval` (`hl.dsp.window.move` with `follow = false`, `hl.dsp.focus`, and `hl.dsp.window.fullscreen({ mode = "fullscreen", action = "set" })`) so `dota2` / `gamescope` windows always move to workspace `8` and enforce true fullscreen (`fullscreen = 2`, not maximized `1`).
 - **Fullscreen Alt+Tab Protection**: `on_focus_under_fullscreen = 1` in `inputs.lua` prevents fullscreen games from collapsing into dwindle tiles when Alt+Tabbing.
-- **F9 Voice Dictation Passthrough**: `~/.local/bin/hypr-dictate` checks `hyprctl activewindow` for `class: dota2` and forwards `F9` directly to the game window (for match pause/unpause) instead of starting voice dictation.
+- **F9 Voice Dictation Passthrough**: `~/.local/bin/hypr-dictate` checks `hyprctl activewindow` for `class: dota2` and forwards `F9` directly to the game window via `hyprctl eval 'hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "F9", window = "activewindow" }))'` (for match pause/unpause) instead of starting voice dictation.
 
 ---
 
@@ -88,3 +88,33 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 - **Fix**:
   1. Switched `HDMI-A-1` mode from `2560x1440@120` to `2560x1440@144` in `profiles/desktop/.config/hypr/config/profile/monitors.lua` while keeping `vrr = 0` and `misc.vrr = 0` in `core/.config/hypr/config/misc.lua`.
   2. Keep game-specific presentation overrides (`vblank_mode=0`, `RADV_PRESENT_MODE=mailbox`) scoped inside game launch commands rather than globally in `environment.lua` to maintain clean desktop VSync pacing.
+
+---
+
+## 10. `hyprresume` Multi-Window Steam/Discord Restore & Deterministic BSP Reconstruction
+
+- **Symptom**: On reboot, Discord + multi-window Steam (`Steam`, `Friends List`, chat windows) restore with flipped split orientation, Steam crushed to ~107px width, `Friends List` stuck floating (due to `core/windowrules.lua`), and Steam launched without `~/.local/bin/steam` HiDPI/PipeWire flags.
+- **Root Causes**:
+  1. Upstream `hyprresume` `v0.5.0` `[overrides]` only parsed `*`/`?` globs as patterns; regex keys like `"^steam$"` went into `exact_overrides` and failed to match `"steam"`.
+  2. With `per_window_launch = true` and no saved window `title`, Steam was launched once per window (3×), `openwindow` matched transient updater splashes (`Discord Updater` / Steam xwin updater), and asynchronous bursts bypassed dwindle `preselect`.
+  3. `apply_split_ratios()` sent `splitratio (ratio - 0.5)` instead of Hyprland dwindle's `[0.1, 1.9]` scale (`splitratio {2.0 * ratio} exact`), and `converge_tiled_sizes()` double-resized opposing sibling splits down to Hyprland's `0.1` minimum (~107px).
+  4. `hyprresume` ran without `-v` with stdout/stderr at `/dev/null`, and periodic saves overwrote `last.toml` while slow apps were still restoring.
+- **Fix (`~/hyprresume/lua-ipc-support.patch` + `~/.config/hypr/hyprresume.toml` + `profile/autostart.lua`)**:
+  1. Patched `hyprresume` to persist window `title`, support `^...$` regex overrides, deduplicate launches for single-instance multi-window apps (`steam`, `discord`, `vesktop`, `spotify`), skip transient updater splashes, and deterministically reconstruct each workspace's dwindle BSP tree via `float(enable) -> focus(parent) -> preselect -> float(disable)` (which also re-tiles saved-tiled windows like `Friends List` that open floating via default window rules).
+  2. Fixed `apply_split_ratios()` (`2.0 * ratio exact`), guarded `converge_tiled_sizes()` (`MIN_CONVERGED_TILE_DIM = 200`, `MAX_CONVERGE_DELTA = 400`, damped steps), clamped floating window positions to target monitor usable bounds, paused periodic saves while `watch_late_windows` is active, and skipped `restore_on_start` when windows are already open on mid-session restarts.
+  3. Updated `~/.config/hypr/hyprresume.toml` (`"steam" = "/home/jairo/.local/bin/steam"`, `"discord" = "/usr/bin/discord"`) and launched `hyprresume` via `systemd-cat -t hyprresume -- ~/.local/bin/hyprresume -v` so boot logs are inspectable via `journalctl --user -t hyprresume`.
+
+---
+
+## 11. Intermittent Horizontal Black Lines / Top-Band Flickering on Dual Mixed-Refresh Displays (`RX 7700 XT` DPM Clock Switching)
+
+- **Symptom**: Occasional, random horizontal black lines or faint black bands near the top of the screen, appearing on both monitors (`DP-1` 4K@60Hz and `HDMI-A-1` 1440p@144Hz) one at a time (unsynchronized). Started after the `2026-11-08` kernel `7.3.x` + `linux-firmware-amdgpu 1:20261019-1` (`DMUB 0x07003600`) + Noctalia migration.
+- **Root Cause & Isolation**:
+  1. Updating to `linux-cachyos 7.3.5-1`, `mesa 26.3.1-1`, `hyprland 0.57.2-1.1`, and `noctalia 5.5.0-1.1` did not stop the flicker.
+  2. Live A/B isolation ruled out Hyprland blur (`decoration:blur:enabled = false`), software cursors (`cursor:no_hardware_cursors = 0`), VRR (`misc:vrr = 0`), and Noctalia (`killall -TERM noctalia` with zero active layer surfaces still flickered).
+  3. Under `power_dpm_force_performance_level = auto`, `card1` (`0x1002:0x747e`) sat at `MCLK 772 MHz` (not max `1124 MHz`) with `FCLK` (`1200 <-> 1801 MHz`) and `SOCCLK` (`750 <-> 1200 MHz`) actively bouncing at idle. Because `60Hz` and `144Hz` vblanks rarely align, SMU clock transitions overrunning vblank starve the display FIFO at the start of active scanout (row 0 = top of display), producing brief black horizontal lines/bands on whichever monitor just exited vblank.
+  4. Locking `power_dpm_force_performance_level = high` pinned `MCLK` (`1124 MHz`), `FCLK` (`2301 MHz`), and `SOCCLK` (`1500 MHz`) while `SCLK` still idled at `43 MHz` (`28W -> 36W` idle, `44°C`), completely eliminating the flickering for 1+ hour.
+- **Fix (`profiles/desktop/scripts/` + `setup.sh`)**:
+  1. Deployed `/etc/udev/rules.d/99-amdgpu-rx7700xt-dpm.rules` (from `profiles/desktop/scripts/99-amdgpu-rx7700xt-dpm.rules`) matching strictly `SUBSYSTEM=="drm", KERNEL=="card[0-9]", DRIVERS=="amdgpu", ATTRS{vendor}=="0x1002", ATTRS{device}=="0x747e"` to set `ATTR{device/power_dpm_force_performance_level}="high"` on boot without touching the Ryzen 7600X iGPU (`0x164e`).
+  2. Deployed `/usr/lib/systemd/system-sleep/amdgpu-rx7700xt-dpm` (from `profiles/desktop/scripts/amdgpu-rx7700xt-dpm-sleep`) to re-apply `high` on `post` suspend/hibernate resume.
+  3. Re-test `auto` mode after future `linux-firmware-amdgpu` (post-`20261019`) or kernel `7.4+` updates; remove both files if upstream resolves the `DMUB`/DPM vblank-overrun regression.

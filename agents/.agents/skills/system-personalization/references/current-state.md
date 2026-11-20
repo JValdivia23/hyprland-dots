@@ -1,10 +1,10 @@
-# Current State — 2026-11-08
+# Current State — 2026-11-19
 
 ## Operating System
 
 ```
 OS: CachyOS Linux (Arch-based)
-Kernel: 7.3.3-1-cachyos
+Kernel: 7.3.5-1-cachyos
 Init: systemd
 Session: Wayland (Hyprland)
 Shell: /usr/bin/zsh
@@ -13,9 +13,9 @@ Shell: /usr/bin/zsh
 ## Desktop Environment
 
 ```
-WM: Hyprland 0.57.1 (Native Lua modular configuration via hyprland-dots profiles/desktop)
+WM: Hyprland 0.57.2 (Native Lua modular configuration via hyprland-dots profiles/desktop)
 Display Manager: SDDM (standard login screen)
-Bar/Launcher: Noctalia 5.4.1 (Unified desktop shell: straight-edge glossy bar, app launcher, control center, notifications, OSD, wallpapers)
+Bar/Launcher: Noctalia 5.5.0 (Unified desktop shell: straight-edge glossy bar, app launcher, control center, notifications, OSD, wallpapers)
   Config: ~/.config/noctalia/config.toml (core) + ~/.config/noctalia/desktop.toml (desktop profile override: straight edge, 0px radius, 0.55 opacity, compositor blur)
 Terminal: Alacritty 0.17.0, Ghostty 1.4.0-1.1
 Notifications: Noctalia
@@ -27,7 +27,7 @@ Lock screen: Hyprlock / Noctalia Session Lock
 
 | Package | Version | Purpose |
 |---------|---------|---------|
-| hyprland | 0.57.1-1.1 | Window manager (Native Lua) |
+| hyprland | 0.57.2-1.1 | Window manager (Native Lua) |
 | quickshell | 0.3.2-1.1 | Bar + palette launcher |
 | alacritty | 0.17.0 | Terminal emulator |
 | ghostty | 1.4.0-1.1 | Terminal emulator (with Kitty graphics support) |
@@ -90,6 +90,7 @@ Config: ~/.config/hypr/config/profile/monitors.lua
 Keyboard layout: us (primary), es (secondary via script)
 Keyboard: Attack Shark X85 (USB, SONiX chip, 5 HID interfaces)
 Mouse: Logitech G903 LIGHTSPEED (wireless)
+G903 MOUSE5 macro daemon: g903-mouse5.service (starts ON, active key: ~/.config/g903-mouse5/key = 2, speed: ~/.config/g903-mouse5/speed = peak; toggle SUPER+CONTROL+ALT+V -> ~/.local/bin/g903-mouse5-toggle; live change: g903-mouse5-toggle key <key> | speed <peak|fast>)
 Battery path: /sys/class/power_supply/hidpp_battery_0
 XRemap: ~/.config/xremap/config.yml (CapsLock remapping)
 ```
