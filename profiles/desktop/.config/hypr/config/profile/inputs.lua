@@ -36,3 +36,10 @@ hl.device({
     scroll_factor = 1.0,
     natural_scroll = false,
 })
+
+-- Logitech G903 passthrough virtual mouse rule (when g903-mouse5-daemon is active)
+hl.device({
+    name = "logitech-g903-virtual-mouse",
+    scroll_factor = 1.0,
+    natural_scroll = false,
+})

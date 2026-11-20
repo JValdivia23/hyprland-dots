@@ -26,6 +26,9 @@ helpers.bind(mainMod .. " + CONTROL + G", "Hermes Voice Toggle", hl.dsp.exec_cmd
 -- 4. Attack Shark X85 Keyboard Layout Switch (US <-> ES)
 helpers.bind(mainMod .. " + SHIFT + L", "Switch X85 Keyboard Layout", hl.dsp.exec_cmd("hyprctl switchxkblayout sonix-x85 next"))
 
+-- 5. Logitech G903 MOUSE5 -> Fast Human Double-Tap Toggle
+helpers.bind(mainMod .. " + CONTROL + ALT + V", "Toggle G903 MOUSE5 double-tap macro", hl.dsp.exec_cmd(homeDir .. "/.local/bin/g903-mouse5-toggle"))
+
 -- 5. Relative Workspace Movement (CTRL + SUPER + Left / Right)
 helpers.bind("CONTROL + SUPER + Left",  "Move window to previous workspace", hl.dsp.window.move({ workspace = "-1" }))
 helpers.bind("CONTROL + SUPER + Right", "Move window to next workspace",     hl.dsp.window.move({ workspace = "+1" }))

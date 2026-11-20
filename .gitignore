@@ -8,6 +8,7 @@
 # Compiled binaries & local installations
 core/.local/bin/noctalia-precache-wallpapers
 profiles/*/.local/bin/edgepad
+profiles/*/.local/bin/g903-mouse5-daemon
 **/.local/bin/edgepad
 
 # Sensitive credentials and keys

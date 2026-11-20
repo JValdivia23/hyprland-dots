@@ -1,0 +1,180 @@
+#!/usr/bin/env bash
+# Control & toggle Logitech G903 MOUSE5 fast human double-press macro daemon
+# Usage:
+#   g903-mouse5-toggle                 Toggle ON/OFF
+#   g903-mouse5-toggle status          Show ON/OFF, active key, and speed profile
+#   g903-mouse5-toggle key <key>       Switch double-pressed key live (e.g. 2, v, f13, space)
+#   g903-mouse5-toggle speed <mode>    Switch timing speed live: peak (~90 ms) or fast (~111 ms)
+set -euo pipefail
+
+RUNTIME="${XDG_RUNTIME_DIR:-/tmp}"
+CFG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}/g903-mouse5"
+KEY_FILE="$CFG_DIR/key"
+SPEED_FILE="$CFG_DIR/speed"
+DAEMON_BIN="$HOME/.local/bin/g903-mouse5-daemon"
+
+if [ -n "${XDG_RUNTIME_DIR:-}" ]; then
+    STATE_FILE="$RUNTIME/g903-mouse5.state"
+    PID_FILE="$RUNTIME/g903-mouse5.pid"
+else
+    STATE_FILE="$RUNTIME/g903-mouse5-$(id -u).state"
+    PID_FILE="$RUNTIME/g903-mouse5-$(id -u).pid"
+fi
+
+active_key() {
+    if [ -r "$KEY_FILE" ]; then
+        local k
+        k="$(tr -d '[:space:]' < "$KEY_FILE")"
+        if [ -n "$k" ]; then
+            printf '%s\n' "$k"
+            return
+        fi
+    fi
+    printf '2\n'
+}
+
+active_speed() {
+    if [ -r "$SPEED_FILE" ]; then
+        local s
+        s="$(tr -d '[:space:]' < "$SPEED_FILE")"
+        if [ -n "$s" ]; then
+            printf '%s\n' "$s"
+            return
+        fi
+    fi
+    printf 'peak\n'
+}
+
+notify_msg() {
+    local title="$1"
+    local body="$2"
+    if command -v notify-send >/dev/null 2>&1; then
+        notify-send -u low -t 1600 -a "G903 Macro" \
+            -h string:x-canonical-private-synchronous:g903-mouse5 \
+            "$title" "$body" >/dev/null 2>&1 || true
+    fi
+}
+
+read_state() {
+    if [ -r "$STATE_FILE" ]; then
+        tr -d '[:space:]' < "$STATE_FILE"
+    else
+        echo ""
+    fi
+}
+
+send_daemon_signal() {
+    local sig="$1"
+    local pid=""
+    for _ in $(seq 1 40); do
+        if [ -r "$PID_FILE" ]; then
+            pid="$(tr -d '[:space:]' < "$PID_FILE" || true)"
+            if [ -n "$pid" ] && kill -0 "$pid" 2>/dev/null; then
+                kill "-$sig" "$pid"
+                return 0
+            fi
+        fi
+        sleep 0.025
+    done
+    systemctl --user kill -s "SIG$sig" g903-mouse5.service
+}
+
+case "${1:-}" in
+    status|--status)
+        k="$(active_key)"
+        s="$(active_speed)"
+        if ! systemctl --user is-active --quiet g903-mouse5.service; then
+            echo "STOPPED (key: $k, speed: $s)"
+            exit 1
+        fi
+        cur="$(read_state)"
+        if [ "$cur" = "1" ]; then
+            echo "ON (key: $k, speed: $s)"
+        elif [ "$cur" = "0" ]; then
+            echo "OFF (key: $k, speed: $s)"
+        else
+            echo "UNKNOWN (key: $k, speed: $s)"
+            exit 1
+        fi
+        exit 0
+        ;;
+    key|--key)
+        raw_key="${2:-}"
+        if [ -z "$raw_key" ]; then
+            echo "Usage: g903-mouse5-toggle key <key>" >&2
+            exit 2
+        fi
+        if ! norm_key="$("$DAEMON_BIN" --check-key "$raw_key")"; then
+            echo "Unsupported key: $raw_key" >&2
+            exit 2
+        fi
+        mkdir -p "$CFG_DIR"
+        printf '%s\n' "$norm_key" > "$KEY_FILE"
+        if systemctl --user is-active --quiet g903-mouse5.service; then
+            send_daemon_signal USR2
+        fi
+        notify_msg "G903 MOUSE5 → Double ${norm_key^^}" "Key updated"
+        echo "$norm_key"
+        exit 0
+        ;;
+    speed|--speed)
+        raw_speed="${2:-}"
+        if [ -z "$raw_speed" ]; then
+            echo "Usage: g903-mouse5-toggle speed <peak|fast>" >&2
+            exit 2
+        fi
+        if ! norm_speed="$("$DAEMON_BIN" --check-speed "$raw_speed")"; then
+            echo "Unsupported speed: $raw_speed (use: peak, fast)" >&2
+            exit 2
+        fi
+        mkdir -p "$CFG_DIR"
+        printf '%s\n' "$norm_speed" > "$SPEED_FILE"
+        if systemctl --user is-active --quiet g903-mouse5.service; then
+            send_daemon_signal USR2
+        fi
+        k="$(active_key)"
+        notify_msg "G903 MOUSE5 → Double ${k^^}" "Speed: ${norm_speed}"
+        echo "$norm_speed"
+        exit 0
+        ;;
+esac
+
+k="$(active_key)"
+s="$(active_speed)"
+if ! systemctl --user is-active --quiet g903-mouse5.service; then
+    systemctl --user start g903-mouse5.service
+    for _ in $(seq 1 40); do
+        cur="$(read_state)"
+        if [ -n "$cur" ]; then
+            break
+        fi
+        sleep 0.025
+    done
+    cur="$(read_state)"
+    if [ "$cur" = "0" ]; then
+        notify_msg "G903 MOUSE5 → Double ${k^^}" "Status: OFF ($s)"
+    else
+        notify_msg "G903 MOUSE5 → Double ${k^^}" "Status: ON ($s)"
+    fi
+    exit 0
+fi
+
+prev="$(read_state)"
+send_daemon_signal USR1
+
+next="$prev"
+for _ in $(seq 1 40); do
+    next="$(read_state)"
+    if [ -n "$next" ] && [ "$next" != "$prev" ]; then
+        break
+    fi
+    sleep 0.005
+done
+
+if [ "$next" = "1" ]; then
+    notify_msg "G903 MOUSE5 → Double ${k^^}" "Status: ON ($s)"
+elif [ "$next" = "0" ]; then
+    notify_msg "G903 MOUSE5 → Double ${k^^}" "Status: OFF ($s)"
+else
+    notify_msg "G903 MOUSE5 → Double ${k^^}" "Status: TOGGLED ($s)"
+fi
