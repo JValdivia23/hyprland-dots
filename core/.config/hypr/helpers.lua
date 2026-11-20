@@ -19,9 +19,51 @@ function helpers.is_terminal()
         or cls:match("foot") ~= nil
         or cls:match("wezterm") ~= nil
         or cls:match("xterm") ~= nil
+        or cls:match("^org%.hypr%.") ~= nil
         or initial_cls:match("kitty") ~= nil
         or initial_cls:match("ghostty") ~= nil
         or initial_cls:match("alacritty") ~= nil
+        or initial_cls:match("^org%.hypr%.") ~= nil
+end
+
+local function shell_quote(s)
+    return "'" .. tostring(s):gsub("'", "'\\''") .. "'"
+end
+
+--- Build a terminal command string respecting terminal-specific CLI flags
+-- Ghostty uses `--<key>=<value>` syntax, requires a reverse-DNS GTK app ID
+-- for `--class=`, and does not support `-T`. Kitty/Alacritty accept `--class`
+-- and `-T`.
+-- @param command string Command to run inside the terminal (`-e <command>`)
+-- @param opts table|nil Optional `{ class = string, title = string, terminal = string }`
+-- @return string Shell command ready for `uwsm app --` / `hl.dsp.exec_cmd`
+function helpers.terminal_cmd(command, opts)
+    local options = opts or {}
+    local term = options.terminal or TERMINAL or "alacritty"
+    local parts = { term }
+
+    if term == "ghostty" or term:match("ghostty") then
+        if options.class and options.class ~= "" then
+            local app_id = options.class:find("%.") and options.class or ("org.hypr." .. options.class)
+            table.insert(parts, "--class=" .. app_id)
+        end
+        if options.title and options.title ~= "" then
+            table.insert(parts, "--title=" .. shell_quote(options.title))
+        end
+    else
+        if options.class and options.class ~= "" then
+            table.insert(parts, "--class " .. options.class)
+        end
+        if options.title and options.title ~= "" then
+            table.insert(parts, "-T " .. shell_quote(options.title))
+        end
+    end
+
+    if command and command ~= "" then
+        table.insert(parts, "-e " .. command)
+    end
+
+    return table.concat(parts, " ")
 end
 
 --- Metadata-driven bind helper

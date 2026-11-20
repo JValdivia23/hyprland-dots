@@ -1,36 +1,95 @@
-#!/usr/bin/env bash
-# Move Dota 2 / Gamescope to workspace 8 (HDMI-A-1 secondary monitor) — only the game, not Steam dialogs
-while true; do
-    sleep 1
-    hyprctl clients -j 2>/dev/null | python3 -c "
-import json, sys, subprocess
-TARGET = 8
+#!/usr/bin/env python3
+"""Route Dota 2 / Gamescope windows to workspace 8 (HDMI-A-1) in true fullscreen."""
 
-for w in json.load(sys.stdin):
-    cls = w.get('class', '')
-    title = w.get('title', '')
-    ws = w.get('workspace', {}).get('id', 0)
-    addr = w.get('address', '')
-    size = w.get('size', [0, 0])
-    area = size[0] * size[1] if len(size) >= 2 else 0
+import json
+import subprocess
+import time
 
-    # Skip windows already on target workspace
-    if ws == TARGET:
-        continue
+TARGET_WS = 8
+SETTLE_GRACE_SECS = 6.0
 
-    # Game window: class=dota2 (always the real game)
-    if cls == 'dota2':
-        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
-        subprocess.run(['hyprctl', 'dispatch', 'focuswindow', f'address:{addr}'])
-        subprocess.run(['hyprctl', 'dispatch', 'fullscreen', '0'])
-    # Gamescope wrapper: class=gamescope, contains the game window when launched under gamescope
-    elif cls == 'gamescope':
-        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
-        subprocess.run(['hyprctl', 'dispatch', 'focuswindow', f'address:{addr}'])
-        # Fullscreen it after moving (avoids xdg-desktop-portal share picker from gamescope -f)
-        subprocess.run(['hyprctl', 'dispatch', 'fullscreen'])
-    # Steam wrapper: class=steam + title='Dota 2' + large window (skip Properties dialogs)
-    elif cls == 'steam' and title == 'Dota 2' and area > 3000000:
-        subprocess.run(['hyprctl', 'dispatch', 'movetoworkspacesilent', f'{TARGET},address:{addr}'])
-" 2>/dev/null
-done
+
+def hypr_clients():
+    try:
+        out = subprocess.check_output(
+            ["hyprctl", "clients", "-j"],
+            stderr=subprocess.DEVNULL,
+            text=True,
+        )
+        return json.loads(out)
+    except (subprocess.SubprocessError, json.JSONDecodeError):
+        return []
+
+
+def hypr_eval(*statements):
+    if not statements:
+        return
+    subprocess.run(
+        ["hyprctl", "eval", "; ".join(statements)],
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+    )
+
+
+def ensure_dota_window(addr: str, ws: int, fullscreen: int, focus: bool = False):
+    stmts = []
+    if ws != TARGET_WS:
+        stmts.append(
+            f'hl.dispatch(hl.dsp.window.move({{ workspace = "{TARGET_WS}", follow = false, window = "address:{addr}" }}))'
+        )
+    if focus or ws != TARGET_WS:
+        stmts.append(f'hl.dispatch(hl.dsp.focus({{ window = "address:{addr}" }}))')
+    if fullscreen != 2:
+        stmts.append(
+            f'hl.dispatch(hl.dsp.window.fullscreen({{ mode = "fullscreen", action = "set", window = "address:{addr}" }}))'
+        )
+    hypr_eval(*stmts)
+
+
+def main():
+    first_seen: dict[str, float] = {}
+    settled: set[str] = set()
+
+    while True:
+        time.sleep(1)
+        now = time.monotonic()
+        clients = hypr_clients()
+        live_addrs = {w.get("address", "") for w in clients}
+
+        # Prune closed windows
+        for addr in list(first_seen):
+            if addr not in live_addrs:
+                first_seen.pop(addr, None)
+                settled.discard(addr)
+
+        for w in clients:
+            cls = w.get("class", "")
+            title = w.get("title", "")
+            ws = w.get("workspace", {}).get("id", 0)
+            addr = w.get("address", "")
+            fullscreen = w.get("fullscreen", 0)
+            size = w.get("size", [0, 0])
+            area = size[0] * size[1] if len(size) >= 2 else 0
+
+            if not addr:
+                continue
+
+            if cls in ("dota2", "gamescope"):
+                if addr not in first_seen:
+                    first_seen[addr] = now
+                    ensure_dota_window(addr, ws, fullscreen, focus=True)
+                elif addr not in settled:
+                    if now - first_seen[addr] <= SETTLE_GRACE_SECS:
+                        if ws != TARGET_WS or fullscreen != 2:
+                            ensure_dota_window(addr, ws, fullscreen, focus=False)
+                    else:
+                        settled.add(addr)
+            elif cls == "steam" and title == "Dota 2" and area > 3000000:
+                if ws != TARGET_WS:
+                    hypr_eval(
+                        f'hl.dispatch(hl.dsp.window.move({{ workspace = "{TARGET_WS}", follow = false, window = "address:{addr}" }}))'
+                    )
+
+
+if __name__ == "__main__":
+    main()

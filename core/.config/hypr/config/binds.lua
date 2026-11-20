@@ -230,12 +230,12 @@ helpers.bind(mainMod .. " + SHIFT + Z", "Redo",           hl.dsp.send_shortcut({
 helpers.bind(mainMod .. " + Return",         "Launch Terminal (New Window)",       launchPrefix .. TERMINAL)
 helpers.bind(mainMod .. " + SHIFT + Return", "Launch or focus Ghostty Terminal",    helpers.launch_or_focus("ghostty", launchPrefix .. "ghostty"))
 helpers.bind(mainMod .. " + SHIFT + B",      "Launch or focus Zen Browser",         helpers.launch_or_focus("zen", launchPrefix .. "zen-browser"))
-helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus("flea", launchPrefix .. FILE_MANAGER))
-helpers.bind(mainMod .. " + SHIFT + A",      "Launch or focus LazyGit",             helpers.launch_or_focus("lazygit", launchPrefix .. TERMINAL .. " --class lazygit -e lazygit"))
-helpers.bind(mainMod .. " + SHIFT + D",      "Launch or focus LazyDocker",          helpers.launch_or_focus("lazydocker", launchPrefix .. TERMINAL .. " --class lazydocker -e lazydocker"))
-helpers.bind(mainMod .. " + SHIFT + N",      "Launch or focus Notes (Neovim)",      helpers.launch_or_focus("notes", launchPrefix .. TERMINAL .. " --class notes -e nvim ~/Documents/Notes"))
+helpers.bind(mainMod .. " + SHIFT + F",      "Launch or focus File Manager",        helpers.launch_or_focus(FILE_MANAGER, launchPrefix .. FILE_MANAGER))
+helpers.bind(mainMod .. " + SHIFT + A",      "Launch or focus LazyGit",             helpers.launch_or_focus("lazygit", launchPrefix .. helpers.terminal_cmd("lazygit", { class = "lazygit" })))
+helpers.bind(mainMod .. " + SHIFT + D",      "Launch or focus LazyDocker",          helpers.launch_or_focus("lazydocker", launchPrefix .. helpers.terminal_cmd("lazydocker", { class = "lazydocker" })))
+helpers.bind(mainMod .. " + SHIFT + N",      "Launch or focus Notes (Neovim)",      helpers.launch_or_focus("notes", launchPrefix .. helpers.terminal_cmd("nvim ~/Documents/Notes", { class = "notes" })))
 helpers.bind(mainMod .. " + SHIFT + Y",      "Launch or focus YouTube Webapp",      helpers.launch_or_focus("YouTube", launchPrefix .. "gtk-launch YouTube.desktop"))
-helpers.bind(mainMod .. " + SHIFT + U",      "Launch or focus Yazi",                helpers.launch_or_focus("yazi", launchPrefix .. TERMINAL .. " --class yazi -e yazi"))
+helpers.bind(mainMod .. " + SHIFT + U",      "Launch or focus Yazi",                helpers.launch_or_focus("yazi", launchPrefix .. helpers.terminal_cmd("yazi", { class = "yazi" })))
 
 -- System Panels & Controls (SUPER + <key>)
 helpers.bind("CONTROL + SHIFT + Escape", "Launch Btop system monitor", launchPrefix .. TERMINAL .. " -e btop")
@@ -250,7 +250,7 @@ helpers.bind(mainMod .. " + A",          "Toggle notification / Aether panel",  
 helpers.bind(mainMod .. " + CONTROL + V","Toggle clipboard history",               isQuickshell and hl.dsp.exec_cmd("walker -k clipboard") or hl.dsp.exec_cmd(noctCall .. "panel-toggle clipboard"))
 helpers.bind(mainMod .. " + ALT + K",    "Toggle Command/Alt modifier layout",     hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
 helpers.bind(mainMod .. " + SHIFT + K",  "Toggle Command/Alt modifier layout",     hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-toggle-altwin"))
-helpers.bind(mainMod .. " + K",          "Interactive Keybindings Cheatsheet (Live IPC)", hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class Keybindings -T 'Hyprland Keybindings' -e " .. keybindsMenu))
+helpers.bind(mainMod .. " + K",          "Interactive Keybindings Cheatsheet (Live IPC)", hl.dsp.exec_cmd(launchPrefix .. helpers.terminal_cmd(keybindsMenu, { class = "Keybindings", title = "Hyprland Keybindings" })))
 helpers.bind("ALT + Return",            "Quick Look preview",             hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-quicklook"))
 helpers.bind("SUPER + SUPER_R",         "Trigger Context Menu on Right Super tap", hl.dsp.send_shortcut({ mods = "", key = "Menu", window = "activewindow" }), { release = true })
 
@@ -298,7 +298,7 @@ helpers.bind("ALT + Print",                       "Toggle screen recording",    
 helpers.bind(mainMod .. " + ALT + SHIFT + S",     "Toggle screen recording",                      hl.dsp.exec_cmd(hyprRecord))
 helpers.bind(mainMod .. " + CONTROL + Print",     "Extract text with OCR to clipboard",         hl.dsp.exec_cmd(hyprOcr))
 helpers.bind(mainMod .. " + CONTROL + SHIFT + S", "Extract text with OCR to clipboard",         hl.dsp.exec_cmd(hyprOcr))
-helpers.bind(mainMod .. " + CONTROL + C",         "Interactive Capture Menu",                     hl.dsp.exec_cmd(launchPrefix .. TERMINAL .. " --class CaptureMenu -T 'Screen Capture' -e " .. captureMenu))
+helpers.bind(mainMod .. " + CONTROL + C",         "Interactive Capture Menu",                     hl.dsp.exec_cmd(launchPrefix .. helpers.terminal_cmd(captureMenu, { class = "CaptureMenu", title = "Screen Capture" })))
 
 -- Lock & Suspend
 local lockSuspendCmd = isQuickshell and "sh -c 'hyprlock & sleep 0.5 && systemctl suspend'" or (noctCall .. "session lock-and-suspend")
@@ -332,9 +332,15 @@ for i = 1, 10 do
 end
 
 -- Focus monitors with SUPER + ALT + [1-3]
-helpers.bind(mainMod .. " + ALT + 1", "Focus monitor 1", hl.dsp.focus({ monitor = MONITOR1 }))
-helpers.bind(mainMod .. " + ALT + 2", "Focus monitor 2", hl.dsp.focus({ monitor = MONITOR2 }))
-helpers.bind(mainMod .. " + ALT + 3", "Focus monitor 3", hl.dsp.focus({ monitor = MONITOR3 }))
+if MONITOR1 and MONITOR1 ~= "" then
+    helpers.bind(mainMod .. " + ALT + 1", "Focus monitor 1", hl.dsp.focus({ monitor = MONITOR1 }))
+end
+if MONITOR2 and MONITOR2 ~= "" then
+    helpers.bind(mainMod .. " + ALT + 2", "Focus monitor 2", hl.dsp.focus({ monitor = MONITOR2 }))
+end
+if MONITOR3 and MONITOR3 ~= "" then
+    helpers.bind(mainMod .. " + ALT + 3", "Focus monitor 3", hl.dsp.focus({ monitor = MONITOR3 }))
+end
 
 -- Single-Key Multi-Monitor Controls (SUPER + grave / ~)
 helpers.bind(mainMod .. " + grave",           "Focus next monitor",                 hl.dsp.focus({ monitor = "+1" }))

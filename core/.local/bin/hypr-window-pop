@@ -14,21 +14,35 @@ else
 fi
 
 active=$(hyprctl activewindow -j)
-pinned=$(echo "$active" | jq ".pinned")
-floating=$(echo "$active" | jq ".floating")
+addr=$(echo "$active" | jq -r '.address // empty')
+[ -z "$addr" ] && exit 0
+pinned=$(echo "$active" | jq -r '.pinned')
+floating=$(echo "$active" | jq -r '.floating')
 
-if [[ $pinned == "true" ]]; then
+lua_eval() {
+  local out
+  out=$(hyprctl eval "$1" 2>&1) || return 1
+  [[ "$out" != error:* ]]
+}
+
+if [[ "$pinned" == "true" ]]; then
   # Window is pinned -> unpin it and unfloat back to tiled
-  hyprctl dispatch pin
-  hyprctl dispatch togglefloating
-elif [[ $floating == "true" ]]; then
+  if ! lua_eval "hl.dispatch(hl.dsp.window.pin({ window = \"address:$addr\" })); hl.dispatch(hl.dsp.window.float({ action = \"toggle\", window = \"address:$addr\" }))"; then
+    hyprctl dispatch pin
+    hyprctl dispatch togglefloating
+  fi
+elif [[ "$floating" == "true" ]]; then
   # Already floating but not pinned -> just pin it
-  hyprctl dispatch pin
+  if ! lua_eval "hl.dispatch(hl.dsp.window.pin({ window = \"address:$addr\" }))"; then
+    hyprctl dispatch pin
+  fi
 else
   # Tiled window -> float, resize, center, pin, and bring to top
-  hyprctl dispatch togglefloating
-  hyprctl dispatch resizewindowpixel "exact ${width} ${height},activewindow"
-  hyprctl dispatch centerwindow
-  hyprctl dispatch pin
-  hyprctl dispatch alterzorder top
+  if ! lua_eval "hl.dispatch(hl.dsp.window.float({ action = \"toggle\", window = \"address:$addr\" })); hl.dispatch(hl.dsp.window.resize({ x = ${width}, y = ${height}, relative = false, window = \"address:$addr\" })); hl.dispatch(hl.dsp.window.center({ window = \"address:$addr\" })); hl.dispatch(hl.dsp.window.pin({ window = \"address:$addr\" })); hl.dispatch(hl.dsp.window.alter_zorder({ mode = \"top\", window = \"address:$addr\" }))"; then
+    hyprctl dispatch togglefloating
+    hyprctl dispatch resizewindowpixel "exact ${width} ${height},activewindow"
+    hyprctl dispatch centerwindow
+    hyprctl dispatch pin
+    hyprctl dispatch alterzorder top
+  fi
 fi

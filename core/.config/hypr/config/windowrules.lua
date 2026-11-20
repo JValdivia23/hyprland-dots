@@ -42,8 +42,8 @@ hl.window_rule({
 
 -- Apps
 hl.window_rule({ match = { class = "^(swayimg)$" }, float = true, center = true, size = { "monitor_w*0.65", "monitor_h*0.75" } })
-hl.window_rule({ match = { class = "^(Keybindings)$" }, float = true, center = true, size = { "monitor_w*0.55", "monitor_h*0.70" } })
-hl.window_rule({ match = { class = "^(CaptureMenu)$" }, float = true, center = true, size = { "monitor_w*0.42", "monitor_h*0.35" } })
+hl.window_rule({ match = { class = "^(org\\.hypr\\.)?(Keybindings)$" }, float = true, center = true, size = { "monitor_w*0.55", "monitor_h*0.70" } })
+hl.window_rule({ match = { class = "^(org\\.hypr\\.)?(CaptureMenu)$" }, float = true, center = true, size = { "monitor_w*0.42", "monitor_h*0.35" } })
 hl.window_rule({ match = { class = "^(.*\\.exe)$", float = true }, monitor = PRIMARY_MONITOR, center = true, fullscreen_state = 0 })
 hl.window_rule({ match = { class = "^(.*[Ll]auncher.*)$" }, float = true, monitor = PRIMARY_MONITOR })
 hl.window_rule({ match = { class = "^(vesktop|discord)$" }, monitor = PRIMARY_MONITOR })
@@ -66,7 +66,7 @@ hl.window_rule({
 })
 
 -- Opacity Overrides
-local terminals = "^(kitty|ghostty|com\\.mitchellh\\.ghostty|[Kk]onsole|Alacritty|gnome-terminal|xfce[0-9]?-terminal)$"
+local terminals = "^(kitty|ghostty|com\\.mitchellh\\.ghostty|org\\.hypr\\..*|[Kk]onsole|Alacritty|gnome-terminal|xfce[0-9]?-terminal)$"
 
 hl.window_rule({ match = { class = "^(firefox|zen)$" }, opacity = "1.0 override" })
 hl.window_rule({ match = { class = terminals }, opacity = "1.0 override" }) -- Override opacity in favor of terminal settings for opacity. If your terminal doesn't support transparency, you can remove this rule.

@@ -23,7 +23,9 @@ COUNT=0
 hyprctl clients -j | jq -r --arg ws "$CURRENT_WS" \
     '.[] | select(.workspace.id == ($ws | tonumber)) | .address' | \
 while read -r addr; do
-    hyprctl dispatch movetoworkspacesilent "$TARGET_WS,address:$addr" >/dev/null 2>&1
+    if ! hyprctl eval "hl.dispatch(hl.dsp.window.move({ workspace = \"$TARGET_WS\", window = \"address:$addr\", follow = false }))" >/dev/null 2>&1; then
+        hyprctl dispatch movetoworkspacesilent "$TARGET_WS,address:$addr" >/dev/null 2>&1
+    fi
     COUNT=$((COUNT + 1))
 done
 

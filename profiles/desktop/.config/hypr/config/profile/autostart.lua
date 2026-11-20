@@ -15,7 +15,7 @@ hl.on("hyprland.start", function ()
     -- Polkit authentication, clipboard persistence & session restore
     hl.exec_cmd("/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1")
     hl.exec_cmd("wl-clip-persist --clipboard regular --all-mime-type-regex '^(?!x-kde-passwordManagerHint).+'")
-    hl.exec_cmd(homeDir .. "/.local/bin/hyprresume")
+    hl.exec_cmd("systemd-cat -t hyprresume -- " .. homeDir .. "/.local/bin/hyprresume -v")
     hl.exec_cmd("ydotoold")
 
     -- Load XWayland HiDPI DPI resources (144 DPI for 1.67x fractional scaling)

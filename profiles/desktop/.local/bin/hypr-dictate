@@ -13,7 +13,7 @@ action="${1:-toggle}"
 # If Dota 2 is the active window, pass F9 through and exit
 if hyprctl activewindow 2>/dev/null | grep -q 'class: dota2'; then
     if [ "$action" = "start" ]; then
-        hyprctl dispatch sendshortcut ", F9, activewindow"
+        hyprctl eval 'hl.dispatch(hl.dsp.send_shortcut({ mods = "", key = "F9", window = "activewindow" }))' >/dev/null 2>&1
     fi
     exit 0
 fi

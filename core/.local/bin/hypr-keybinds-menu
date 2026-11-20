@@ -49,6 +49,10 @@ MODS = [
     (1, "SHIFT"),
 ]
 
+KEYCODE_NAMES = {
+    74: "F8 (code:74)",
+}
+
 def format_mods(mask):
     parts = []
     for val, name in MODS:
@@ -59,9 +63,10 @@ def format_mods(mask):
 
 def trigger_bind_detached(dispatcher, arg):
     """
-    Forks a detached background helper so this terminal (class 'Keybindings')
-    can exit and unmap first, allowing Hyprland to restore focus to the
-    previously active window before dispatching the selected keybinding.
+    Forks a detached background helper so this terminal (class 'Keybindings' /
+    'org.hypr.Keybindings') can exit and unmap first, allowing Hyprland to
+    restore focus to the previously active window before dispatching the
+    selected keybinding.
     """
     helper_code = """
 import json, subprocess, sys, time
@@ -73,7 +78,7 @@ for _ in range(40):
         res = subprocess.run(["hyprctl", "activewindow", "-j"], capture_output=True, text=True)
         if res.returncode == 0 and res.stdout.strip():
             win = json.loads(res.stdout)
-            if win.get("class") != "Keybindings" and win.get("initialClass") != "Keybindings":
+            if win.get("class") not in ("Keybindings", "org.hypr.Keybindings") and win.get("initialClass") not in ("Keybindings", "org.hypr.Keybindings"):
                 break
         else:
             break
@@ -83,7 +88,12 @@ for _ in range(40):
 
 time.sleep(0.03)
 
-if dispatcher == "__lua" and arg.isdigit():
+is_lua_bind = arg.isdigit() and (
+    dispatcher == "__lua"
+    or dispatcher.startswith("HL.Dispatcher(")
+    or dispatcher.startswith("function:")
+)
+if is_lua_bind:
     lua_expr = f"local fn = debug.getregistry()[{int(arg)}]; if type(fn) == 'function' then fn() end"
     subprocess.run(["hyprctl", "eval", lua_expr], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 elif dispatcher:
@@ -117,6 +127,10 @@ def main():
 
         mods = format_mods(b.get("modmask", 0))
         key = b.get("key", "")
+        if not key:
+            kc = b.get("keycode", 0)
+            if kc:
+                key = KEYCODE_NAMES.get(kc, f"code:{kc}")
         if b.get("mouse", False) and not key.startswith("mouse"):
             key = f"mouse:{key}"
 

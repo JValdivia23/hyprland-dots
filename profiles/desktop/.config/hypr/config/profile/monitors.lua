@@ -40,3 +40,13 @@ hl.workspace_rule({ workspace = "1", monitor = "DP-1", default = true, persisten
 hl.workspace_rule({ workspace = "2", monitor = "DP-1", persistent = true })
 hl.workspace_rule({ workspace = "3", monitor = "DP-1", persistent = true })
 hl.workspace_rule({ workspace = "8", monitor = "HDMI-A-1", persistent = true })
+
+-- Ensure native Dota 2 launches directly on workspace 8 in true fullscreen (mode = fullscreen, not maximized)
+hl.window_rule({
+    name       = "dota2-ws8-fullscreen",
+    match      = { class = "^(dota2)$" },
+    workspace  = "8",
+    fullscreen = true,
+    content    = "game",
+    decorate   = false,
+})
