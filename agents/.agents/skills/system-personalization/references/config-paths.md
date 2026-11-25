@@ -72,6 +72,7 @@ hl.gesture({ fingers = <N>, direction = "<dir>", action = "<action>" })
 | Path | Controls | Edit Rule |
 |------|----------|-----------|
 | `config.toml` | Main Wayland Shell settings: widgets, panels, tray icons, themes | Universal base configuration from `core/.config/noctalia/config.toml`. Run `noctalia msg config-reload` or restart after editing. |
+| `quick-spotify.toml` | Quick Spotify dynamic theme template (`~/.config/quick-spotify/colors.toml`) | Universal template from `core/.config/noctalia/quick-spotify.toml` + `templates/quick-spotify-colors.toml`. |
 | `desktop.toml` | Desktop profile overrides: straight edges, 0px radius, 0.55 opacity, compositor blur, G903 mouse-battery glyph + live percentage | Profile override deployed from `profiles/desktop/.config/noctalia/desktop.toml` via GNU Stow. Noctalia merges automatically. |
 
 ---
@@ -120,6 +121,7 @@ Universal shell scripts executed by Hyprland keybindings or desktop workflows.
 | `hypr-lid-handler` | Universal Clamshell DPMS Handler | Clamshell lid close/open handler managing DPMS power and power profiles. |
 | `fastfetch-custom` | Terminal Greeting Fetch Script | Renders two-column system specs and mini CachyOS logo in Fish. |
 | `zen-sync` | Encrypted Zen Browser Profile Sync | Symlinked to `~/zen-sync/zen-sync.sh` (`JValdivia23/zen-sync` private repo); backs up and restores Zen workspaces, tabs, logins (`key4.db`+`logins.json`), cookies, and extensions with GPG AES-256 encryption. |
+| `quick-spotify` | Lightweight Quickshell Spotify Launcher & IPC | Universal wrapper in `core/.local/bin/quick-spotify` driving `~/dev/Quick-Spotify` (`JValdivia23/Quick-Spotify`, ~60 MB RAM) with auto-bootstrap on new machines. |
 
 ---
 

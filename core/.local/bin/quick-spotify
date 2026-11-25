@@ -1,0 +1,30 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Universal Quick Spotify wrapper for hyprland-dots (core/)
+# Locates ~/dev/Quick-Spotify (auto-cloning & building on first run on new machines)
+# and dispatches to standalone/bin/quick-spotify.
+
+REPO_URL="https://github.com/JValdivia23/Quick-Spotify.git"
+REPO_DIR="${QUICK_SPOTIFY_ROOT:-$HOME/dev/Quick-Spotify}"
+BACKEND_BIN="${OMARCHY_SPOTIFY_RUNTIME_DIR:-$HOME/.local/lib/omarchy-spotify}/omarchy-spotify-backend"
+
+if [[ ! -f "$REPO_DIR/standalone/shell.qml" ]]; then
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a "Quick Spotify" "Quick Spotify Setup" \
+      "Cloning and building Quick Spotify for first launch..."
+  fi
+  mkdir -p "$(dirname -- "$REPO_DIR")"
+  git clone "$REPO_URL" "$REPO_DIR"
+fi
+
+if [[ ! -x "$BACKEND_BIN" && "${1:-toggle}" != "status" && "${1:-toggle}" != "quit" ]]; then
+  if command -v notify-send >/dev/null 2>&1; then
+    notify-send -a "Quick Spotify" "Quick Spotify Setup" \
+      "Building lightweight Rust Spotify backend (one-time setup)..."
+  fi
+  "$REPO_DIR/scripts/setup.sh" --require-native --device-name "Quick Spotify"
+fi
+
+export QUICK_SPOTIFY_ROOT="$REPO_DIR"
+exec "$REPO_DIR/standalone/bin/quick-spotify" "$@"

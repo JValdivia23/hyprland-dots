@@ -10,10 +10,7 @@ local mainMod = "SUPER"
 ---- DESKTOP HARDWARE & SHORTCUTS   ----
 ----------------------------------------
 
--- 1. Spotify Launcher (Desktop standard)
-helpers.bind(mainMod .. " + SHIFT + M", "Launch Spotify", "spotify-launcher")
-
--- 2. Whisper Push-to-Talk (F9) & Toggle
+-- 1. Whisper Push-to-Talk (F9) & Toggle
 helpers.bind("F9", "Whisper Dictation (Start)", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-dictate start"))
 helpers.bind("F9", "Whisper Dictation (Stop)", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-dictate stop"), { release = true })
 helpers.bind(mainMod .. " + CONTROL + X", "Toggle Whisper Dictation", hl.dsp.exec_cmd(homeDir .. "/.local/bin/hypr-dictate toggle"))

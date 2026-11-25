@@ -11,7 +11,7 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `Escape` | Session Menu | Open Noctalia shutdown, reboot, logout, suspend menu |
 | `SUPER` + `Q` / `W` | Close Window | Close the focused window |
 | `SUPER` + `M` | Minimize to Tray | Minimize active window to the unified tray drawer (keeps alive in background) |
-| `SUPER` + `SHIFT` + `M` | Restore Window | Restore the most recently minimized window back to active workspace |
+| `SUPER` + `CONTROL` + `M` | Restore Window | Restore the most recently minimized window back to active workspace |
 | `SUPER` + `ALT` + `M` | Minimized Drawer Menu | Open the interactive minimized apps drawer menu (`noctalia dmenu`) |
 | `SUPER` + `T` | Toggle Floating | Toggle floating/tiling state of active window |
 | `SUPER` + `D` | Fullscreen Mode 1 | Fullscreen window keeping workspace bar |
@@ -69,6 +69,8 @@ The modifier key `SUPER` (Windows/Command key) is denoted as **`SUPER`**.
 | `SUPER` + `SHIFT` + `N` | `nvim ~/Documents/Notes` | Focuses active Notes session or launches |
 | `SUPER` + `SHIFT` + `Y` | YouTube Webapp | Focuses active YouTube window or launches |
 | `SUPER` + `SHIFT` + `U` | `yazi` | Focuses active Yazi TUI or launches |
+| `SUPER` + `SHIFT` + `M` | `quick-spotify` | Toggles Quick Spotify full player (`JValdivia23/Quick-Spotify`, ~60 MB RAM) |
+| `SUPER` + `CONTROL` + `ALT` + `M` | `quick-spotify mini` | Toggles Quick Spotify dropdown mini-player on focused monitor |
 
 ## System Panels & Utilities (`SUPER + <key>`)
 

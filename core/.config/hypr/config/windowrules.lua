@@ -41,6 +41,7 @@ hl.window_rule({
 })
 
 -- Apps
+hl.window_rule({ match = { class = "^(quick-spotify|org\\.quickshell)$", title = "^(Omarchy Spotify|Quick Spotify)$" }, float = true, center = true, opacity = "1.0 override" })
 hl.window_rule({ match = { class = "^(swayimg)$" }, float = true, center = true, size = { "monitor_w*0.65", "monitor_h*0.75" } })
 hl.window_rule({ match = { class = "^(org\\.hypr\\.)?(Keybindings)$" }, float = true, center = true, size = { "monitor_w*0.55", "monitor_h*0.70" } })
 hl.window_rule({ match = { class = "^(org\\.hypr\\.)?(CaptureMenu)$" }, float = true, center = true, size = { "monitor_w*0.42", "monitor_h*0.35" } })

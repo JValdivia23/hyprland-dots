@@ -1,0 +1,30 @@
+[Desktop Entry]
+Type=Application
+Version=1.5
+Name=Quick Spotify
+GenericName=Music Player
+Comment=Lightweight native Quickshell Spotify client (~60 MB RAM)
+Exec=quick-spotify toggle
+Icon=quick-spotify
+Terminal=false
+Categories=AudioVideo;Audio;Music;Player;
+Keywords=spotify;music;player;quickshell;connect;
+StartupNotify=false
+StartupWMClass=quick-spotify
+Actions=MiniPlayer;PlayPause;Next;Previous;
+
+[Desktop Action MiniPlayer]
+Name=Toggle Mini Player
+Exec=quick-spotify mini
+
+[Desktop Action PlayPause]
+Name=Play / Pause
+Exec=quick-spotify play-pause
+
+[Desktop Action Next]
+Name=Next Track
+Exec=quick-spotify next
+
+[Desktop Action Previous]
+Name=Previous Track
+Exec=quick-spotify previous

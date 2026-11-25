@@ -1,0 +1,6 @@
+# Quick Spotify live theme template for Noctalia Wayland Shell
+# Renders active M3/wallpaper palette into ~/.config/quick-spotify/colors.toml
+[theme.templates.user.quick_spotify]
+input_path = "~/.config/noctalia/templates/quick-spotify-colors.toml"
+pre_hook = "sh -c 'mkdir -p \"$HOME/.config/quick-spotify\"'"
+output_path = "~/.config/quick-spotify/colors.toml"

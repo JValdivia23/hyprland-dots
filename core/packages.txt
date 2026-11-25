@@ -3,6 +3,7 @@ alacritty
 ani-cli
 ani-cli-mx
 artcraft-launcher-bin
+avahi
 awesome-terminal-fonts
 brave-origin-bin
 brightnessctl
@@ -30,6 +31,7 @@ jq
 kitty
 lazydocker
 lazygit
+libsecret
 libvips
 localsend
 micro
@@ -44,7 +46,9 @@ pavucontrol
 pipewire-alsa
 pipewire-pulse
 python-pillow
+quickshell
 ripgrep
+rust
 satty
 slurp
 snapshot
