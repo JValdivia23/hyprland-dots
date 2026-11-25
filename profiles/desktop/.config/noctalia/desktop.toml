@@ -7,3 +7,10 @@ radius_bottom_right = 0
 background_opacity = 0.55
 compositor_blur = true
 
+# The workstation has no system battery; show the G903's charge as a mouse + percentage.
+[widget.battery]
+device = "hidpp_battery_0"
+custom_label = "󰍽"
+display_mode = "none"
+show_label = true
+

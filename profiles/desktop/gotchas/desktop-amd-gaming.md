@@ -42,6 +42,7 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
 - **`hidpp_battery_0` Laptop Detection Gotcha**:
   - The G903 LIGHTSPEED exposes `/sys/class/power_supply/hidpp_battery_0` (`type=Battery`, `scope=Device`).
   - Naive `ls /sys/class/power_supply/ | grep -i battery` checks misclassify desktop towers (`SYS_CHASSIS=3`) as laptops. `install.sh` and `init-skill.sh` explicitly check SMBIOS desktop chassis codes (`3|4|5|6|7|13|15|16`) and filter out `scope == "Device"` peripheral batteries.
+  - **Noctalia mouse-battery presentation (2026-11-25)**: With no system battery, the battery widget's `auto` selector follows the G903. The desktop-only override in `profiles/desktop/.config/noctalia/desktop.toml` explicitly pins `device = "hidpp_battery_0"` and uses `custom_label = "󰍽"`, `display_mode = "none"`, and `show_label = true` to render a mouse glyph plus the live percentage. The explicit selector prevents a future headset/gamepad from being mislabeled as the mouse; keep this override out of `core/` so laptops retain normal battery icons.
 
 ---
 

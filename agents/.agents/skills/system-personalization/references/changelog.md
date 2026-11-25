@@ -2,6 +2,12 @@
 
 Every system change, config edit, package install, and fix. Most recent first.
 
+## 2026-11-25
+
+| Time | What | Why | Files Touched |
+|------|------|-----|---------------|
+| 12:30 | Changed the desktop Noctalia peripheral-battery widget to a mouse glyph + live percentage | The workstation's only battery is the Logitech G903 LS, so the battery-shaped icon was ambiguous. Scoped the override to the desktop profile, pinned `device = "hidpp_battery_0"` so future peripherals cannot be mislabeled as the mouse, set `custom_label = "󰍽"` and `display_mode = "none"`, and retained the live label, tooltip, charging state, and warning colors. `noctalia config validate` passed, hot reload succeeded, and both monitor bars were visually verified. | `~/dev/dotfiles/profiles/desktop/.config/noctalia/desktop.toml`, `~/dev/dotfiles/profiles/desktop/gotchas/desktop-amd-gaming.md`, `~/dev/dotfiles/agents/.agents/skills/system-personalization/references/{changelog.md,config-paths.md}` |
+
 ## 2026-11-24
 
 | Time | What | Why | Files Touched |
