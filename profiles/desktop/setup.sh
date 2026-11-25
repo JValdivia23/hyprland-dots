@@ -49,6 +49,9 @@ if command -v systemctl &>/dev/null; then
     if [ -f "$HOME/.config/systemd/user/g903-mouse5.service" ]; then
         systemctl --user enable --now g903-mouse5.service 2>/dev/null || true
     fi
+    if [ -f "$HOME/.config/systemd/user/onedrive.service" ] && [ -f "$HOME/.config/rclone/rclone.conf" ]; then
+        systemctl --user enable --now onedrive.service 2>/dev/null || true
+    fi
     for timer in qs-aur-blacklist-fetch.timer qs-shell-update-check.timer; do
         if [ -f "$HOME/.config/systemd/user/$timer" ]; then
             systemctl --user enable --now "$timer" 2>/dev/null || true

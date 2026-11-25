@@ -4,3 +4,4 @@
 ^scripts
 ^gotchas
 ^\.stow-local-ignore$
+__pycache__

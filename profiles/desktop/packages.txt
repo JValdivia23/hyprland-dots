@@ -16,3 +16,4 @@ lib32-libpulse
 amdgpu_top
 tesseract-data-spa
 wtype
+rclone
