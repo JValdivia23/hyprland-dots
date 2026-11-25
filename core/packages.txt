@@ -2,6 +2,7 @@
 alacritty
 ani-cli
 ani-cli-mx
+artcraft-launcher-bin
 awesome-terminal-fonts
 brave-origin-bin
 brightnessctl
