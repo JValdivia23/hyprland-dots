@@ -118,3 +118,16 @@ Curated hardware quirks, audio fixes, peripheral workarounds, and gaming optimiz
   1. Deployed `/etc/udev/rules.d/99-amdgpu-rx7700xt-dpm.rules` (from `profiles/desktop/scripts/99-amdgpu-rx7700xt-dpm.rules`) matching strictly `SUBSYSTEM=="drm", KERNEL=="card[0-9]", DRIVERS=="amdgpu", ATTRS{vendor}=="0x1002", ATTRS{device}=="0x747e"` to set `ATTR{device/power_dpm_force_performance_level}="high"` on boot without touching the Ryzen 7600X iGPU (`0x164e`).
   2. Deployed `/usr/lib/systemd/system-sleep/amdgpu-rx7700xt-dpm` (from `profiles/desktop/scripts/amdgpu-rx7700xt-dpm-sleep`) to re-apply `high` on `post` suspend/hibernate resume.
   3. Re-test `auto` mode after future `linux-firmware-amdgpu` (post-`20261019`) or kernel `7.4+` updates; remove both files if upstream resolves the `DMUB`/DPM vblank-overrun regression.
+
+---
+
+## 12. KTC A32Q8 Smart Monitor (`DP-1`) Custom Open-Source Launcher (`ktc-launcher`) & ADB Debloat
+
+- **Hardware / Firmware**: Realtek `RTD2851F` (`kaisyuan`, quad-core Cortex-A55 `armv8l`, 1.83 GB RAM, Android 11 / SDK 30, locked AVB 1.1 bootloader). Monitor input switching, OSD, and DDC/CI depend on `com.realtek.*` system services (never disable `com.realtek.*` packages).
+- **Network ADB**: Discovered via mDNS (`Bedroom TV` / `Eco Smart Monitor`, `10.0.0.144:5555`). Note that the monitor puts Wi-Fi into sleep when sitting on DisplayPort if idle; press Home on the remote to wake ADB if needed.
+- **Custom Open-Source Launcher (`~/dev/MinimalTVLauncher`, GitHub: `JValdivia23/MinimalTVLauncher`)**:
+  - Built with `jdk17-openjdk` + `~/Android/Sdk` (`platforms;android-34`, `build-tools;34.0.0`) via `~/dev/MinimalTVLauncher/build.sh --install 10.0.0.144:5555` (~25 KB APK, ~38 MB PSS).
+  - Realtek hardware passthrough IDs: **DisplayPort** (`com.realtek.tv.passthrough/.dpinput.DPTvInputService/HW168624384`), **USB-C** (`HW168624128`), **HDMI 1** (`com.realtek.tv.passthrough/.hdmiinput.HDMITvInputService/HW151519232`), launched via `ACTION_VIEW` on `com.realtek.tv/.MainActivity`.
+  - **Gotcha**: Never modify Android's `settings put secure tv_input_custom_labels` — Realtek's native OSD reads that key and overrides the native DP/Type-C icons in the monitor's own input switcher.
+  - **Rollback**: To restore Google TV at any time, run `adb -s 10.0.0.144:5555 shell pm enable com.google.android.apps.tv.launcherx`.
+

@@ -58,6 +58,8 @@ Lock screen: Hyprlock / Noctalia Session Lock
 | hyprresume | AUR | Session persistence |
 | google-chrome | AUR (paru -S --aur) | Browser |
 | elephant-all-bin | AUR | Walker data providers |
+| artcraft-launcher-bin | AUR (`0.19.2-1`) | Craft App Suite launcher & updater (`core/packages.txt`) |
+| rclone | `cachyos-extra-znver4` (`1.76.0-1.1`) | OneDrive Files On-Demand FUSE mount (`onedrive.service` -> `~/OneDrive`, `profiles/desktop/`) |
 
 ## Omarchy Fork
 
